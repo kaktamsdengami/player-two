@@ -1,7 +1,7 @@
 """Hostile-tester agent: one H desktop session (pixels only) on the running QA build.
 
 Usage (game window must be on this machine's screen; the SDK serves it as a `user_device` desktop):
-    python -m agents.tester --map 3 1 --steps 60 --minutes 15
+    python -m agents.tester --map 3 1 --steps 120 --minutes 15
 The tester never receives the known-bug list or the event log. The launcher records the screen and
 keeps the hidden event log for the verifier (T08).
 """
@@ -222,7 +222,7 @@ class Tester:
     def start(
         self,
         task: str = DEFAULT_TASK,
-        max_steps: int = 60,
+        max_steps: int = 120,
         max_time_s: float = 900,
         idle_timeout_s: int = 600,
         min_slots: int = 2,
@@ -288,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m agents.tester")
     p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
     p.add_argument("--speed", default="step")
-    p.add_argument("--steps", type=int, default=60)
+    p.add_argument("--steps", type=int, default=120)  # ~6-7 s each: fits 15 min
     p.add_argument("--minutes", type=float, default=15)
     p.add_argument("--task", default=DEFAULT_TASK)
     a = p.parse_args(argv)
