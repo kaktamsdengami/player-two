@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from app.contracts import EventMatch, LogSignature
+from app.contracts import EventMatch, GameEvent, LogSignature
 from launcher import capture
 from launcher.config import LauncherConfig, Speed
 from launcher.game import Game
@@ -162,3 +162,35 @@ def test_cut_clip_real(tmp_path):
         capture_output=True, text=True, check=True,
     ).stdout  # fmt: skip
     assert float(dur) == pytest.approx(1.0, abs=0.25)
+
+
+def _ev(tic: int, type_: str, **data) -> GameEvent:
+    return GameEvent.model_validate({"tic": tic, "t": tic / 35, "type": type_, "data": data})
+
+
+def test_signature_window_is_order_independent():
+    sig = LogSignature(
+        description="a and b close together",
+        all_of=[EventMatch(type="a"), EventMatch(type="b")],
+        within_tics=20,
+    )
+    hits = signature_hits(sig, [_ev(10, "b"), _ev(15, "a")])
+    assert hits is not None and [e.type for e in hits] == ["a", "b"]
+    assert signature_hits(sig, [_ev(10, "b"), _ev(40, "a")]) is None
+
+
+def test_open_none_of_window_is_not_proof_yet(tmp_path):
+    sig = LogSignature(
+        description="a without c nearby",
+        all_of=[EventMatch(type="a")],
+        none_of=[EventMatch(type="c")],
+        within_tics=35,
+    )
+    assert signature_hits(sig, [_ev(10, "a"), _ev(20, "x")], until_tic=20) is None
+    assert signature_hits(sig, [_ev(10, "a"), _ev(50, "x")], until_tic=50) is not None
+    assert signature_hits(sig, [_ev(10, "a"), _ev(30, "c")]) is None
+    log_path = tmp_path / "events.jsonl"
+    log_path.write_text(
+        _ev(10, "a").model_dump_json() + "\n" + _ev(20, "x").model_dump_json() + "\n"
+    )
+    assert EventLog(log_path).wait_for(sig, timeout=0) is None

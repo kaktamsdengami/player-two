@@ -43,28 +43,35 @@ def event_matches(m: EventMatch, ev: GameEvent) -> bool:
     return True
 
 
-def signature_hits(sig: LogSignature, events: list[GameEvent]) -> list[GameEvent] | None:
-    """The events that prove `sig` (one per `all_of` entry), or None if it does not hold."""
+def signature_hits(
+    sig: LogSignature, events: list[GameEvent], until_tic: int | None = None
+) -> list[GameEvent] | None:
+    """The events that prove `sig` (one per `all_of` entry, in any order), or None.
+
+    `until_tic` is how far a still-growing log is known to reach: a `none_of` window that is
+    still open there proves nothing yet. Leave it None for a finished log."""
     hits = [[e for e in events if event_matches(m, e)] for m in sig.all_of]
     if not all(hits):
         return None
+
+    def clean(lo: float, hi: float) -> bool:
+        return not any(
+            event_matches(n, e) and lo <= e.tic <= hi for n in sig.none_of for e in events
+        )
+
     if sig.within_tics is None:
-        if any(event_matches(n, e) for n in sig.none_of for e in events):
-            return None
-        return [h[0] for h in hits]
-    for first in hits[0]:
-        lo, hi = first.tic, first.tic + sig.within_tics
-        picked = [first]
-        for h in hits[1:]:
-            inside = [e for e in h if lo <= e.tic <= hi]
-            if not inside:
-                break
-            picked.append(inside[0])
-        else:
-            if not any(
-                event_matches(n, e) and lo <= e.tic <= hi for n in sig.none_of for e in events
-            ):
-                return picked
+        if sig.none_of and until_tic is not None:
+            return None  # absence over the whole run needs the finished log
+        return [h[0] for h in hits] if clean(float("-inf"), float("inf")) else None
+    for lo in sorted({e.tic for h in hits for e in h}):
+        hi = lo + sig.within_tics
+        picked = [next((e for e in h if lo <= e.tic <= hi), None) for h in hits]
+        if any(e is None for e in picked):
+            continue
+        if sig.none_of and until_tic is not None and hi > until_tic:
+            continue
+        if clean(lo, hi):
+            return picked  # type: ignore[return-value]
     return None
 
 
@@ -108,9 +115,13 @@ class EventLog:
     def wait_for(
         self, sig: LogSignature, timeout: float, since_t: float | None = None, every: float = 0.2
     ) -> list[GameEvent] | None:
+        """Poll a live log. A `none_of` only counts once the log has passed its window; with no
+        `within_tics` that means never here: stop the game, then call `happened`."""
         end = time.monotonic() + timeout
         while True:
-            hits = self.happened(sig, since_t)
+            events = self.since(since_t)
+            last = self.events[-1].tic if self.events else 0
+            hits = signature_hits(sig, events, until_tic=last)
             if hits or time.monotonic() >= end:
                 return hits
             time.sleep(every)
