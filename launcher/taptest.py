@@ -79,8 +79,10 @@ def passed(seen: list[int], tics: int) -> bool:
     """Every tap moved the clock by one step: not frozen, not free-running, not counted twice.
     Steps end on whole multiples of the step time, so the first one (after the one or two tics
     the QA build runs on level entry) and rounding may be up to 2 tics short or long."""
-    steps = zip(seen, seen[1:], strict=False)
-    return len(seen) > 1 and all(b - a > tics // 2 and abs(b - a - tics) <= 2 for a, b in steps)
+    deltas = [b - a for a, b in zip(seen, seen[1:], strict=False)]
+    if not deltas or not 1 <= deltas[0] <= tics + 2:  # the first step may end early
+        return False
+    return all(d > tics // 2 and abs(d - tics) <= 2 for d in deltas[1:])
 
 
 def main(argv: list[str] | None = None) -> int:
