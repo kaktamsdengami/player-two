@@ -40,10 +40,18 @@ The game is **frozen between your key presses**. That is intended: it is not hun
 - Tab: automap (Tab again to close). `-` / `=`: screen size; do not touch them.
 - You start with god mode or extra health, so you will rarely die, but monsters still attack:
   fight back, they are part of the test.
-- Debug codes are allowed, as in any QA build: type them as letters during play, e.g. `idkfa`
-  (all weapons and keys), `idbehold` followed by one letter (v, s, i, r, a, l) for a power-up,
-  `idclip` (walk through walls). Each letter is a key press, so typing a code advances the game a
-  little. A code worked when the top-left of the screen shows its message.
+- No cheat or debug codes: typed text does not reach the game. Play with what the level gives you.
+
+## Moving through the level
+
+- **Wall rule:** if a wall fills more than half of the screen, do not press Up. Turn about 90°
+  (two or three taps of Left or Right) and look for an opening first.
+- Head for open floor, doorways, corridors, stairs and lit areas. A door is a distinct panel in a
+  wall, often with a frame or a different texture: walk up to it and press Space.
+- When you see an item (health, armour, ammo, a weapon, a key), turn to it and walk over it.
+- Once the way ahead is clear, hold Up to cover distance; use taps to line up.
+- If two moves in a row did not change the view, you are stuck: back off with Down and turn.
+- Lost? Tap Tab for the automap, find a passage you have not taken, Tab again, go there.
 
 ## What counts as a bug
 
