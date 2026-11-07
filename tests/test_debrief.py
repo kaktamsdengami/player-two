@@ -176,3 +176,18 @@ def test_heatmap_bounds_contain_every_cell():
     (x0, y0, x1, y1), cells = debrief.heatmap([ev])
     assert x1 > x0 and y1 > y0
     assert all(x0 <= c.x <= x1 and y0 <= c.y <= y1 for c in cells)
+
+
+def test_game_relaunches_are_not_retries_and_durations_add_up():
+    events = [
+        debrief.GameEvent.model_validate_json(x)
+        for x in [
+            ev(0, "level", 0, 0),
+            ev(350, "move", 50, 0),
+            ev(0, "level", 0, 0),
+            ev(175, "move", 60, 0),
+        ]
+    ]
+    _, cells = debrief.heatmap(events)
+    assert sum(c.retries for c in cells) == 0
+    assert [len(r) for r in debrief.launches(events)] == [2, 2]

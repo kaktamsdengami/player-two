@@ -50,10 +50,23 @@ def load_events(path: Path) -> list[GameEvent]:
     return out
 
 
+def launches(events: list[GameEvent]) -> list[list[GameEvent]]:
+    """The run log concatenates game launches (one per round); `t` restarts at each launch."""
+    out: list[list[GameEvent]] = [[]]
+    last = None
+    for e in events:
+        if e.t is not None:
+            if last is not None and e.t < last and out[-1]:
+                out.append([])
+            last = e.t
+        out[-1].append(e)
+    return [run for run in out if run]
+
+
 def heatmap(
     events: list[GameEvent], cell: float = CELL
 ) -> tuple[tuple[float, float, float, float] | None, list[HeatCell]]:
-    """Deaths at the player's position; a retry is every level (re)start after the first one."""
+    """Deaths at the player's position; a retry is a level restart within one game launch."""
     pts = [(e.player.x, e.player.y) for e in events if e.player]
     if not pts:
         return None, []
@@ -73,16 +86,17 @@ def heatmap(
             cells[k] = HeatCell(x=(k[0] + 0.5) * cell, y=(k[1] + 0.5) * cell)
         return cells[k]
 
-    seen: Counter[str] = Counter()
-    for e in events:
-        if not e.player:
-            continue
-        if e.type == "death":
-            at(e).deaths += 1
-        elif e.type == "level":
-            seen[e.map or ""] += 1
-            if seen[e.map or ""] > 1:
-                at(e).retries += 1
+    for run in launches(events):
+        seen: Counter[str] = Counter()
+        for e in run:
+            if not e.player:
+                continue
+            if e.type == "death":
+                at(e).deaths += 1
+            elif e.type == "level":
+                seen[e.map or ""] += 1
+                if seen[e.map or ""] > 1:
+                    at(e).retries += 1
     return bounds, sorted(cells.values(), key=lambda c: (-(c.deaths + c.retries), c.x, c.y))
 
 
@@ -146,13 +160,14 @@ def build(
         }
         findings = [verified.get(f.id, f) for f in findings]
     bounds, cells = heatmap(events)
-    times = [e.t for e in events if e.t is not None]
     maps = list(dict.fromkeys(e.map for e in events if e.map))
     return DebriefReport(
         session_id=summary.get("session_id") or run_dir.name,
         game=GAME,
         maps=maps,
-        duration_s=max(times, default=0.0),
+        duration_s=sum(
+            max((e.t for e in r if e.t is not None), default=0.0) for r in launches(events)
+        ),
         map_bounds=bounds,
         heatmap=cells,
         notes=notes,
