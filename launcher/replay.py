@@ -27,7 +27,8 @@ def replay_script(run_dir: Path, out: Path) -> Path:
     """QA start lines + every letter the agent typed in the level, at the same tic."""
     start = run_dir / "qa_start.txt"
     lines = start.read_text().splitlines() if start.exists() else []
-    events = EventLog(run_dir / "events.jsonl").poll()
+    log = run_dir / "agent_events.jsonl"  # the demo's own round, if later rounds reused the dir
+    events = EventLog(log if log.exists() else run_dir / "events.jsonl").poll()
     lines += [f"{e.tic} key {e.data['key']}" for e in events if e.type == "key" and "key" in e.data]
     lines.sort(key=lambda x: int(x.split()[0]))
     out.write_text("".join(x + "\n" for x in lines))

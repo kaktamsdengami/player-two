@@ -32,3 +32,9 @@ def test_replay_command_plays_the_demo_at_game_speed(tmp_path):
     assert "-qa-tics" not in cmd and "-warp" not in cmd and "-nosound" in cmd
     assert cmd[cmd.index("-qa-script") + 1] == str(tmp_path / "s.txt")
     assert "game speed" in LABEL
+
+
+def test_replay_script_prefers_the_demo_rounds_log(tmp_path):
+    (tmp_path / "events.jsonl").write_text(json.dumps(_ev(50, "key", key=120)) + "\n")
+    (tmp_path / "agent_events.jsonl").write_text(json.dumps(_ev(9, "key", key=105)) + "\n")
+    assert replay_script(tmp_path, tmp_path / "s.txt").read_text() == "9 key 105\n"
