@@ -244,9 +244,11 @@ function BugCard({
       <div className="card-actions">
         {!fix && (
           <>
-            <button className="primary" onClick={() => onIntent('fix', f.id)}>
-              Fix?
-            </button>
+            {(f.status === 'verified' || f.status === 'presented') && (
+              <button className="primary" onClick={() => onIntent('fix', f.id)}>
+                Fix?
+              </button>
+            )}
             <button onClick={() => onIntent('explain', f.id)}>Explain</button>
             <button onClick={() => onIntent('skip', f.id)}>Skip</button>
           </>
