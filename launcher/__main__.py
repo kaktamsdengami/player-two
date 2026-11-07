@@ -83,11 +83,18 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("out", type=Path)
     c.add_argument("--speed", type=float, default=1.0)
     c.add_argument("--label", action="store_true", help='add "RECORDED · N× speed"')
+    r = sub.add_parser("replay", help="play <run_dir>/agent.lmp at game speed and record it")
+    r.add_argument("run_dir", type=Path)
+    r.add_argument("--no-video", action="store_true")
     a = p.parse_args(argv)
 
     cfg = LauncherConfig.from_env()
     if a.cmd == "demo":
         out = demo(cfg, a.seconds, Speed.parse(a.speed))
+    elif a.cmd == "replay":
+        from launcher.replay import replay
+
+        out = replay(cfg, a.run_dir.resolve(), video=not a.no_video)
     elif a.cmd == "build":
         out = {"exe": str(b.build(cfg))}
     elif a.cmd == "fetch":

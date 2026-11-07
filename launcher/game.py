@@ -30,7 +30,12 @@ class Game:
         return self.run_dir / "events.jsonl"
 
     def command(
-        self, episode: int, map_: int, speed: Speed, script: Path | None = None
+        self,
+        episode: int,
+        map_: int,
+        speed: Speed,
+        script: Path | None = None,
+        record: Path | None = None,
     ) -> list[str]:
         c = self.cfg
         extra = self.run_dir / "launcher.cfg"
@@ -43,6 +48,8 @@ class Game:
                *speed.args()]  # fmt: skip
         if not c.sound:
             cmd.append("-nosound")
+        if record:  # vanilla demo (.lmp appended): the agent's inputs per tic, for replays
+            cmd += ["-record", str(record), "-maxdemo", "4096"]
         if script is None:
             script = self.start_script()
         if script:
@@ -65,6 +72,7 @@ class Game:
         speed: Speed | None = None,
         script: Path | None = None,
         wait_window: float = 10.0,
+        record: Path | None = None,
     ) -> Window | None:
         """Launch, wait for the window, put it in front. Returns the window (None if not seen)."""
         self.stop()
@@ -72,7 +80,7 @@ class Game:
             self.log_path.unlink()
         self.log = EventLog(self.log_path)
         c = self.cfg
-        cmd = self.command(episode or c.episode, map_ or c.map, speed or c.speed, script)
+        cmd = self.command(episode or c.episode, map_ or c.map, speed or c.speed, script, record)
         self.started_at = time.time()
         self.proc = subprocess.Popen(
             cmd, cwd=self.run_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL

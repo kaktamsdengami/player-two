@@ -32,3 +32,13 @@ def test_hai_regions_restricts_fallback(monkeypatch):
     with pytest.raises(HBusyError):
         choose_region(quota_fn=q)
     assert seen == ["https://agp.hcompany.ai"]
+
+
+def test_tester_model_switch(monkeypatch):
+    from agents import tester
+    from agents.tools import TesterTools
+
+    monkeypatch.delenv("P2_TESTER_MODEL", raising=False)
+    assert tester.agent_spec(TesterTools(), "x")["model"] == "holo4-35b-a3b"
+    monkeypatch.setenv("P2_TESTER_MODEL", "holo4-27b")
+    assert tester.agent_spec(TesterTools(), "x")["model"] == "holo4-27b"

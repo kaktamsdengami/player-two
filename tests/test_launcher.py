@@ -103,7 +103,7 @@ def test_tail_reads_only_complete_lines(tmp_path):
 
 def test_speed_parse():
     assert Speed.parse("normal").args() == []
-    assert Speed.parse("step").args() == ["-qa-tics", "12"]
+    assert Speed.parse("step").args() == ["-qa-tics", "8"]
     assert Speed.parse("step:10").args() == ["-qa-tics", "10"]
     assert Speed.parse("slow:4").args() == ["-qa-slowmo", "4"] and Speed.parse("slow:4").factor == 4
     with pytest.raises(ValueError):
@@ -120,12 +120,15 @@ def test_game_command(tmp_path):
     game = Game(_cfg(tmp_path), tmp_path / "run")
     cmd = game.command(3, 1, Speed(), script=tmp_path / "s.txt")
     joined = " ".join(cmd)
-    assert "-warp 3 1" in joined and "-skill 3" in joined and "-qa-tics 12" in joined
+    assert "-warp 3 1" in joined and "-skill 3" in joined and "-qa-tics 8" in joined
     assert "-nomouse" in cmd and "-window" in cmd and "-nosound" in cmd
     assert cmd[cmd.index("-qa-log") + 1] == str(game.log_path)
     assert cmd[cmd.index("-qa-script") + 1] == str(tmp_path / "s.txt")
     extra = Path(cmd[cmd.index("-extraconfig") + 1]).read_text()
     assert 'window_position "0,0"' in extra and "window_width 1066" in extra
+    assert "show_endoom 0" in extra and "-record" not in cmd
+    rec = game.command(3, 1, Speed(), record=tmp_path / "run" / "agent")
+    assert rec[rec.index("-record") + 1] == str(tmp_path / "run" / "agent")
     full = Game(_cfg(tmp_path, fullscreen=True, sound=True), tmp_path / "run2")
     cmd = full.command(1, 7, Speed.parse("slow:2"))
     assert "-fullscreen" in cmd and "-nosound" not in cmd and "-qa-slowmo" in cmd

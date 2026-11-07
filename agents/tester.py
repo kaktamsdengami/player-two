@@ -43,7 +43,7 @@ def forbid_shell() -> None:
 
 
 AGENT_NAME = "player-two-tester"
-MODEL = "holo4-27b"
+MODEL = "holo4-35b-a3b"  # H's fastest; override with P2_TESTER_MODEL
 DEFAULT_TASK = (
     "Test this level like a hostile QA tester. Explore, provoke the game, and report every bug "
     "you find with report_finding. Finish with a short summary."
@@ -124,7 +124,7 @@ def agent_spec(tools: TesterTools, instructions: str | None = None) -> dict[str,
     return {
         "name": AGENT_NAME,
         "description": "Hostile QA tester for a Doom QA build; sees pixels only.",
-        "model": MODEL,
+        "model": os.environ.get("P2_TESTER_MODEL") or MODEL,
         "instructions": instructions or PROMPT.read_text(encoding="utf-8"),
         "environments": [{"id": "desktop", "kind": "desktop", "host": "user_device"}],
     }
@@ -305,7 +305,7 @@ def main(argv: list[str] | None = None) -> int:
     speed = Speed.parse(a.speed)
     if not speed.tics:
         raise SystemExit("the tester prompt assumes frame-step: use --speed step[:N]")
-    win = game.start(a.map[0], a.map[1], speed)
+    win = game.start(a.map[0], a.map[1], speed, record=run_dir / "agent")
     if win is None:
         game.stop()
         raise SystemExit("game window did not appear")
