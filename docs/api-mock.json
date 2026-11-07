@@ -1,0 +1,888 @@
+{
+  "_comment": "MOCK data for the dashboard (T15). Every value is invented for layout only; none of it is a measurement.",
+  "contracts_version": "1.0",
+  "GET /api/session": {
+    "id": "mock-session-001",
+    "game": "Chocolate Doom (QA build) + Freedoom",
+    "build": "MOCK build",
+    "map": "E1M1",
+    "state": "awaiting_approval",
+    "started_at": "2026-11-08T10:00:00Z",
+    "h_session_id": "mock-h-session",
+    "share_url": "https://example.invalid/mock-share-link",
+    "speed": "frame-step",
+    "live": false,
+    "steps": 42,
+    "findings": 2
+  },
+  "GET /api/actions": [
+    {
+      "session_id": "mock-session-001",
+      "step": 1,
+      "ts": "2026-11-08T10:00:05Z",
+      "t_session_s": 5,
+      "kind": "key_hold",
+      "keys": [
+        "Up"
+      ],
+      "duration_ms": 1200,
+      "description": "MOCK: walk forward toward the door",
+      "screenshot": "mock/screens/step-001.png"
+    },
+    {
+      "session_id": "mock-session-001",
+      "step": 2,
+      "ts": "2026-11-08T10:00:11Z",
+      "t_session_s": 11,
+      "kind": "key_press",
+      "keys": [
+        "Right"
+      ],
+      "duration_ms": 300,
+      "description": "MOCK: turn right",
+      "screenshot": "mock/screens/step-002.png"
+    },
+    {
+      "session_id": "mock-session-001",
+      "step": 3,
+      "ts": "2026-11-08T10:00:18Z",
+      "t_session_s": 18,
+      "kind": "key_press",
+      "keys": [
+        "space"
+      ],
+      "description": "MOCK: use the wall",
+      "screenshot": "mock/screens/step-003.png"
+    },
+    {
+      "session_id": "mock-session-001",
+      "step": 4,
+      "ts": "2026-11-08T10:00:25Z",
+      "t_session_s": 25,
+      "kind": "tool_call",
+      "description": "MOCK: report_finding(f-001)"
+    }
+  ],
+  "GET /api/notes": [
+    {
+      "session_id": "mock-session-001",
+      "ts": "2026-11-08T10:00:30Z",
+      "t_session_s": 30,
+      "text": "MOCK: the computer screens in the start room are large and visible for a long time",
+      "tags": [
+        "placement"
+      ],
+      "location": "start room, north wall",
+      "screenshot": "mock/screens/note-001.png"
+    },
+    {
+      "session_id": "mock-session-001",
+      "ts": "2026-11-08T10:01:00Z",
+      "t_session_s": 60,
+      "text": "MOCK: no hint where the exit is; I walked in circles",
+      "tags": [
+        "confusing"
+      ],
+      "location": "courtyard"
+    }
+  ],
+  "GET /api/findings": [
+    {
+      "id": "f-001",
+      "session_id": "mock-session-001",
+      "kind": "bug",
+      "title": "MOCK: status-bar face does not react to a big hit",
+      "location": "E1M1, start room",
+      "steps": [
+        "Stand still in the start room",
+        "Let the imp hit you once"
+      ],
+      "expected": "The face shows the pained 'ouch' expression",
+      "actual": "The face stays neutral",
+      "severity": "low",
+      "evidence": {
+        "screenshots": [
+          "mock/screens/f-001-a.png"
+        ],
+        "clip": {
+          "path": "mock/clips/f-001.mp4",
+          "start_s": 20,
+          "end_s": 32,
+          "speed": 8
+        },
+        "log_excerpt": [
+          {
+            "tic": 700,
+            "map": "E1M1",
+            "type": "player",
+            "player": {
+              "x": 1056,
+              "y": -3616,
+              "z": 0,
+              "angle": 90,
+              "health": 100,
+              "armor": 0
+            }
+          },
+          {
+            "tic": 712,
+            "map": "E1M1",
+            "type": "damage",
+            "player": {
+              "x": 1056,
+              "y": -3600,
+              "z": 0,
+              "angle": 90,
+              "health": 72,
+              "armor": 0
+            },
+            "data": {
+              "amount": 28,
+              "face": "normal"
+            }
+          }
+        ],
+        "share_url": "https://example.invalid/mock-share-link"
+      },
+      "known_bug_ref": "MOCK-KB-1",
+      "status": "presented",
+      "reported_at": "2026-11-08T10:00:25Z",
+      "t_session_s": 25,
+      "suggested_change": "MOCK: fix the health-delta comparison in the status bar"
+    },
+    {
+      "id": "f-002",
+      "session_id": "mock-session-001",
+      "kind": "bug",
+      "title": "MOCK: monster walks through a closed door",
+      "location": "E1M1, blue door",
+      "steps": [
+        "Wake the monster behind the blue door",
+        "Wait next to the door"
+      ],
+      "expected": "The monster stays behind the door",
+      "actual": "The monster appears on this side of the door",
+      "severity": "high",
+      "evidence": {
+        "screenshots": [
+          "mock/screens/f-002-a.png"
+        ]
+      },
+      "known_bug_ref": null,
+      "status": "suspected",
+      "reported_at": "2026-11-08T10:01:20Z",
+      "t_session_s": 80
+    }
+  ],
+  "GET /api/fixes": [
+    {
+      "id": "fix-001",
+      "finding_id": "f-001",
+      "devin_session_id": "mock-devin-session",
+      "devin_session_url": "https://example.invalid/mock-devin-session",
+      "pr_url": "https://example.invalid/mock-pr/1",
+      "round": 1,
+      "result": "pr_open",
+      "started_at": "2026-11-08T10:02:00Z",
+      "finished_at": null,
+      "acus": null,
+      "upstream_fix_ref": "MOCK upstream commit",
+      "comparison": {
+        "upstream_fix_ref": "MOCK upstream commit",
+        "upstream_diff": "- if (plyr->health - st_oldhealth > ST_MUCHPAIN)\n+ if (st_oldhealth - plyr->health > ST_MUCHPAIN)",
+        "devin_diff": "- if (plyr->health - st_oldhealth > ST_MUCHPAIN)\n+ if (st_oldhealth - plyr->health > ST_MUCHPAIN)",
+        "verdict": "same_approach",
+        "summary": "MOCK: same one-line comparison fix as upstream"
+      }
+    }
+  ],
+  "GET /api/narrations": [
+    {
+      "finding_id": "f-001",
+      "text": "MOCK: Look, I just took a big hit and my face did not even flinch. Want me to fix it?",
+      "language": "en",
+      "audio_path": "mock/audio/f-001.mp3",
+      "duration_s": 5.5,
+      "cues": [
+        {
+          "at_s": 0,
+          "clip_s": 20,
+          "text": "Look,"
+        },
+        {
+          "at_s": 1.2,
+          "clip_s": 26,
+          "text": "I just took a big hit"
+        },
+        {
+          "at_s": 3.4,
+          "clip_s": 30,
+          "text": "Want me to fix it?"
+        }
+      ]
+    }
+  ],
+  "GET /api/debrief": {
+    "session_id": "mock-session-001",
+    "game": "Chocolate Doom (QA build) + Freedoom",
+    "maps": [
+      "E1M1"
+    ],
+    "duration_s": 600,
+    "map_bounds": [
+      0,
+      -4800,
+      3400,
+      0
+    ],
+    "heatmap": [
+      {
+        "x": 1056,
+        "y": -3616,
+        "deaths": 2,
+        "retries": 3
+      },
+      {
+        "x": 2900,
+        "y": -2900,
+        "deaths": 0,
+        "retries": 5
+      }
+    ],
+    "notes": [
+      {
+        "session_id": "mock-session-001",
+        "ts": "2026-11-08T10:00:30Z",
+        "t_session_s": 30,
+        "text": "MOCK: the computer screens in the start room are large and visible for a long time",
+        "tags": [
+          "placement"
+        ],
+        "location": "start room, north wall",
+        "screenshot": "mock/screens/note-001.png"
+      },
+      {
+        "session_id": "mock-session-001",
+        "ts": "2026-11-08T10:01:00Z",
+        "t_session_s": 60,
+        "text": "MOCK: no hint where the exit is; I walked in circles",
+        "tags": [
+          "confusing"
+        ],
+        "location": "courtyard"
+      }
+    ],
+    "suggestions": [
+      {
+        "finding_id": "f-001",
+        "suggestion": "MOCK: make pain feedback readable"
+      }
+    ],
+    "references": [
+      {
+        "title": "MOCK reference",
+        "url": "https://example.invalid/mock-reference",
+        "snippet": "MOCK: design reference found by Linkup"
+      }
+    ],
+    "generated_at": "2026-11-08T10:10:20Z"
+  },
+  "GET /api/placement": [
+    {
+      "id": "p-001",
+      "session_id": "mock-session-001",
+      "name": "MOCK: start-room computer screens",
+      "surface": "screen",
+      "location": "E1M1, start room north wall",
+      "screen_time_s": 48,
+      "visibility": 0.8,
+      "screenshot": "mock/screens/note-001.png",
+      "audience": "adult gamers",
+      "brand_candidates": [
+        {
+          "name": "MOCK Brand A",
+          "rationale": "MOCK: tech brand on in-game monitors",
+          "sources": [
+            {
+              "title": "MOCK source",
+              "url": "https://example.invalid/mock-source-a"
+            }
+          ]
+        },
+        {
+          "name": "MOCK Brand B",
+          "rationale": "MOCK: energy drink poster",
+          "sources": [
+            {
+              "title": "MOCK source",
+              "url": "https://example.invalid/mock-source-b"
+            }
+          ]
+        }
+      ],
+      "disclaimer": "Suggestions only. No brand deal exists or is implied."
+    }
+  ],
+  "GET /api/plans": [
+    {
+      "id": "pro",
+      "name": "Pro",
+      "tagline": "A hostile QA tester for your game",
+      "price_eur_month": 49,
+      "features": [
+        "Unlimited test sessions",
+        "Devin fix loop",
+        "Design debrief",
+        "Placement scout"
+      ],
+      "stripe_price_id": null,
+      "active": true
+    },
+    {
+      "id": "parent",
+      "name": "Parent",
+      "tagline": "Know a game before your kid plays it",
+      "price_eur_month": 9,
+      "features": [
+        "Overnight game checks",
+        "Morning report"
+      ],
+      "stripe_price_id": null,
+      "active": false
+    },
+    {
+      "id": "kid",
+      "name": "Kid",
+      "tagline": "A friend on the couch",
+      "price_eur_month": 5,
+      "features": [
+        "Friendly commentator",
+        "Hints, never spoilers"
+      ],
+      "stripe_price_id": null,
+      "active": false
+    }
+  ],
+  "GET /api/parent/profile": {
+    "id": "child-mock",
+    "nickname": "MOCK Sam",
+    "age": 9,
+    "language": "fr",
+    "interests": [
+      "building",
+      "animals"
+    ],
+    "fears": [
+      "jump scares"
+    ],
+    "learning_goals": [
+      "reading"
+    ]
+  },
+  "GET /api/parent/report": [
+    {
+      "profile_id": "child-mock",
+      "game_title": "MOCK Game A",
+      "game_url": "https://example.invalid/mock-game-a",
+      "scary": 0,
+      "educational": 4,
+      "fit": 5,
+      "reasons": [
+        "MOCK reason for game A"
+      ],
+      "screenshots": [
+        "mock/screens/game-a.png"
+      ],
+      "sources": [
+        {
+          "title": "MOCK rating",
+          "url": "https://example.invalid/mock-rating"
+        }
+      ],
+      "purchase_required": false,
+      "played_s": 300
+    },
+    {
+      "profile_id": "child-mock",
+      "game_title": "MOCK Game B",
+      "game_url": "https://example.invalid/mock-game-b",
+      "scary": 2,
+      "educational": 2,
+      "fit": 3,
+      "reasons": [
+        "MOCK reason for game B"
+      ],
+      "screenshots": [
+        "mock/screens/game-b.png"
+      ],
+      "sources": [
+        {
+          "title": "MOCK rating",
+          "url": "https://example.invalid/mock-rating"
+        }
+      ],
+      "purchase_required": false,
+      "played_s": 300
+    },
+    {
+      "profile_id": "child-mock",
+      "game_title": "MOCK Game C",
+      "game_url": "https://example.invalid/mock-game-c",
+      "scary": 4,
+      "educational": 1,
+      "fit": 1,
+      "reasons": [
+        "MOCK reason for game C"
+      ],
+      "screenshots": [
+        "mock/screens/game-c.png"
+      ],
+      "sources": [
+        {
+          "title": "MOCK rating",
+          "url": "https://example.invalid/mock-rating"
+        }
+      ],
+      "purchase_required": true,
+      "played_s": 300
+    }
+  ],
+  "GET /api/events": [
+    {
+      "id": 1,
+      "type": "session.state",
+      "ts": "2026-11-08T10:00:00Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "id": "mock-session-001",
+        "game": "Chocolate Doom (QA build) + Freedoom",
+        "build": "MOCK build",
+        "map": "E1M1",
+        "state": "exploring",
+        "started_at": "2026-11-08T10:00:00Z",
+        "h_session_id": "mock-h-session",
+        "share_url": "https://example.invalid/mock-share-link",
+        "speed": "frame-step",
+        "live": false,
+        "steps": 0,
+        "findings": 0
+      }
+    },
+    {
+      "id": 2,
+      "type": "agent.action",
+      "ts": "2026-11-08T10:00:05Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "session_id": "mock-session-001",
+        "step": 1,
+        "ts": "2026-11-08T10:00:05Z",
+        "t_session_s": 5,
+        "kind": "key_hold",
+        "keys": [
+          "Up"
+        ],
+        "duration_ms": 1200,
+        "description": "MOCK: walk forward toward the door",
+        "screenshot": "mock/screens/step-001.png"
+      }
+    },
+    {
+      "id": 3,
+      "type": "agent.note",
+      "ts": "2026-11-08T10:00:30Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "session_id": "mock-session-001",
+        "ts": "2026-11-08T10:00:30Z",
+        "t_session_s": 30,
+        "text": "MOCK: the computer screens in the start room are large and visible for a long time",
+        "tags": [
+          "placement"
+        ],
+        "location": "start room, north wall",
+        "screenshot": "mock/screens/note-001.png"
+      }
+    },
+    {
+      "id": 4,
+      "type": "finding.new",
+      "ts": "2026-11-08T10:00:25Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "id": "f-001",
+        "session_id": "mock-session-001",
+        "kind": "bug",
+        "title": "MOCK: status-bar face does not react to a big hit",
+        "location": "E1M1, start room",
+        "steps": [
+          "Stand still in the start room",
+          "Let the imp hit you once"
+        ],
+        "expected": "The face shows the pained 'ouch' expression",
+        "actual": "The face stays neutral",
+        "severity": "low",
+        "evidence": {
+          "screenshots": [
+            "mock/screens/f-001-a.png"
+          ],
+          "clip": {
+            "path": "mock/clips/f-001.mp4",
+            "start_s": 20,
+            "end_s": 32,
+            "speed": 8
+          },
+          "log_excerpt": [
+            {
+              "tic": 700,
+              "map": "E1M1",
+              "type": "player",
+              "player": {
+                "x": 1056,
+                "y": -3616,
+                "z": 0,
+                "angle": 90,
+                "health": 100,
+                "armor": 0
+              }
+            },
+            {
+              "tic": 712,
+              "map": "E1M1",
+              "type": "damage",
+              "player": {
+                "x": 1056,
+                "y": -3600,
+                "z": 0,
+                "angle": 90,
+                "health": 72,
+                "armor": 0
+              },
+              "data": {
+                "amount": 28,
+                "face": "normal"
+              }
+            }
+          ],
+          "share_url": "https://example.invalid/mock-share-link"
+        },
+        "known_bug_ref": null,
+        "status": "suspected",
+        "reported_at": "2026-11-08T10:00:25Z",
+        "t_session_s": 25,
+        "suggested_change": "MOCK: fix the health-delta comparison in the status bar"
+      }
+    },
+    {
+      "id": 5,
+      "type": "finding.updated",
+      "ts": "2026-11-08T10:01:00Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "id": "f-001",
+        "session_id": "mock-session-001",
+        "kind": "bug",
+        "title": "MOCK: status-bar face does not react to a big hit",
+        "location": "E1M1, start room",
+        "steps": [
+          "Stand still in the start room",
+          "Let the imp hit you once"
+        ],
+        "expected": "The face shows the pained 'ouch' expression",
+        "actual": "The face stays neutral",
+        "severity": "low",
+        "evidence": {
+          "screenshots": [
+            "mock/screens/f-001-a.png"
+          ],
+          "clip": {
+            "path": "mock/clips/f-001.mp4",
+            "start_s": 20,
+            "end_s": 32,
+            "speed": 8
+          },
+          "log_excerpt": [
+            {
+              "tic": 700,
+              "map": "E1M1",
+              "type": "player",
+              "player": {
+                "x": 1056,
+                "y": -3616,
+                "z": 0,
+                "angle": 90,
+                "health": 100,
+                "armor": 0
+              }
+            },
+            {
+              "tic": 712,
+              "map": "E1M1",
+              "type": "damage",
+              "player": {
+                "x": 1056,
+                "y": -3600,
+                "z": 0,
+                "angle": 90,
+                "health": 72,
+                "armor": 0
+              },
+              "data": {
+                "amount": 28,
+                "face": "normal"
+              }
+            }
+          ],
+          "share_url": "https://example.invalid/mock-share-link"
+        },
+        "known_bug_ref": "MOCK-KB-1",
+        "status": "verified",
+        "reported_at": "2026-11-08T10:00:25Z",
+        "t_session_s": 25,
+        "suggested_change": "MOCK: fix the health-delta comparison in the status bar"
+      }
+    },
+    {
+      "id": 6,
+      "type": "voice.narration",
+      "ts": "2026-11-08T10:01:30Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "finding_id": "f-001",
+        "text": "MOCK: Look, I just took a big hit and my face did not even flinch. Want me to fix it?",
+        "language": "en",
+        "audio_path": "mock/audio/f-001.mp3",
+        "duration_s": 5.5,
+        "cues": [
+          {
+            "at_s": 0,
+            "clip_s": 20,
+            "text": "Look,"
+          },
+          {
+            "at_s": 1.2,
+            "clip_s": 26,
+            "text": "I just took a big hit"
+          },
+          {
+            "at_s": 3.4,
+            "clip_s": 30,
+            "text": "Want me to fix it?"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "type": "voice.transcript",
+      "ts": "2026-11-08T10:01:40Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "text": "MOCK: yes, fix it",
+        "final": true,
+        "language": "en"
+      }
+    },
+    {
+      "id": 8,
+      "type": "voice.intent",
+      "ts": "2026-11-08T10:01:40Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "intent": "fix",
+        "text": "MOCK: yes, fix it",
+        "language": "en",
+        "source": "voice",
+        "confidence": 0.9,
+        "finding_id": "f-001"
+      }
+    },
+    {
+      "id": 9,
+      "type": "fix.updated",
+      "ts": "2026-11-08T10:02:00Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "id": "fix-001",
+        "finding_id": "f-001",
+        "devin_session_id": "mock-devin-session",
+        "devin_session_url": "https://example.invalid/mock-devin-session",
+        "pr_url": "https://example.invalid/mock-pr/1",
+        "round": 1,
+        "result": "pr_open",
+        "started_at": "2026-11-08T10:02:00Z",
+        "finished_at": null,
+        "acus": null,
+        "upstream_fix_ref": "MOCK upstream commit",
+        "comparison": {
+          "upstream_fix_ref": "MOCK upstream commit",
+          "upstream_diff": "- if (plyr->health - st_oldhealth > ST_MUCHPAIN)\n+ if (st_oldhealth - plyr->health > ST_MUCHPAIN)",
+          "devin_diff": "- if (plyr->health - st_oldhealth > ST_MUCHPAIN)\n+ if (st_oldhealth - plyr->health > ST_MUCHPAIN)",
+          "verdict": "same_approach",
+          "summary": "MOCK: same one-line comparison fix as upstream"
+        }
+      }
+    },
+    {
+      "id": 10,
+      "type": "debrief.ready",
+      "ts": "2026-11-08T10:10:20Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "session_id": "mock-session-001",
+        "game": "Chocolate Doom (QA build) + Freedoom",
+        "maps": [
+          "E1M1"
+        ],
+        "duration_s": 600,
+        "map_bounds": [
+          0,
+          -4800,
+          3400,
+          0
+        ],
+        "heatmap": [
+          {
+            "x": 1056,
+            "y": -3616,
+            "deaths": 2,
+            "retries": 3
+          },
+          {
+            "x": 2900,
+            "y": -2900,
+            "deaths": 0,
+            "retries": 5
+          }
+        ],
+        "notes": [
+          {
+            "session_id": "mock-session-001",
+            "ts": "2026-11-08T10:00:30Z",
+            "t_session_s": 30,
+            "text": "MOCK: the computer screens in the start room are large and visible for a long time",
+            "tags": [
+              "placement"
+            ],
+            "location": "start room, north wall",
+            "screenshot": "mock/screens/note-001.png"
+          },
+          {
+            "session_id": "mock-session-001",
+            "ts": "2026-11-08T10:01:00Z",
+            "t_session_s": 60,
+            "text": "MOCK: no hint where the exit is; I walked in circles",
+            "tags": [
+              "confusing"
+            ],
+            "location": "courtyard"
+          }
+        ],
+        "suggestions": [
+          {
+            "finding_id": "f-001",
+            "suggestion": "MOCK: make pain feedback readable"
+          }
+        ],
+        "references": [
+          {
+            "title": "MOCK reference",
+            "url": "https://example.invalid/mock-reference",
+            "snippet": "MOCK: design reference found by Linkup"
+          }
+        ],
+        "generated_at": "2026-11-08T10:10:20Z"
+      }
+    },
+    {
+      "id": 11,
+      "type": "placement.ready",
+      "ts": "2026-11-08T10:10:25Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "id": "p-001",
+        "session_id": "mock-session-001",
+        "name": "MOCK: start-room computer screens",
+        "surface": "screen",
+        "location": "E1M1, start room north wall",
+        "screen_time_s": 48,
+        "visibility": 0.8,
+        "screenshot": "mock/screens/note-001.png",
+        "audience": "adult gamers",
+        "brand_candidates": [
+          {
+            "name": "MOCK Brand A",
+            "rationale": "MOCK: tech brand on in-game monitors",
+            "sources": [
+              {
+                "title": "MOCK source",
+                "url": "https://example.invalid/mock-source-a"
+              }
+            ]
+          },
+          {
+            "name": "MOCK Brand B",
+            "rationale": "MOCK: energy drink poster",
+            "sources": [
+              {
+                "title": "MOCK source",
+                "url": "https://example.invalid/mock-source-b"
+              }
+            ]
+          }
+        ],
+        "disclaimer": "Suggestions only. No brand deal exists or is implied."
+      }
+    },
+    {
+      "id": 12,
+      "type": "plan.updated",
+      "ts": "2026-11-08T10:11:40Z",
+      "session_id": null,
+      "data": {
+        "id": "pro",
+        "name": "Pro",
+        "tagline": "A hostile QA tester for your game",
+        "price_eur_month": 49,
+        "features": [
+          "Unlimited test sessions",
+          "Devin fix loop",
+          "Design debrief",
+          "Placement scout"
+        ],
+        "stripe_price_id": null,
+        "active": true
+      }
+    },
+    {
+      "id": 13,
+      "type": "error",
+      "ts": "2026-11-08T10:11:41Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "message": "MOCK: example error",
+        "where": "launcher"
+      }
+    },
+    {
+      "id": 14,
+      "type": "session.state",
+      "ts": "2026-11-08T10:11:42Z",
+      "session_id": "mock-session-001",
+      "data": {
+        "id": "mock-session-001",
+        "game": "Chocolate Doom (QA build) + Freedoom",
+        "build": "MOCK build",
+        "map": "E1M1",
+        "state": "awaiting_approval",
+        "started_at": "2026-11-08T10:00:00Z",
+        "h_session_id": "mock-h-session",
+        "share_url": "https://example.invalid/mock-share-link",
+        "speed": "frame-step",
+        "live": false,
+        "steps": 42,
+        "findings": 2
+      }
+    }
+  ]
+}
