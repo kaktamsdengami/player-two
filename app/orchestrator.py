@@ -436,7 +436,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     from voice.narrate import narrate
 
     cfg = LauncherConfig.from_env()
-    speed = Speed.parse("step:35")
+    speed = Speed.parse("step")
     game = Game(cfg, out_dir / "game")
     bugs = {b.id: b for b in load_known_bugs()}
     scripts = {"KB1": ("qa/kb1_kb2_medikit.txt", 1, 1), "KB2": ("qa/kb1_kb2_medikit.txt", 1, 1),
