@@ -148,3 +148,14 @@ def test_linkup_search(monkeypatch):
     body = json.loads(route.calls[0].request.content)
     assert body == {"q": "q", "depth": "standard", "outputType": "searchResults"}
     assert route.calls[0].request.headers["authorization"] == "Bearer k"
+
+
+def test_search_drops_non_http_urls(monkeypatch):
+    monkeypatch.setenv("LINKUP_API_KEY", "k")
+    results = [
+        {"name": "bad", "url": "javascript:alert(1)"},
+        {"name": "ok", "url": "https://a.b/c"},
+    ]
+    with respx.mock:
+        respx.post(linkup.URL).respond(json={"results": results})
+        assert [c.url for c in linkup.search("q")] == ["https://a.b/c"]

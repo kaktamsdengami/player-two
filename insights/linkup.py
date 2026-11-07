@@ -28,8 +28,8 @@ def search(query: str, depth: str = "standard", timeout: float = 60.0) -> list[C
     r.raise_for_status()
     out = []
     for item in r.json().get("results", []):
-        if not item.get("url"):
-            continue
+        if not str(item.get("url") or "").startswith(("https://", "http://")):
+            continue  # the dashboard renders it as a link: no javascript:/data: URLs
         snippet = (item.get("content") or "").strip().replace("\n", " ")
         out.append(
             Citation(
