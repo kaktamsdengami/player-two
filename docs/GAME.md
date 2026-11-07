@@ -17,7 +17,7 @@ Approved by the team in [#6](https://github.com/kaktamsdengami/player-two/issues
 
 | Flag | Effect |
 |---|---|
-| `-qa-tics N` | **Frame-step.** In a level the game clock is frozen; every new key press lets it run `N` tics (35 = 1 s of game time), then it freezes again. Menus, intermissions and demos run in real time. |
+| `-qa-tics N` | **Frame-step.** In a level the game clock is frozen; every key press, however short, lets it run `N` tics (35 = 1 s of game time) and holds the key for that whole step. A key still held after its step keeps the game running in real time, so a long hold walks further. The launcher uses 12 tics. Menus, intermissions and demos run in real time. |
 | `-qa-framestep` | Same as `-qa-tics 35`. |
 | `-qa-slowmo K` | The game clock runs `K` times slower (in a level). |
 | `-qa-log FILE` | JSONL event log, one `GameEvent` (see `app/contracts.py`) per line: `level`, `spawn`, `player` (trace), `pickup`, `damage`, `death`, `kill`, `powerup`, `message`, `face`, `render`, `qa`. For the verifier only. |

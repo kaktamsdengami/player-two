@@ -287,7 +287,7 @@ def main(argv: list[str] | None = None) -> int:
 
     p = argparse.ArgumentParser(prog="python -m agents.tester")
     p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
-    p.add_argument("--speed", default="step:35")
+    p.add_argument("--speed", default="step")
     p.add_argument("--steps", type=int, default=60)
     p.add_argument("--minutes", type=float, default=15)
     p.add_argument("--task", default=DEFAULT_TASK)
@@ -323,7 +323,12 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         rec.stop()
         game.stop()
-    out = run.summary() | {"run_dir": str(run_dir), "recording": str(rec.path)}
+    out = run.summary() | {
+        "run_dir": str(run_dir),
+        "recording": str(rec.path),
+        "speed": a.speed,
+        "start": cfg.start,
+    }
     (run_dir / "tester_run.json").write_text(json.dumps(out, indent=2, default=str))
     print(json.dumps(out, indent=2, default=str))
     return 0

@@ -103,7 +103,7 @@ def test_tail_reads_only_complete_lines(tmp_path):
 
 def test_speed_parse():
     assert Speed.parse("normal").args() == []
-    assert Speed.parse("step").args() == ["-qa-tics", "35"]
+    assert Speed.parse("step").args() == ["-qa-tics", "12"]
     assert Speed.parse("step:10").args() == ["-qa-tics", "10"]
     assert Speed.parse("slow:4").args() == ["-qa-slowmo", "4"] and Speed.parse("slow:4").factor == 4
     with pytest.raises(ValueError):
@@ -120,7 +120,7 @@ def test_game_command(tmp_path):
     game = Game(_cfg(tmp_path), tmp_path / "run")
     cmd = game.command(3, 1, Speed(), script=tmp_path / "s.txt")
     joined = " ".join(cmd)
-    assert "-warp 3 1" in joined and "-skill 3" in joined and "-qa-tics 35" in joined
+    assert "-warp 3 1" in joined and "-skill 3" in joined and "-qa-tics 12" in joined
     assert "-nomouse" in cmd and "-window" in cmd and "-nosound" in cmd
     assert cmd[cmd.index("-qa-log") + 1] == str(game.log_path)
     assert cmd[cmd.index("-qa-script") + 1] == str(tmp_path / "s.txt")
@@ -194,3 +194,23 @@ def test_open_none_of_window_is_not_proof_yet(tmp_path):
         _ev(10, "a").model_dump_json() + "\n" + _ev(20, "x").model_dump_json() + "\n"
     )
     assert EventLog(log_path).wait_for(sig, timeout=0) is None
+
+
+@pytest.mark.parametrize(("mode", "line"), [("god", "1 god"), ("tough", "1 health 999")])
+def test_start_mode_script(tmp_path, mode, line):
+    game = Game(_cfg(tmp_path, start=mode), tmp_path / "run")
+    cmd = game.command(3, 1, Speed())
+    assert Path(cmd[cmd.index("-qa-script") + 1]).read_text().strip() == line
+    replay = game.command(3, 1, Speed(), script=tmp_path / "kb.txt")
+    assert replay[replay.index("-qa-script") + 1] == str(tmp_path / "kb.txt")
+
+
+def test_start_mode_off_and_env(tmp_path, monkeypatch):
+    assert "-qa-script" not in Game(_cfg(tmp_path, start="off"), tmp_path / "r").command(
+        3, 1, Speed()
+    )
+    monkeypatch.setenv("P2_GOD", "Tough")
+    assert LauncherConfig.from_env().start == "tough"
+    monkeypatch.setenv("P2_GOD", "yes")
+    with pytest.raises(ValueError):
+        LauncherConfig.from_env()
