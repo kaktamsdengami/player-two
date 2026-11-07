@@ -1,5 +1,8 @@
 def test_shell_is_refused_on_the_local_desktop():
-    from hai_drivers.desktop.local.driver import LocalDesktopDriver
+    import pytest
+
+    driver = pytest.importorskip("hai_drivers.desktop.local.driver")
+    LocalDesktopDriver = driver.LocalDesktopDriver
 
     from agents.tester import SHELL_REFUSED, forbid_shell
 
