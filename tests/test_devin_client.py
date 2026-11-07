@@ -187,7 +187,8 @@ def test_status_mapping(session, expected):
     assert result_from_session(session)[0] == expected
 
 
-def test_from_env_requires_both(monkeypatch):
+def test_from_env_requires_both(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("DEVIN_ORG_ID", raising=False)
     monkeypatch.setenv("DEVIN_API_KEY", "k")
     with pytest.raises(DevinError):
@@ -218,3 +219,11 @@ def test_feedback_after_merge_waits_for_new_pr():
     attempt = dc.follow(attempt, seen.append, sleep=lambda s: None)
     assert attempt.result == FixResult.pr_open and attempt.pr_url == new
     assert seen[0].result == FixResult.working
+
+
+def test_from_env_reads_dotenv(tmp_path, monkeypatch):
+    monkeypatch.delenv("DEVIN_API_KEY", raising=False)
+    monkeypatch.delenv("DEVIN_ORG_ID", raising=False)
+    (tmp_path / ".env").write_text("DEVIN_API_KEY=k\nDEVIN_ORG_ID=org-x\n")
+    monkeypatch.chdir(tmp_path)
+    assert DevinClient.from_env().org_id == "org-x"
