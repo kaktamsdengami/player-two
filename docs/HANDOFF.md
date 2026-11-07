@@ -21,6 +21,19 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-08 ~01:00: team decision on #42: play well, think like a tester (Devin)
+
+- Tester prompt rewritten: progress through the level like a competent player (doors, switches,
+  shooting, pickups) and try what could break on the way; controls (Ctrl fire, 1-7 weapons,
+  Space use, `-`/`=` screen size); tap vs hold; frozen between presses is normal. No routes to
+  known bugs.
+- Default frame-step 12 tics (`DEFAULT_STEP`); fork 516905e6: a key held past its step keeps the
+  game running (tap = 12 tics, 2 s hold = 70 tics, measured with `-qa-trace 1`).
+- `P2_GOD=god|tough|off` (default god, team decision): QA start script for free play only
+  (replay scripts set their own). Note: vanilla god mode blocks all damage (no pain face, no
+  damage events), so damage bugs such as KB2 cannot trigger; `tough` = 999 health. Asked the team.
+- The verifier replays at the speed saved in `tester_run.json`; the orchestrator uses 12 tics.
+
 ### 2026-11-07 ~00:30: stage run 2: first blind rediscovery (Devin)
 
 - Stage laptop, t14 @ d086321, fork 38f5c344, US: session `c960e650…`, 39 actions, max tic 595.
