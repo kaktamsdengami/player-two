@@ -27,6 +27,19 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T18 Stripe plans (Devin)
+
+- `business/stripe_plans.py`: Pro €49 / Parent €9 / Kid €5 monthly prices in Stripe **test mode**,
+  found by `lookup_key` `player_two_<plan>` (created once, reused after). Live keys are refused.
+- `app/routes_billing.py` (`router`, mount it in T14): `GET /api/plans`, `POST /api/billing/checkout`
+  -> `{url}`, `POST /api/billing/webhook` (new endpoint, not yet in CONTRACTS.md). The webhook checks
+  `Stripe-Signature` (HMAC-SHA256, 5 min tolerance) and stores the active plan in
+  `data/billing.json` (git-ignored). Checkout returns to `DASHBOARD_URL/?checkout=success#plans`.
+- Env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (from the Stripe dashboard or
+  `stripe listen --print-secret`), `DASHBOARD_URL`.
+- Checked end to end from the VM: test card 4242 on Stripe Checkout -> `stripe listen` forwarded
+  `checkout.session.completed` -> 200 -> Plans page shows Parent as current plan. Screenshots in the PR.
+
 ### 2026-11-07: T15 merged (#37); T13 open (#38, needs:local) (Devin)
 
 - T15 dashboard merged. `VITE_API_BASE` checked against a throwaway stand-in API (mock JSON +
