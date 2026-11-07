@@ -1,6 +1,11 @@
 def test_shell_is_refused_on_the_local_desktop():
+    import os
+    import sys
+
     import pytest
 
+    if sys.platform.startswith("linux") and not os.environ.get("DISPLAY"):
+        pytest.skip("hai_drivers' desktop driver needs an X display")
     driver = pytest.importorskip("hai_drivers.desktop.local.driver")
     LocalDesktopDriver = driver.LocalDesktopDriver
 
