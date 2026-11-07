@@ -58,10 +58,12 @@ def test_sightings_skip_bad_frames_and_clamp():
     def detect(p: Path):
         if p.name == "bad.png":
             raise RuntimeError("boom")
-        return [{"name": "Poster", "surface": "POSTER", "visibility": 3}, {"surface": "wall"}]
+        return [{"name": "Poster", "surface": "POSTER", "visibility": 3}, {"surface": "wall"},
+                {"name": "Sign", "visibility": "high"}]  # fmt: skip
 
     out = placement.sightings([(0, Path("bad.png")), (5, Path("ok.png"))], detect)
-    assert len(out) == 1 and out[0].surface == "poster" and out[0].visibility == 1.0
+    assert len(out) == 2 and out[0].surface == "poster" and out[0].visibility == 1.0
+    assert out[1].visibility == 0.5
 
 
 def test_notes_tagged_placement_become_spots():

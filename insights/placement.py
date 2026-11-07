@@ -141,7 +141,10 @@ def sightings(shots: list[tuple[float, Path]], detect_: Detect = detect) -> list
             if not isinstance(s, dict) or not s.get("name"):
                 continue
             surface = str(s.get("surface", "other")).lower()
-            vis = min(max(float(s.get("visibility") or 0.5), 0.0), 1.0)
+            try:
+                vis = min(max(float(s.get("visibility") or 0.5), 0.0), 1.0)
+            except (TypeError, ValueError):
+                vis = 0.5
             out.append(Sighting(str(s["name"]), surface if surface in SURFACES else "other",
                                 str(s.get("location") or "unknown"), vis, t, str(p)))  # fmt: skip
     return out
