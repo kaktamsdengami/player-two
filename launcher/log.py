@@ -115,8 +115,9 @@ class EventLog:
     def wait_for(
         self, sig: LogSignature, timeout: float, since_t: float | None = None, every: float = 0.2
     ) -> list[GameEvent] | None:
-        """Poll a live log. A `none_of` only counts once the log has passed its window; with no
-        `within_tics` that means never here: stop the game, then call `happened`."""
+        """Poll a live log. A `none_of` only counts once logged tics pass its window (a timeout
+        does not advance a frame-stepped game). For an absence proof, advance or stop the game,
+        then call `happened` on the finished log."""
         end = time.monotonic() + timeout
         while True:
             events = self.since(since_t)
