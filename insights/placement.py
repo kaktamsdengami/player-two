@@ -81,6 +81,8 @@ class Sighting:
 def frames(recording: Path, out_dir: Path, every_s: float = EVERY_S) -> list[tuple[float, Path]]:
     """One PNG every `every_s` seconds of the recording: [(t, path)]."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    for old in out_dir.glob("frame_*.png"):
+        old.unlink()
     subprocess.run(
         ["ffmpeg", "-v", "error", "-y", "-i", str(recording),
          "-vf", f"fps=1/{every_s},scale=640:-2", str(out_dir / "frame_%04d.png")],

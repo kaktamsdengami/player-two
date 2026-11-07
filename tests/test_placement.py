@@ -116,3 +116,15 @@ def test_linkup_structured_request(monkeypatch):
         body = json.loads(route.calls[0].request.content)
         assert body["outputType"] == "structured" and body["includeSources"] is True
         assert json.loads(body["structuredOutputSchema"]) == {"type": "object"}
+
+
+def test_frames_drop_leftovers_from_an_earlier_pass(tmp_path, monkeypatch):
+    out = tmp_path / "placement"
+    out.mkdir()
+    (out / "frame_0009.png").write_bytes(b"old")
+
+    def fake_run(cmd, check):
+        (out / "frame_0001.png").write_bytes(b"new")
+
+    monkeypatch.setattr(placement.subprocess, "run", fake_run)
+    assert [p.name for _, p in placement.frames(tmp_path / "r.mp4", out)] == ["frame_0001.png"]
