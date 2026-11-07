@@ -16,7 +16,7 @@ RULES: list[tuple[Intent, tuple[str, ...]]] = [
     (
         Intent.no,
         (
-            rf"\b(don'?t|do not|never|no need to) (\w+ )?{_FIX_EN}",
+            rf"\b(don'?t|do not|never|no need to) {_FIX_EN}",
             rf"\bne (le |la |les |l'|pas )?{_FIX_FR}",
             rf"\b(pas|jamais) (besoin de )?{_FIX_FR}",
             r"^no\b",
