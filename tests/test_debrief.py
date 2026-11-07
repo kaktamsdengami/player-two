@@ -56,7 +56,7 @@ def test_heatmap_counts_deaths_and_level_restarts():
         ]
     ]
     bounds, cells = debrief.heatmap(events)
-    assert bounds == (0, 0, 1000, 300)
+    assert bounds == (0, 0, 1024, 384)
     hot = next(c for c in cells if (c.x, c.y) == (320.0, 320.0))
     assert hot.deaths == 2 and hot.retries == 0
     start = next(c for c in cells if (c.x, c.y) == (64.0, 64.0))
