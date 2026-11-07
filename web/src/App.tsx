@@ -168,6 +168,7 @@ function NewRun() {
         <select value={preset} onChange={(e) => setPreset(e.target.value)}>
           <option value="">E3M1, free exploration</option>
           <option value="stage-kb3">stage-kb3 (E3M1, power-up near the start)</option>
+          <option value="stage-play">stage-play (E3M1, items and enemies on the way to a power-up)</option>
         </select>
       </label>
       <button className="primary" onClick={start}>
