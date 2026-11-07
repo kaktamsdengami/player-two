@@ -22,6 +22,7 @@ NO_ANSWER = "No developer answer right now. Keep testing and decide yourself."
 
 class TesterTools:
     __test__ = False
+
     def __init__(
         self,
         session_id: str = "pending",
