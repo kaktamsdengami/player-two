@@ -2,30 +2,42 @@
 
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
-## Current state (2026-11-07 evening, written by the orchestrator)
+## Current state (2026-11-07 ~19:45 Paris, Devin)
 
-- Phase: **planning done; nothing built yet.** T00 (handoff kit) is done on main.
-- The plan is in docs/PLAN.md. All tasks are GitHub issues T00–T32. docs/ISSUES.md holds the
-  source text the issues were created from.
-- **Ready to start now:**
-  - T01 Contracts and decisions;
-  - T02 Accounts and keys (human).
-
-  These become ready as soon as T01 lands: T04 Repo skeleton, T10 Devin API client, T15 Dashboard
-  on mock data.
-- **Gate:** T03, the spike on the stage laptop. It checks whether the H desktop agent can play
-  Chocolate Doom and Shattered Pixel Dungeon. Its numbers feed the team's game choice in T05.
-- **Waiting on the human:**
-  - put the keys into `.env` (T02);
-  - give Devin's GitHub integration access to this repo, and later to the game fork;
-  - ask the organisers about the Gladia prize, the submission fields and staying overnight.
-- Decided so far:
-  - Devin writes all code.
-  - The demo uses a **real open-source game at a version with known bugs**, not a generated game.
-  - Tasks T05–T09 consult the team before every decision about the game.
-  - The Devin API is a runtime component (this targets the Best Use of Devin prize).
+- **Done (merged):** T01 contracts (#34), T04 skeleton + CI (#35), T15 dashboard on mock data (#37),
+  T18 Stripe test-mode plans (#39).
+- **Open PRs:**
+  - T10 Devin API client (#36): CI green; waits for the real-session check on the game fork.
+  - T13 Gladia voice in (#38, needs:local): CI green; waits for the stage-laptop mic output.
+- **Blocked:** T05 needs `kaktamsdengami/chocolate-doom` (fork of chocolate-doom/chocolate-doom) with
+  the Devin GitHub integration given access. T06–T09, T11, T12, T14 all chain from T05.
+  The T05–T09 proposal is in #6; the 60-min default applies to non-outward choices only.
+- **Need from you:**
+  1. create the fork above and grant Devin access;
+  2. run the mic commands in #38 on the stage laptop and paste the output;
+  3. answer (or let default) the questions in #6.
+- T18 note: `POST /api/billing/webhook` is a new endpoint; T14 must mount `app.routes_billing.router`
+  and add it to CONTRACTS.md.
 
 ## Log
+
+### 2026-11-07: T18 merged (#39) (Devin)
+
+- #19 closed; no issue depends on T18. Review fixes: subscription id tracked so stale cancels or
+  retried checkouts do not flip the plan; atomic plan-file writes; billing reads `.env`.
+
+### 2026-11-07: T18 Stripe plans (Devin)
+
+- `business/stripe_plans.py`: Pro €49 / Parent €9 / Kid €5 monthly prices in Stripe **test mode**,
+  found by `lookup_key` `player_two_<plan>` (created once, reused after). Live keys are refused.
+- `app/routes_billing.py` (`router`, mount it in T14): `GET /api/plans`, `POST /api/billing/checkout`
+  -> `{url}`, `POST /api/billing/webhook` (new endpoint, not yet in CONTRACTS.md). The webhook checks
+  `Stripe-Signature` (HMAC-SHA256, 5 min tolerance) and stores the active plan in
+  `data/billing.json` (git-ignored). Checkout returns to `DASHBOARD_URL/?checkout=success#plans`.
+- Env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (from the Stripe dashboard or
+  `stripe listen --print-secret`), `DASHBOARD_URL`.
+- Checked end to end from the VM: test card 4242 on Stripe Checkout -> `stripe listen` forwarded
+  `checkout.session.completed` -> 200 -> Plans page shows Parent as current plan. Screenshots in the PR.
 
 ### 2026-11-07: T15 merged (#37); T13 open (#38, needs:local) (Devin)
 
@@ -57,6 +69,13 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - Checked from the VM with the real Gladia API on synthesized WAVs (edge-tts): "Fix it.",
   "Stop.", "Corrige-le.", "Arrête.", a steer phrase and "Non, ne le corrige pas." all mapped right.
   **Live microphone on the stage laptop: not run yet (`needs:local`, commands in the PR).**
+
+### 2026-11-07: T10 Devin API client (Devin)
+- `devin/client.py` `DevinClient` (v3 sessions API): `create_fix_session(finding)` →
+  `follow(attempt, on_update)` → `approve_merge` (merge via the same Devin session) or one
+  `send_feedback` round. Prompt: `devin/prompts/fix_bug.md` (no known-bug ref, no upstream fix).
+- Default `max_acu_limit=10` per fix session; repo `kaktamsdengami/chocolate-doom`, base `player-two-qa`.
+- Open: the real-session check needs the game fork (T05) and Devin GitHub access to it.
 
 ### 2026-11-07: T04 repo skeleton and CI (Devin)
 - `pyproject.toml` (Python 3.12, `pip install -e ".[dev]"`), CI in `.github/workflows/ci.yml`
