@@ -17,7 +17,7 @@ def test_hai_regions_restricts_fallback(monkeypatch):
     from agents.tester import HBusyError, choose_region
 
     monkeypatch.setenv("HAI_BASE_URL", "https://agp.hcompany.ai")
-    monkeypatch.setenv("HAI_REGIONS", "https://agp.hcompany.ai")
+    monkeypatch.setenv("HAI_REGIONS", "https://agp.hcompany.ai/, ")
     seen = []
 
     def q(url):

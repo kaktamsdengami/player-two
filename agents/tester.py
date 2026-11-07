@@ -101,7 +101,7 @@ def choose_region(min_slots: int = 2, quota_fn: Any = None) -> str:
     """First region (HAI_BASE_URL first) with `min_slots` free; sets HAI_BASE_URL to it."""
     quota_fn = quota_fn or (lambda url: quota(url=url))
     allowed = os.environ.get("HAI_REGIONS")  # e.g. only US when EU desktop sessions stall
-    regions = [r.strip().rstrip("/") for r in allowed.split(",")] if allowed else REGIONS
+    regions = [r.strip().rstrip("/") for r in (allowed or "").split(",") if r.strip()] or REGIONS
     order = [base_url()] + [r for r in regions if r != base_url()]
     order = [r for r in order if r in regions]
     seen = {}
