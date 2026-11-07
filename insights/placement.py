@@ -76,6 +76,7 @@ class Sighting:
     visibility: float
     t: float
     screenshot: str | None
+    sampled: bool = True  # False for a tester note: it is not a sampled frame
 
 
 def frames(recording: Path, out_dir: Path, every_s: float = EVERY_S) -> list[tuple[float, Path]]:
@@ -153,7 +154,15 @@ def sightings(shots: list[tuple[float, Path]], detect_: Detect = detect) -> list
 def from_notes(notes: list[AgentNote]) -> list[Sighting]:
     """The tester's `note(..., tags=["placement"])` calls: what it pointed out itself."""
     return [
-        Sighting(n.text[:60], "other", n.location or "unknown", 0.5, n.t_session_s, n.screenshot)
+        Sighting(
+            n.text[:60],
+            "other",
+            n.location or "unknown",
+            0.5,
+            n.t_session_s,
+            n.screenshot,
+            sampled=False,
+        )
         for n in notes
         if "placement" in n.tags
     ]
@@ -179,7 +188,7 @@ def spots(
                     s.surface if s.surface in SURFACES else "other" for s in g
                 ).most_common(1)[0][0],
                 location=Counter(s.location for s in g).most_common(1)[0][0],
-                screen_time_s=len({s.t for s in g}) * every_s,
+                screen_time_s=max(len({s.t for s in g if s.sampled}), 1) * every_s,
                 visibility=round(sum(s.visibility for s in g) / len(g), 3),
                 screenshot=best.screenshot,
                 audience=audience,

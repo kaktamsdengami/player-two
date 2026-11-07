@@ -130,3 +130,13 @@ def test_frames_drop_leftovers_from_an_earlier_pass(tmp_path, monkeypatch):
 
     monkeypatch.setattr(placement.subprocess, "run", fake_run)
     assert [p.name for _, p in placement.frames(tmp_path / "r.mp4", out)] == ["frame_0001.png"]
+
+
+def test_notes_add_no_screen_time_to_sampled_spots():
+    seen = [
+        Sighting("billboard wall", "wall", "hall", 0.8, 0, "f1.png"),
+        Sighting("Billboard wall", "other", "hall", 0.5, 7.3, None, sampled=False),
+        Sighting("crate", "item", "hall", 0.5, 2, None, sampled=False),
+    ]
+    out = {s.name: s.screen_time_s for s in placement.spots(seen, "s", every_s=5)}
+    assert out == {"billboard wall": 5, "crate": 5}
