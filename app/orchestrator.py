@@ -450,6 +450,9 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     def archive() -> None:
         """Game.start wipes the QA log: keep every round's events for the debrief heatmap."""
         if not game.running and game.log_path.exists():
+            first = game.run_dir / "agent_events.jsonl"  # round 1 = the agent.lmp demo
+            if not first.exists():
+                first.write_text(game.log_path.read_text())
             with (run_dir / "events.jsonl").open("a") as f:
                 f.write(game.log_path.read_text())
             game.log_path.unlink()
@@ -464,7 +467,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         def start(self, task_: str | None) -> tuple[str, str | None]:
             choose_region()  # raises HBusyError("H busy ... retry in ~15 min"): shown as error
             self.tester = Tester(tools=self.tools)  # the H client binds HAI_BASE_URL here
-            win = game.start(episode, map_, speed)
+            win = game.start(episode, map_, speed, record=game.run_dir / "agent")
             if win is None:
                 raise RuntimeError("game window did not appear")
             try:  # for the placement scout; the loop runs without it
@@ -547,6 +550,6 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         placement = None
     deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}",
                 run_dir=run_dir, debrief=debrief, placement=placement,
-                replay={"speed": "step", "start": cfg.start})  # fmt: skip
+                replay={"speed": speed.spec(), "start": cfg.start})  # fmt: skip
     orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
     return orch

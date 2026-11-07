@@ -21,6 +21,23 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-08 ~02:00: team decision on #42: faster model, 8-tic steps, demo replay (Devin)
+
+- Tester model `holo4-35b-a3b` by default; `P2_TESTER_MODEL=holo4-27b` to compare.
+- `DEFAULT_STEP = 8` (~0.23 s per tap); holding a key still runs the game. Run records save the
+  explicit speed (`Speed.spec()`, e.g. `step:8`), so replays survive default changes.
+- Every tester run records `<run_dir>/agent.lmp` (`-record`, vanilla demo). Fork bcbadb21: the
+  demo is written every 7 tics (the game is closed, not quit), typed letters are logged as `key`
+  events, and QA scripts have a `key <code>` command.
+- `python -m launcher replay <run_dir>`: `-playdemo` at game speed with a QA script built from
+  `qa_start.txt` + `key` events (cheat codes are not in demos), records ffmpeg, labels
+  "Agent session · replayed at game speed" -> `agent_replay.mp4` + `replay.json`
+  (`game_started_at`, `rec_started_at`; `replay/events.jsonl` + `capture.clip_window` cut clips).
+  Sync check on Linux: 8-tic taps, a hold, `idkfa`, weapon switch, fire: 17/17 player samples
+  identical at the same tics, replay quits at the demo end (`show_endoom 0` in extraconfig).
+- Orchestrator: round 1 is recorded to `game/agent.lmp`; its log is kept as
+  `game/agent_events.jsonl` when later rounds restart the game.
+
 ### 2026-11-08 ~01:00: team decision on #42: play well, think like a tester (Devin)
 
 - Tester prompt rewritten: progress through the level like a competent player (doors, switches,
