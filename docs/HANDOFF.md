@@ -21,6 +21,20 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07 ~23:30: stage run 1 diagnosis + frame-step latch (Devin)
+
+- Stage-laptop tester run (US, session `1f447785…`, 37 actions, slots freed): the game advanced one
+  step (tic 0 -> 35) and then froze. H's key taps are near-instant, and the frame-step clock polled
+  `SDL_GetKeyboardState`, so it missed them. F1-F3 were artefacts of the freeze, not game bugs.
+- Fork fix `38f5c344` (player-two-qa): an SDL event watch counts every key-down as one step, and
+  `G_Responder` keeps the key held for the whole step even if key-up arrives first. Checked on the
+  Devin VM with 0 ms xdotool taps on E3M1: 4 taps -> tics 35/70/105/140, player moves and turns.
+  The Windows artifact for `38f5c344` is the newest one, so `python -m launcher fetch` picks it.
+- Windows fixes: the tester loads `.env` before reading `HAI_API_KEY`; dependency is
+  `hai-agents[desktop]`; `player_two.egg-info/` is untracked and ignored. On Windows, if `uv sync`
+  hits MAX_PATH, set `UV_PROJECT_ENVIRONMENT` to a short path (e.g. `C:\p2venv`).
+- Next: rerun step 1 on the stage laptop; verifier only on a genuine finding.
+
 ### 2026-11-07: T14 orchestrator (Devin)
 
 - End of run (`debriefing`): the orchestrator writes `tester_run.json` (findings with their final
@@ -58,7 +72,6 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - Real run: KB1 fork PR #1 merged into `qa-run/kb1-t11`, rebuilt, replay log shows
   "Never give up!", verdict different_but_valid. The finding was a scripted one, not from the H tester.
 
-||||||| merged common ancestors
 ### 2026-11-07: T07 hostile tester agent (Devin)
 
 - `agents/tester.py`: one `h/holo-desktop`-style inline agent (`holo4-27b`, desktop env on
