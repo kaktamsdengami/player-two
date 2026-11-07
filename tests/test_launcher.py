@@ -104,6 +104,9 @@ def test_tail_reads_only_complete_lines(tmp_path):
 def test_speed_parse():
     assert Speed.parse("normal").args() == []
     assert Speed.parse("step").args() == ["-qa-tics", "8"]
+    for spec in ("step:12", "slow:4", "normal"):
+        assert Speed.parse(spec).spec() == spec
+    assert Speed.parse("step").spec() == "step:8"
     assert Speed.parse("step:10").args() == ["-qa-tics", "10"]
     assert Speed.parse("slow:4").args() == ["-qa-slowmo", "4"] and Speed.parse("slow:4").factor == 4
     with pytest.raises(ValueError):

@@ -326,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
     out = run.summary() | {
         "run_dir": str(run_dir),
         "recording": str(rec.path),
-        "speed": a.speed,
+        "speed": speed.spec(),
         "start": cfg.start,
     }
     (run_dir / "tester_run.json").write_text(json.dumps(out, indent=2, default=str))

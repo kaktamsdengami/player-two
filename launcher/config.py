@@ -47,6 +47,12 @@ class Speed:
             return cls(None, int(n or 4))
         raise ValueError(f"speed must be normal, step[:N] or slow[:K], got {text!r}")
 
+    def spec(self) -> str:
+        """Explicit form for run records: parses back to the same speed if defaults change."""
+        if self.tics:
+            return f"step:{self.tics}"
+        return f"slow:{self.slowmo}" if self.slowmo and self.slowmo > 1 else "normal"
+
     def args(self) -> list[str]:
         out: list[str] = []
         if self.tics:
