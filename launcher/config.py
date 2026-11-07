@@ -84,7 +84,7 @@ class LauncherConfig:
     sound: bool = False
     fps: int = 30
     window_title: str = "Chocolate Doom"
-    start: str = "god"  # START_MODES; applied on every launch without a QA script
+    start: str = "tough"  # START_MODES; applied on every launch without a QA script
 
     @classmethod
     def from_env(cls) -> LauncherConfig:
@@ -97,7 +97,7 @@ class LauncherConfig:
             ),
             runs_dir=_env_path("P2_RUNS_DIR", Path("recordings")),
             fullscreen=os.environ.get("P2_FULLSCREEN", "0") == "1",
-            start=_start_mode(os.environ.get("P2_GOD", "god")),
+            start=_start_mode(os.environ.get("P2_GOD", "tough")),
         )
 
     def extraconfig(self) -> str:
