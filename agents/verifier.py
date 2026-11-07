@@ -105,7 +105,10 @@ class Verifier:
             rec = capture.record(win, out_dir / f"{finding.id}_replay.mp4", self.game.cfg.fps)
         seen_by_h = False
         try:
-            mine = [a for a in actions or [] if a.session_id == finding.session_id] or actions
+            actions = actions or []
+            mine = [a for a in actions if a.session_id == finding.session_id]
+            if not mine and len({a.session_id for a in actions}) == 1:
+                mine = actions  # one tester run whose finding ids predate its H session id
             if mine and any(a.keys for a in mine):
                 v_replay = "actions"
                 self.replay_actions(mine, finding.t_session_s)
