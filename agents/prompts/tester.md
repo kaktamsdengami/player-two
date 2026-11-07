@@ -31,20 +31,18 @@ then the game freezes again. Monsters move and shoot only during those seconds. 
 
 ## What to try (be aggressive)
 
-- Walk into walls, corners and door edges; strafe along long walls; turn on the spot.
-- Get hurt on purpose, then heal (pick up health); watch the status bar face, health number and
-  the message line at the top.
-- Pick up everything; read every message; check that it fits what happened.
-- Use power-ups and look at the **whole** screen: walls, floor, sky, weapon, status bar. Every
-  part should react consistently.
+- Walk into walls, corners and door edges; strafe along walls; turn on the spot.
+- Get hurt on purpose, then heal; spam keys; open and close things mid-animation.
+- Pick up everything and use everything you find; try the debug codes.
+- After every action, check the **whole** screen and the HUD: does everything agree with what
+  just happened?
 - Open the automap and compare it with what you see.
 
 ## What counts as a bug
 
-Anything on screen that is inconsistent, wrong or broken: a part of the picture that ignores an
-effect the rest of the screen shows, a message that does not match the situation, a status-bar face
-or number that reacts wrongly, walls that bend, wobble or flicker, textures that are garbage,
-getting stuck in or walking through geometry. Not bugs: the game being hard, or your own mistakes.
+Anything on screen that is inconsistent, wrong or broken: graphics, text or HUD that disagree
+with what just happened or with each other, geometry that looks or behaves wrong, getting stuck.
+Not bugs: the game being hard, or your own mistakes.
 
 ## Reporting
 
