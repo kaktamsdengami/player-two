@@ -1,0 +1,31 @@
+# HANDOFF: live state of the build
+
+Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
+
+## Current state (2026-11-07 evening, written by the orchestrator)
+
+- Phase: **planning done; nothing built yet.** T00 (handoff kit) is done on main.
+- The plan is in docs/PLAN.md. All tasks are GitHub issues T00–T32. docs/ISSUES.md holds the
+  source text the issues were created from.
+- **Ready to start now:**
+  - T01 Contracts and decisions;
+  - T02 Accounts and keys (human).
+
+  These become ready as soon as T01 lands: T04 Repo skeleton, T10 Devin API client, T15 Dashboard
+  on mock data.
+- **Gate:** T03, the spike on the stage laptop. It checks whether the H desktop agent can play
+  Chocolate Doom and Shattered Pixel Dungeon. Its numbers feed the team's game choice in T05.
+- **Waiting on the human:**
+  - put the keys into `.env` (T02);
+  - give Devin's GitHub integration access to this repo, and later to the game fork;
+  - ask the organisers about the Gladia prize, the submission fields and staying overnight.
+- Decided so far:
+  - Devin writes all code.
+  - The demo uses a **real open-source game at a version with known bugs**, not a generated game.
+  - Tasks T05–T09 consult the team before every decision about the game.
+  - The Devin API is a runtime component (this targets the Best Use of Devin prize).
+
+## Log
+
+### 2026-11-07: repo created (Claude, orchestrator)
+- Created the repo with PLAN, AGENTS, CLAUDE and HANDOFF; created the labels, milestones and issues.
