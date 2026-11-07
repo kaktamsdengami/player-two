@@ -10,6 +10,7 @@ import os
 from functools import lru_cache
 from typing import Annotated
 
+from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
@@ -59,6 +60,7 @@ class Billing:
 
 @lru_cache
 def get_billing() -> Billing:
+    load_dotenv()
     key = os.environ.get("STRIPE_SECRET_KEY")
     return Billing(
         stripe=StripeClient(key) if key else None,
