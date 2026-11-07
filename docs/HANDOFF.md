@@ -21,6 +21,18 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T06 launcher (Devin)
+
+- `python -m launcher demo|build|fetch|query|clip`. `Game` starts the QA build with a fixed window
+  (`launcher.cfg` via `-extraconfig`), map, speed (`Speed.parse("step:35" | "slow:4" | "normal")`),
+  `-qa-log` in its run dir (`recordings/<ts>-<name>/`, git-ignored), finds and foregrounds the window
+  (xdotool / Win32 ctypes). ffmpeg x11grab / gdigrab for screenshots, recording and clips
+  (`clip_window(event.t, ...)`, optional "RECORDED · N× speed" label).
+- `EventLog` tails the JSONL log; `happened(signature, since_t)` evaluates `LogSignature`
+  (T08's `agents/oracles.py` can reuse `launcher.log.signature_hits`).
+- Windows: no toolchain on the stage laptop; `python -m launcher fetch [--ref pull/N/head]` downloads
+  the fork CI's `MSYS2 UCRT64` artifact (fork CI now also builds PRs against `player-two-qa`).
+
 ### 2026-11-07: T18 merged (#39) (Devin)
 
 - #19 closed; no issue depends on T18. Review fixes: subscription id tracked so stale cancels or
