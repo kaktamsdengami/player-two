@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -170,6 +171,7 @@ class Tester:
         share = None
         try:
             share = self.client.sessions.share_session(self.handle.id).share_url
+            share = f"{base_url()}{share}" if share.startswith("/") else share
         except Exception:  # noqa: BLE001 - the share link is a nice-to-have
             pass
         self.run = TesterRun(self.handle.id, share, "running", None, self.tools)
@@ -209,6 +211,8 @@ def main(argv: list[str] | None = None) -> int:
     from launcher.config import LauncherConfig, Speed
     from launcher.game import Game
 
+    if sys.platform.startswith("linux") and not os.environ.get("WAYLAND_DISPLAY"):
+        os.environ.setdefault("XDG_SESSION_TYPE", "x11")  # pyscreeze: use scrot on bare X11
     p = argparse.ArgumentParser(prog="python -m agents.tester")
     p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
     p.add_argument("--speed", default="step:35")
