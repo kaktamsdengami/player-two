@@ -55,10 +55,10 @@ def with_retry(fn: Any, tries: int = 4, base_s: float = 2.0, sleep: Any = time.s
     for i in range(tries):
         try:
             return fn()
-        except httpx.HTTPError as e:
+        except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as e:
             code = getattr(getattr(e, "response", None), "status_code", None)
-            if code and 400 <= code < 500 and code not in (404, 429):
-                raise  # a bad key or request fails in every region; waiting won't help
+            if isinstance(e, httpx.HTTPStatusError) and code not in RETRY_STATUS:
+                raise
             if i == tries - 1:
                 raise
             sleep(base_s * 2**i)
