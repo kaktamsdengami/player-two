@@ -34,9 +34,11 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - Brands: `insights.linkup.structured` (Linkup `outputType=structured`, `includeSources`), 3
   candidates per spot; a candidate without an http(s) source link is dropped. Every spot keeps the
   "Suggestions only. No brand deal exists or is implied." disclaimer.
-- Checked on the Devin VM: unit tests, frame extraction on a real recording (13 frames). The VM has
-  no `HAI_API_KEY` / `LINKUP_API_KEY`, so the real vision + Linkup pass (≥3 spots, acceptance) runs
-  on the stage laptop after the tester run.
+- Real APIs on the Devin VM (keys bound from org secrets), on the recording of an earlier VM tester
+  run on E3M1 (exploratory, not the acceptance run): 4 spots (left/right rock wall 45 s, path 35 s,
+  red rock wall 5 s), each with 3 brands and a source link. Linkup structured calls sometimes return
+  a 400 that succeeds when repeated, and a vision call can time out: both are retried now.
+- Acceptance (≥3 spots on the real tester run) still runs on the stage laptop after the tester run.
 
 ### 2026-11-07: T16 design debrief (Devin)
 
