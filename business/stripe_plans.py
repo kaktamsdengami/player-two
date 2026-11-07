@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import os
+import threading
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -180,10 +181,18 @@ class PlanStore:
         a = self.load().get("active")
         return PlanId(a) if a in PlanId._value2member_map_ else None
 
+    _lock = threading.Lock()
+
     def update(self, **fields) -> None:
+        with self._lock:
+            self._write(fields)
+
+    def _write(self, fields: dict) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         state = {**self.load(), **fields, "updated": datetime.now(UTC).isoformat()}
-        self.path.write_text(json.dumps(state))
+        tmp = self.path.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp")
+        tmp.write_text(json.dumps(state))
+        os.replace(tmp, self.path)
 
     def set(self, plan: PlanId | None, **extra) -> None:
         self.update(active=plan.value if plan else None, **extra)
