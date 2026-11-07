@@ -38,7 +38,15 @@ def speak(
     model: str | None = None,
     client: httpx.Client | None = None,
 ) -> Speech:
-    key = os.environ["ELEVENLABS_API_KEY"]
+    try:
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except ImportError:
+        pass
+    key = os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        raise RuntimeError("missing env: ELEVENLABS_API_KEY (set it in .env)")
     voice = voice or os.environ.get("ELEVENLABS_VOICE_ID", DEFAULT_VOICE)
     body = {"text": text, "model_id": model or os.environ.get("ELEVENLABS_MODEL", DEFAULT_MODEL)}
     http = client or httpx.Client(timeout=60)
