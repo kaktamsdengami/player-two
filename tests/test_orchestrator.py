@@ -236,11 +236,13 @@ def test_control_token_from_dotenv(tmp_path, monkeypatch):
 
 def test_summary_is_written_without_insights_and_write_errors_are_not_fatal(tmp_path):
     o = _orch(tmp_path)
+    o.deps.replay = {"speed": "step", "start": "tough"}
     o.start()
     _wait(lambda: o.info.state == SessionState.awaiting_approval)
     o.intent(VoiceIntent(intent=Intent.skip, source="button"))
     o._thread.join(5)
-    assert json.loads((tmp_path / "run" / "tester_run.json").read_text())["findings"]
+    summary = json.loads((tmp_path / "run" / "tester_run.json").read_text())
+    assert summary["findings"] and summary["speed"] == "step" and summary["start"] == "tough"
     o2 = _orch(tmp_path / "b")
     o2.deps.run_dir = tmp_path / "file"
     o2.deps.run_dir.write_text("not a dir")

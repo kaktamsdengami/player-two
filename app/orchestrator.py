@@ -135,6 +135,7 @@ class Deps:
     map: str | None = "E3M1"
     speed: str = "frame-step"
     run_dir: Path | None = None  # the game's QA log + recording; tester_run.json goes there
+    replay: dict[str, str] = field(default_factory=dict)  # speed/start for later verifier runs
     debrief: Callable[[Path], Any] | None = None  # insights.debrief.build
     placement: Callable[[Path], list[Any]] | None = None  # insights.placement.scout
 
@@ -276,7 +277,7 @@ class Orchestrator:
             "findings": [f.model_dump(mode="json") for f in self.store.findings.values()],
             "notes": [n.model_dump(mode="json") for n in self.store.notes],
             "recording": str(rec) if rec.exists() else None,
-        }
+        } | self.deps.replay
         try:
             run_dir.mkdir(parents=True, exist_ok=True)
             (run_dir / "tester_run.json").write_text(json.dumps(summary, indent=2))
@@ -545,6 +546,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     except ImportError:
         placement = None
     deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}",
-                run_dir=run_dir, debrief=debrief, placement=placement)  # fmt: skip
+                run_dir=run_dir, debrief=debrief, placement=placement,
+                replay={"speed": "step", "start": cfg.start})  # fmt: skip
     orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
     return orch
