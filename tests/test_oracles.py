@@ -139,3 +139,32 @@ def test_new_bug_seen_again_by_h_replay_is_verified_new():
     door = _finding("Door clips through ceiling", "Door opens cleanly", "Door texture tears")
     judge(door, _events(_log(E3M1)), list(BUGS.values()), seen_by_h=True)
     assert door.status == "verified" and door.known_bug_ref is None
+
+
+def test_replay_holds_for_recorded_duration():
+    from datetime import UTC, datetime
+
+    from agents.verifier import Verifier
+    from app.contracts import AgentAction
+
+    calls = []
+    v = Verifier.__new__(Verifier)
+    v.press, v.step_wait_s = (lambda keys, **kw: calls.append((keys, kw))), 0.0
+    now = datetime.now(UTC)
+    acts = [
+        AgentAction(
+            session_id="s",
+            step=1,
+            ts=now,
+            t_session_s=1,
+            kind="key_hold",
+            keys=["up"],
+            duration_ms=900,
+        ),
+        AgentAction(
+            session_id="s", step=2, ts=now, t_session_s=2, kind="key_press", keys=["space"]
+        ),
+        AgentAction(session_id="s", step=3, ts=now, t_session_s=9, kind="key_press", keys=["left"]),
+    ]
+    v.replay_actions(acts, until_s=5)
+    assert calls == [(["up"], {"hold_s": 0.9}), (["space"], {})]
