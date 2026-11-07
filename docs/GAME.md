@@ -7,7 +7,7 @@ Approved by the team in [#6](https://github.com/kaktamsdengami/player-two/issues
 | | |
 |---|---|
 | Engine | [Chocolate Doom](https://github.com/chocolate-doom/chocolate-doom) 3.1.1, GPL-2.0, by Simon Howard and contributors (id Software source release). |
-| Fork | [kaktamsdengami/chocolate-doom](https://github.com/kaktamsdengami/chocolate-doom), branch `player-two-qa` (commit `7a354254`), based on tag `chocolate-doom-3.1.1`. Licence and credits unchanged. |
+| Fork | [kaktamsdengami/chocolate-doom](https://github.com/kaktamsdengami/chocolate-doom), branch `player-two-qa` (commit `2500b458`), based on tag `chocolate-doom-3.1.1`. Licence and credits unchanged. |
 | Game data | [Freedoom](https://freedoom.github.io/) 0.13.0 `freedoom1.wad`, BSD-3-Clause, by the Freedoom project. Downloaded at build time, never committed. |
 | Why | Chocolate Doom keeps vanilla Doom's engine bugs on purpose, so documented vanilla bugs are still live and have public write-ups and fixes in other ports. |
 
@@ -83,5 +83,5 @@ chocolate-doom -iwad freedoom1.wad -warp 1 1 -skill 3 -window -nosound -nomouse 
 |---|---|---|---|---|
 | KB1 | "REALLY need" medikit message never shows | E1M1 | `qa/kb1_kb2_medikit.txt` | `docs/game/kb1_medikit_message.png` |
 | KB2 | Ouch face never shows on a big hit | E1M1 | `qa/kb1_kb2_medikit.txt` | `docs/game/kb2_no_ouch_face.png` |
-| KB3 | Sky ignores the invulnerability colormap | E1M1 | `qa/kb3_sky_invul.txt` | `docs/game/kb3_sky_invulnerability.png` |
+| KB3 | Sky ignores the invulnerability colormap (**stage bug**) | E3M1 (red sky; E1M1 also works but its grey sky hides it) | `qa/kb3_sky_invul_e3m1.txt`, `qa/kb3_sky_invul.txt` | `docs/game/kb3_sky_invulnerability_e3m1.png`, `docs/game/kb3_sky_invulnerability.png` |
 | KB4 | Long-wall wobble | E1M7 | `qa/kb4_e1m7_along.txt` | `docs/game/kb4_long_wall_e1m7.png` |

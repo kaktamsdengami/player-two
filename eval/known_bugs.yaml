@@ -64,14 +64,15 @@
 - id: KB3
   title: Sky keeps its normal colours under invulnerability
   source_url: https://doomwiki.org/wiki/Invulnerability
-  map: E1M1
+  map: E3M1
   steps:
-    - Stand under the open sky (E1M1 sector 29, x=-600 y=240, just west of the start).
+    - Start E3M1 (red sky, visible from the start spot).
     - Take an invulnerability sphere (the QA script uses `give invulnerability`).
+    - Also on E1M1 (sector 29, x=-600 y=240), but its grey sky makes the bug hard to see.
   expected: The whole view, sky included, switches to the inverted grey invulnerability palette.
   actual: >-
-    Walls, floors and sprites invert but the sky is drawn with the normal colormap
-    (R_DrawPlanes sets dc_colormap = colormaps for sky columns).
+    Walls, floors and sprites invert but the sky stays red (normal colormap; R_DrawPlanes sets
+    dc_colormap = colormaps for sky columns).
   log_signature:
     description: sky drawn with the normal colormap while the inverse colormap is active
     all_of:
@@ -100,6 +101,8 @@
     The wall's top and bottom edges and texture lines bend and jitter from frame to frame.
     R_StoreWallRange/R_ScaleFromGlobalAngle compute the wall distance with low-precision
     angle tables, so long walls get a visibly wrong scale.
+  # Same engine bug on any long wall: E3M1 line 582 (1351 units) logs 1.0 %, so a KB4 match on
+  # E3M1 is real, not a false positive.
   log_signature:
     description: a wall longer than 1024 units is drawn with a measurable distance error
     all_of:
