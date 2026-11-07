@@ -269,10 +269,7 @@ class Orchestrator:
 
     def debrief(self) -> None:
         """Design debrief + placement scout on this run; each is best effort."""
-        if not (self.deps.debrief or self.deps.placement):
-            return
         run_dir = self.deps.run_dir or self.out_dir / "run"
-        run_dir.mkdir(parents=True, exist_ok=True)
         rec = run_dir / "recording.mp4"
         summary = {
             "session_id": self.info.h_session_id or self.info.id,
@@ -280,7 +277,12 @@ class Orchestrator:
             "notes": [n.model_dump(mode="json") for n in self.store.notes],
             "recording": str(rec) if rec.exists() else None,
         }
-        (run_dir / "tester_run.json").write_text(json.dumps(summary, indent=2))
+        try:
+            run_dir.mkdir(parents=True, exist_ok=True)
+            (run_dir / "tester_run.json").write_text(json.dumps(summary, indent=2))
+        except OSError as e:
+            self.error(f"could not write tester_run.json: {e}", "debrief")
+            return
         if self.deps.debrief:
             self._check()
             try:

@@ -232,3 +232,21 @@ def test_control_token_from_dotenv(tmp_path, monkeypatch):
     c = TestClient(create_app(Runtime(tmp_path)))
     assert c.post("/api/stop", json={}).status_code == 401
     assert c.post("/api/stop", json={}, headers={"X-P2-Token": "fromfile"}).status_code == 200
+
+
+def test_summary_is_written_without_insights_and_write_errors_are_not_fatal(tmp_path):
+    o = _orch(tmp_path)
+    o.start()
+    _wait(lambda: o.info.state == SessionState.awaiting_approval)
+    o.intent(VoiceIntent(intent=Intent.skip, source="button"))
+    o._thread.join(5)
+    assert json.loads((tmp_path / "run" / "tester_run.json").read_text())["findings"]
+    o2 = _orch(tmp_path / "b")
+    o2.deps.run_dir = tmp_path / "file"
+    o2.deps.run_dir.write_text("not a dir")
+    o2.deps.debrief = lambda d: {"x": 1}
+    o2.start()
+    _wait(lambda: o2.info.state == SessionState.awaiting_approval)
+    o2.intent(VoiceIntent(intent=Intent.skip, source="button"))
+    o2._thread.join(5)
+    assert o2.info.state == SessionState.done and o2.store.debrief is None
