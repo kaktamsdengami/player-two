@@ -2,24 +2,34 @@
 
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
-## Current state (2026-11-07 ~19:45 Paris, Devin)
+## Current state (2026-11-07 ~20:45 Paris, Devin)
 
 - **Done (merged):** T01 contracts (#34), T04 skeleton + CI (#35), T15 dashboard on mock data (#37),
-  T18 Stripe test-mode plans (#39).
+  T18 Stripe test-mode plans (#39), T10 Devin API client (#36): a real session for KB1
+  (https://app.devin.ai/sessions/342950d475634027b680eb038f8f89bc) opened
+  https://github.com/kaktamsdengami/chocolate-doom/pull/1 (left open: merge + replay are T11).
 - **Open PRs:**
-  - T10 Devin API client (#36): CI green; waits for the real-session check on the game fork.
-  - T13 Gladia voice in (#38, needs:local): CI green; waits for the stage-laptop mic output.
-- **Blocked:** T05 needs `kaktamsdengami/chocolate-doom` (fork of chocolate-doom/chocolate-doom) with
-  the Devin GitHub integration given access. T06–T09, T11, T12, T14 all chain from T05.
-  The T05–T09 proposal is in #6; the 60-min default applies to non-outward choices only.
-- **Need from you:**
-  1. create the fork above and grant Devin access;
-  2. run the mic commands in #38 on the stage laptop and paste the output;
-  3. answer (or let default) the questions in #6.
+  - T05 game + QA build (#40): fork `kaktamsdengami/chocolate-doom` branch `player-two-qa`; fork CI
+    builds the Windows zip; the stage laptop checked frame-step and KB3 on Windows (comment on #40).
+    **Stage bug = KB3 on E3M1** (red sky stays red while the world goes grey): `qa/kb3_sky_invul_e3m1.txt`.
+  - T13 Gladia voice in (#38, needs:local): CI green; waits for the stage-laptop mic output
+    (optional: buttons cover every intent).
+- **Next:** T06 launcher once T05 merges (T06–T09 defaults approved in #6); T12 narration on
+  **ElevenLabs** (key in the local `.env` as `ELEVENLABS_API_KEY`, TTS-only permission).
+- **Need from you:** the T13 mic check on the stage laptop (commands in #38), when convenient.
 - T18 note: `POST /api/billing/webhook` is a new endpoint; T14 must mount `app.routes_billing.router`
   and add it to CONTRACTS.md.
 
 ## Log
+
+### 2026-11-07: T05 game fork + QA build (Devin)
+
+- Fork `kaktamsdengami/chocolate-doom`, branch `player-two-qa` off `chocolate-doom-3.1.1`. QA flags:
+  `-qa-tics N` (frame-step: frozen until a key press, then N tics), `-qa-slowmo K`, `-qa-log` (JSONL
+  `GameEvent`), `-qa-trace`, `-qa-script` (timed QA actions), `-qa-wall-err/-qa-wall-len`.
+- Freedoom 0.13.0 `freedoom1.wad` is downloaded, never committed. `eval/known_bugs.yaml` holds
+  KB1–KB4 (hidden from the tester). Every signature matched its own scripted run; KB4 also matches on E3M1 (line 582, a real long wall).
+- Decision: Freedoom renames strings via DEHACKED, so KB1 matches Freedoom's medikit text.
 
 ### 2026-11-07: T18 merged (#39) (Devin)
 
