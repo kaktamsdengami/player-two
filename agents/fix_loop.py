@@ -63,11 +63,17 @@ class ScriptReplay:
             end = time.monotonic() + self.timeout_s
             while self.game.running and time.monotonic() < end:
                 time.sleep(0.2)
+            rc = None if self.game.running else self.game.proc.returncode
         finally:
             clip = rec.stop() if rec else None
             self.game.stop()
         events = self.game.log.since()
         hits = proven(events, [self.bug])
+        if rc != 0 or not events:
+            # a crash, a hang or a dead script proves nothing: count it as not fixed
+            why = "timed out" if rc is None else f"exited with {rc}"
+            note = f"replay incomplete: the game {why} after {len(events)} QA log events"
+            return Replay(True, note, clip, time.monotonic() - t0)
         if hits:
             note = f"{self.bug.id} signature still in the QA log: {hits[0].first.model_dump_json()}"
         else:
