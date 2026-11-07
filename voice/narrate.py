@@ -34,7 +34,10 @@ def script(f: Finding) -> list[tuple[str, str]]:
     return [
         ("setup", f"Look at this, in {where}."),
         ("bug", _sentence(f.actual)),
-        ("expected", "It should be: " + _sentence(f.expected[:1].lower() + f.expected[1:])),
+        (
+            "expected",
+            "It should be: " + _sentence(f.expected)[:1].lower() + _sentence(f.expected)[1:],
+        ),
         ("ask", "Want me to fix it?"),
     ]
 

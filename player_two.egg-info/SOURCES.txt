@@ -32,5 +32,8 @@ tests/test_check_keys.py
 tests/test_contracts.py
 tests/test_devin_client.py
 tests/test_launcher.py
+tests/test_narrate.py
 tests/test_oracles.py
 voice/__init__.py
+voice/narrate.py
+voice/tts.py
