@@ -21,6 +21,15 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07 ~00:30: stage run 2: first blind rediscovery (Devin)
+
+- Stage laptop, t14 @ d086321, fork 38f5c344, US: session `c960e650…`, 39 actions, max tic 595.
+  4 findings; the verifier VERIFIED F3 = **KB4** (proven by the QA log, clip cut). F1/F2/F4 stayed
+  suspected (vanilla screen border, close-range explosions, death view). T07/T08 acceptance met.
+- Fixes after the run: taptest waits for the first frame and refocuses (first tap was lost once
+  on first launch); tester prompt lists normal Doom behaviour that is not a bug. `iddqd` works in
+  frame-step on the fork (xdotool type, delay 0 and 80 ms: "God mode on." at tic 10 / 21).
+
 ### 2026-11-07 ~23:30: stage run 1 diagnosis + frame-step latch (Devin)
 
 - Stage-laptop tester run (US, session `1f447785…`, 37 actions, slots freed): the game advanced one

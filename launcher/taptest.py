@@ -59,6 +59,10 @@ def run(cfg: LauncherConfig, taps: int = 4, tics: int = 35, settle: float = 2.0)
         try:
             if game.start(speed=Speed.parse(f"step:{tics}")) is None:
                 raise RuntimeError("game window not found")
+            end = time.monotonic() + 15  # first launch can be slow (config, shaders)
+            while last_tic(game.log_path) < 1 and time.monotonic() < end:
+                time.sleep(0.2)
+            game.window()  # focus again once the first frame is drawn
             time.sleep(settle)
             seen = [last_tic(game.log_path)]
             for i in range(taps):
