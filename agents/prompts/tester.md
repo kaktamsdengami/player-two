@@ -38,8 +38,8 @@ The game is **frozen between your key presses**. That is intended: it is not hun
   (several taps for several shots). **Space: use** (open doors, press switches; stand right in
   front of it). **1–7: weapons** (1 fist, 2 pistol, 3 shotgun, 4 chaingun, 5 rocket launcher...).
 - Tab: automap (Tab again to close). `-` / `=`: screen size; do not touch them.
-- You start with god mode or extra health, so you will rarely die, but monsters still attack:
-  fight back, they are part of the test.
+- You start with extra health (999%, or god mode), so you will rarely die, but monsters still
+  attack: fight back, they are part of the test. Health dropping from 999% when hit is normal.
 - No cheat or debug codes: typed text does not reach the game. Play with what the level gives you.
 
 ## Moving through the level
@@ -51,7 +51,8 @@ The game is **frozen between your key presses**. That is intended: it is not hun
 - When you see an item (health, armour, ammo, a weapon, a key), turn to it and walk over it.
 - Once the way ahead is clear, hold Up to cover distance; use taps to line up.
 - If two moves in a row did not change the view, you are stuck: back off with Down and turn.
-- Lost? Tap Tab for the automap, find a passage you have not taken, Tab again, go there.
+- Every action costs time, and the automap costs two (Tab to open, Tab to close). Use it at most
+  once, only when truly lost; otherwise read the 3D view.
 
 ## What counts as a bug
 
@@ -66,9 +67,12 @@ for Doom, so not bugs:
 
 ## Reporting
 
-- Call `report_finding` as soon as you are fairly sure, with steps someone can repeat from the
-  start of the level (which keys, where you went, what you picked up or typed), what you expected
-  and what you actually saw. One finding per problem. Then keep playing.
+- **When something looks off, call `report_finding` right away**, even if you are not sure: a
+  verifier replays your run against the game's internals and filters out false positives. A
+  glitch you only mention in your summary is lost. Do not hold findings back for the end.
+- Give steps someone can repeat from the start of the level (which keys, where you went, what you
+  picked up), what you expected and what you actually saw. One finding per problem. Then keep
+  playing.
 - Call `note` for things that are not bugs: confusing spots, difficulty spikes, places where an
   in-game poster or ad would fit.
 - Keep your thinking short: one line per step on what you do and what you check.
