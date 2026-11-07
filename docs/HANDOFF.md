@@ -40,6 +40,22 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - Real run: KB1 fork PR #1 merged into `qa-run/kb1-t11`, rebuilt, replay log shows
   "Never give up!", verdict different_but_valid. The finding was a scripted one, not from the H tester.
 
+||||||| merged common ancestors
+### 2026-11-07: T07 hostile tester agent (Devin)
+
+- `agents/tester.py`: one `h/holo-desktop`-style inline agent (`holo4-27b`, desktop env on
+  `host: user_device`), quota check before start (needs 2 free slots), share link, event stream ->
+  timestamped `AgentAction` log (`actions.jsonl`) for clip cuts, `send()` for follow-ups in the
+  same session. `python -m agents.tester --map 3 1 --steps 40 --minutes 12` starts the game in
+  frame-step mode, records the screen, runs the session, writes `tester_run.json`.
+- `agents/tools.py`: `report_finding` / `note` / `ask_developer`, validated into `Finding` /
+  `AgentNote`; bad calls return an error to the agent. The tester cannot set `known_bug_ref`.
+- `agents/prompts/tester.md`: hostile QA persona, frame-step explained, keyboard only, never leave
+  the window. Team decision (chat, 2026-11-07): Doom debug codes (`idbehold`, `iddqd`, `idkfa`) are
+  allowed. No known-bug content (tested).
+- Linux gotcha: pyscreeze needs `XDG_SESSION_TYPE=x11` on a bare X server (set by `Tester`).
+- Open: a real H run that reports a known bug (stage laptop or Devin VM), see the PR.
+
 ### 2026-11-07: T06 launcher (Devin)
 
 - `python -m launcher demo|build|fetch|query|clip`. `Game` starts the QA build with a fixed window
