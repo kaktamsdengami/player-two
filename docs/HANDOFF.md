@@ -33,6 +33,10 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - Windows fixes: the tester loads `.env` before reading `HAI_API_KEY`; dependency is
   `hai-agents[desktop]`; `player_two.egg-info/` is untracked and ignored. On Windows, if `uv sync`
   hits MAX_PATH, set `UV_PROJECT_ENVIRONMENT` to a short path (e.g. `C:\p2venv`).
+- `python -m launcher.taptest` (+ `tests/test_taptest.py`): starts the QA build in frame-step
+  mode, sends 0 ms taps (xdotool `--delay 0` / Win32 `keybd_event`), checks one step per tap.
+  Devin VM: old build `1233d939` -> `[1, 1, 1, 1, 35] FAIL`; `38f5c344` -> `[1, 35, 70, 105, 140] PASS`.
+  Run it on the stage laptop before each H session.
 - Next: rerun step 1 on the stage laptop; verifier only on a genuine finding.
 
 ### 2026-11-07: T14 orchestrator (Devin)
