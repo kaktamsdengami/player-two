@@ -23,6 +23,9 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ### 2026-11-07: T14 orchestrator (Devin)
 
+- Shared-file note: `docs/CONTRACTS.md` now lists `POST /api/session/start`, the T18
+  `POST /api/billing/webhook`, and the control guard (JSON only, optional `X-P2-Token` when
+  `P2_CONTROL_TOKEN` is set, `P2_CORS_ORIGINS`). Both env vars are in `.env.example`.
 - `app/orchestrator.py`: one thread runs explore → finding → verify → present (ElevenLabs voice +
   clip) → wait for `fix`/`skip` (button or voice intent) → Devin fix loop → re-verify → follow-up
   message to the same H session (no new session per finding). Every change is an `SseEvent`,
