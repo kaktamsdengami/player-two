@@ -33,10 +33,19 @@ export async function loadSnapshot(): Promise<Snapshot> {
 }
 
 /** Live: SSE from /api/events. Mock: replays the mock events in a loop so the UI moves. */
+const SSE_TYPES = [
+  'session.state', 'agent.action', 'agent.note', 'finding.new', 'finding.updated', 'fix.updated',
+  'voice.narration', 'voice.transcript', 'voice.intent', 'debrief.ready', 'placement.ready',
+  'plan.updated', 'error',
+]
+
 export function subscribe(onEvent: (e: SseEvent) => void): () => void {
   if (!USING_MOCK) {
     const es = new EventSource(`${API_BASE}/api/events`)
-    es.onmessage = (m) => onEvent(JSON.parse(m.data) as SseEvent)
+    // the stream names each event (`event: <type>`), so onmessage alone would never fire
+    const handle = (m: MessageEvent) => onEvent(JSON.parse(m.data) as SseEvent)
+    es.onmessage = handle
+    for (const t of SSE_TYPES) es.addEventListener(t, handle)
     return () => es.close()
   }
   // the mock 'error' event would pin the error banner on every view; skip it in the replay
