@@ -150,7 +150,8 @@ class Verifier:
         out = replay(self.game.cfg, run_dir, video=self.record)
         events = EventLog(Path(out["events"])).poll()
         cut = report_tic(run_dir, finding, started_at)
-        if cut is not None:
+        if cut is not None:  # keep each signature's window open past the report (none_of checks)
+            cut += max((b.log_signature.within_tics or 0 for b in self.bugs), default=0)
             events = [e for e in events if e.tic <= cut]
         verdict = judge(finding, events, self.bugs)
         verdict.replay = "demo"

@@ -202,6 +202,9 @@ def test_demo_verdict_ignores_events_after_the_report(tmp_path, monkeypatch):
     from agents.verifier import Verifier
 
     rows = _log(E3M1)
+    for r in rows:  # the power-up 100 tics later, past any signature window
+        r["tic"] += 100
+        r["t"] = (r.get("t") or 0) + 100 / 35
     (tmp_path / "agent.lmp").write_bytes(b"\0" * 20)
     (tmp_path / "events.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
     monkeypatch.setattr(
@@ -209,9 +212,8 @@ def test_demo_verdict_ignores_events_after_the_report(tmp_path, monkeypatch):
     )
     v = Verifier(SimpleNamespace(cfg=None, run_dir=tmp_path), 3, 1, None, list(BUGS.values()),
                  record=False)  # fmt: skip
-    first = min(r["t"] for r in rows if r["type"] == "powerup")
     f = SKY.model_copy(deep=True)
-    before = f.reported_at.timestamp() - (first - 0.01)  # reported just before the power-up
+    before = f.reported_at.timestamp() - 1.0  # reported 1 s after launch, ~65 tics before it
     verdict = v.verify(f, [], out_dir=tmp_path / "v", demo=tmp_path, demo_started_at=before)
     assert verdict.matched is None
     f = SKY.model_copy(deep=True)
