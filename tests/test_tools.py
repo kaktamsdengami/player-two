@@ -144,3 +144,18 @@ def test_choose_region_falls_back_then_reports_busy(monkeypatch):
     free[REGIONS[1]] = 0
     with pytest.raises(HBusyError, match="retry"):
         choose_region(2, lambda u: {"available": free[u]})
+
+
+def test_choose_region_skips_a_region_whose_quota_fails(monkeypatch):
+    import httpx
+
+    from agents.tester import REGIONS, choose_region
+
+    monkeypatch.setenv("HAI_BASE_URL", REGIONS[0])
+
+    def q(url):
+        if url == REGIONS[0]:
+            raise httpx.ReadTimeout("slow")
+        return {"available": 3}
+
+    assert choose_region(2, q) == REGIONS[1]

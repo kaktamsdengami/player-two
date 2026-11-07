@@ -86,8 +86,11 @@ def choose_region(min_slots: int = 2, quota_fn: Any = None) -> str:
     order = [base_url()] + [r for r in REGIONS if r != base_url()]
     seen = {}
     for url in order:
-        q = quota_fn(url)
-        seen[url] = q.get("available", 0)
+        try:
+            seen[url] = quota_fn(url).get("available", 0)
+        except httpx.HTTPError as e:
+            seen[url] = f"error: {type(e).__name__}"
+            continue
         if seen[url] >= min_slots:
             os.environ["HAI_BASE_URL"] = url
             return url
