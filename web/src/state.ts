@@ -91,7 +91,7 @@ export function applyEvent(state: State, e: SseEvent): State {
   const d = e.data
   switch (e.type) {
     case 'session.state':
-      return { ...state, snap: { ...snap, session: d as unknown as SessionInfo } }
+      return { ...state, snap: { ...snap, session: { ...snap.session, ...(d as Partial<SessionInfo>) } } }
     case 'agent.action':
       return {
         ...state,
