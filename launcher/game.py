@@ -21,6 +21,7 @@ class Game:
     log: EventLog = field(init=False)
 
     def __post_init__(self) -> None:
+        self.run_dir = Path(self.run_dir).resolve()  # the game runs with cwd=run_dir
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.log = EventLog(self.log_path)
 
@@ -34,7 +35,8 @@ class Game:
         c = self.cfg
         extra = self.run_dir / "launcher.cfg"
         extra.write_text(c.extraconfig())
-        cmd = [str(c.exe), "-iwad", str(c.iwad), "-warp", str(episode), str(map_),
+        exe, iwad = Path(c.exe).resolve(), Path(c.iwad).resolve()
+        cmd = [str(exe), "-iwad", str(iwad), "-warp", str(episode), str(map_),
                "-skill", str(c.skill), "-nomouse", "-nograbmouse",
                "-fullscreen" if c.fullscreen else "-window",
                "-extraconfig", str(extra), "-qa-log", str(self.log_path),
