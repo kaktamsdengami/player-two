@@ -21,6 +21,11 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+- 2026-11-08 (Devin): T12, T13, T16, T17 merged into t14 (T12's branch drops the verifier files; t14
+  keeps them). Contract addition: `POST /api/transcript` (`TranscriptPayload` -> `voice.transcript`),
+  posted by `voice.listen --post` with `X-P2-Token` when `P2_CONTROL_TOKEN` is set. Debrief counts
+  retries per game launch (rounds relaunch the game) and sums launch durations.
+
 - 2026-11-08 ~00:30 (Devin): team decision on #42 (stage demo). `agents.tester --plan "<text>"`
   appends "The developer asks you to focus on: ..."; `--preset stage-kb3` (launcher `PRESETS`,
   `P2_PRESET`) starts E3M1 with an invulnerability sphere spawned ~200 units ahead under the red
