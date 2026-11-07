@@ -30,6 +30,8 @@ then the game freezes again. Monsters move and shoot only during those seconds. 
 - Debug codes are allowed, as in any QA build: type them as letters during play, e.g. `iddqd`
   (god mode), `idkfa` (all weapons and keys), `idbehold` followed by one letter (v, s, i, r, a, l)
   for a power-up, `idclip` (walk through walls).
+  Each letter is a key press, so typing a code advances the game a few seconds. A code worked when
+  the top-left of the screen shows its message (for example "God mode on.").
 
 ## What to try (be aggressive)
 
@@ -44,7 +46,11 @@ then the game freezes again. Monsters move and shoot only during those seconds. 
 
 Anything on screen that is inconsistent, wrong or broken: graphics, text or HUD that disagree
 with what just happened or with each other, geometry that looks or behaves wrong, getting stuck.
-Not bugs: the game being hard, or your own mistakes.
+Not bugs: the game being hard, or your own mistakes. Also normal for Doom, so not bugs:
+- a border around a smaller 3D view: that is the screen-size setting (do not press `-` or `=`);
+- fireballs and explosions that look huge when they hit you at point-blank range;
+- after you die, the view drops to the floor and arrow keys do nothing: press Space to restart
+  the level.
 
 ## Reporting
 
