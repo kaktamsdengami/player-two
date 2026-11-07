@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from app.contracts import SessionInfo, VoiceIntent
+from app.contracts import SessionInfo, SseType, TranscriptPayload, VoiceIntent
 from app.orchestrator import Orchestrator, Recorded, sse_format
 from app.routes_billing import router as billing_router
 
@@ -182,6 +182,13 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
         if not rt.current:
             raise HTTPException(409, "no session")
         rt.current.intent(i)
+        return {"ok": True}
+
+    @app.post("/api/transcript", dependencies=[Depends(control)])
+    def transcript(t: TranscriptPayload) -> Any:
+        if not rt.current:
+            raise HTTPException(409, "no session")
+        rt.current.publish(SseType.transcript, t)
         return {"ok": True}
 
     @app.post("/api/stop", dependencies=[Depends(control)])

@@ -105,6 +105,7 @@ Stream: `GET /api/events` (`text/event-stream`, `event:` = type, `data:` = the e
 | `GET /api/events` | SSE stream of `SseEvent` |
 | `POST /api/session/start` | body `{mode: "live" \| "recorded"}` → `SessionInfo` (T14) |
 | `POST /api/intent` | body `VoiceIntent` (buttons use `source: "button"`) |
+| `POST /api/transcript` | body `TranscriptPayload`; republished as `voice.transcript` (the voice listener) |
 | `POST /api/stop` | stops the session (H session cancelled within 5 s) |
 | `POST /api/billing/checkout` | body `{plan: PlanId}` → `{url}` (T18) |
 | `POST /api/billing/webhook` | Stripe signed webhook → active plan (T18) |

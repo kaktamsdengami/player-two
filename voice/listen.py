@@ -192,19 +192,26 @@ def main(argv: list[str] | None = None) -> int:
         print("missing env: GLADIA_API_KEY", file=sys.stderr)
         return 2
 
+    token = os.environ.get("P2_CONTROL_TOKEN")
+    headers = {"X-P2-Token": token} if token else {}
+
+    def post(path: str, body: dict) -> None:
+        if not args.post:
+            return
+        try:
+            r = httpx.post(f"{args.post.rstrip('/')}{path}", json=body, headers=headers, timeout=5)
+        except httpx.HTTPError as e:
+            print(f"voice: {path} failed: {e}", file=sys.stderr)
+            return
+        if r.status_code >= 400:
+            print(f"voice: {path} rejected: HTTP {r.status_code}", file=sys.stderr)
+
     def on_intent(intent: VoiceIntent) -> None:
-        if args.post:
-            r = httpx.post(
-                f"{args.post.rstrip('/')}/api/intent", json=intent.model_dump(), timeout=5
-            )
-            if r.status_code >= 400:
-                print(
-                    f"voice: /api/intent rejected {intent.intent}: HTTP {r.status_code}",
-                    file=sys.stderr,
-                )
+        post("/api/intent", intent.model_dump(mode="json"))
 
     def on_transcript(text: str, final: bool, lang: str | None) -> None:
         if final:
+            post("/api/transcript", {"text": text, "final": True, "language": lang})
             intent = parse_intent(text, language=lang)
             out = {"transcript": text, "language": lang, "intent": intent and intent.model_dump()}
             print(json.dumps(out, ensure_ascii=False), flush=True)
