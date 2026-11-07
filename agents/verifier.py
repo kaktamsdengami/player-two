@@ -171,6 +171,7 @@ def main(argv: list[str] | None = None) -> int:
         if x.strip()
     ]
     cfg = LauncherConfig.from_env()
+    cfg.start = run.get("start", "off")  # replay in the tester's start state (older runs: none)
     v = Verifier(
         Game(cfg, a.run_dir / "verify"),
         a.map[0],
