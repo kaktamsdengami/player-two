@@ -202,8 +202,6 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             (ROOT / "recordings").resolve(),
             (ROOT / "eval" / "runs").resolve(),
         ]
-        if rt.recording:
-            roots.append(rt.recording.resolve().parent)
         ok = any(p.is_relative_to(r) for r in roots) and p.suffix.lower() in MEDIA_SUFFIXES
         if not ok or any(part.startswith(".") for part in p.parts) or not p.is_file():
             raise HTTPException(404, "not found")
