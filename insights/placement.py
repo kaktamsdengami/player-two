@@ -18,6 +18,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from collections import Counter, defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -82,20 +83,20 @@ class Sighting:
 
 def frames(recording: Path, out_dir: Path, every_s: float = EVERY_S) -> list[tuple[float, Path]]:
     """One PNG every `every_s` seconds of the recording: [(t, path)]."""
-    new = out_dir.with_name(out_dir.name + ".new")  # a failed ffmpeg keeps the old frames
-    shutil.rmtree(new, ignore_errors=True)
-    new.mkdir(parents=True)
-    subprocess.run(
-        ["ffmpeg", "-v", "error", "-y", "-i", str(recording),
-         "-vf", f"fps=1/{every_s},scale=640:-2", str(new / "frame_%04d.png")],
-        check=True,
-    )  # fmt: skip
     out_dir.mkdir(parents=True, exist_ok=True)
-    for old in out_dir.glob("frame_*.png"):
-        old.unlink()
-    for f in new.glob("frame_*.png"):
-        f.replace(out_dir / f.name)
-    new.rmdir()
+    new = Path(tempfile.mkdtemp(prefix=".frames-", dir=out_dir.parent))  # fresh, never shared
+    try:
+        subprocess.run(
+            ["ffmpeg", "-v", "error", "-y", "-i", str(recording),
+             "-vf", f"fps=1/{every_s},scale=640:-2", str(new / "frame_%04d.png")],
+            check=True,
+        )  # fmt: skip
+        for old in out_dir.glob("frame_*.png"):
+            old.unlink()
+        for f in new.glob("frame_*.png"):
+            f.replace(out_dir / f.name)
+    finally:
+        shutil.rmtree(new, ignore_errors=True)
     paths = sorted(out_dir.glob("frame_*.png"))
     return [(i * every_s, p) for i, p in enumerate(paths)]
 

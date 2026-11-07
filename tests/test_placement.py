@@ -146,6 +146,7 @@ def test_failed_extraction_keeps_old_frames(tmp_path, monkeypatch):
     with pytest.raises(placement.subprocess.CalledProcessError):
         placement.frames(tmp_path / "r.mp4", out)
     assert (out / "frame_0001.png").read_bytes() == b"old"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["placement"]  # scratch dir removed
 
 
 def test_notes_add_no_screen_time_to_sampled_spots():
