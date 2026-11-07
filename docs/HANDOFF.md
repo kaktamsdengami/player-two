@@ -2,22 +2,22 @@
 
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
-## Current state (2026-11-07 ~22:00 Paris, Devin)
+## Current state (2026-11-08, Devin)
 
-- **Done (merged):** T01 (#34), T04 (#35), T15 dashboard on mock data (#37), T18 Stripe (#39),
-  T10 Devin client (#36), T05 game + QA build (#40), T06 launcher (#41).
-  **Stage bug = KB3 on E3M1** (red sky stays red while the world goes grey).
-- **Open PRs:** T07 tester (#42), T08 verifier (#43), T11 fix loop (#44, live KB1 loop proven with a
-  scripted finding), T13 Gladia (#38, needs:local).
-- **In progress:** T14 orchestrator (`t14-orchestrator-state-machine`): state machine, SSE bus,
-  RECORDED replay, FastAPI app; unit tests pass. Waiting for a free US H slot for the live run
-  (`python -m app.main --mode live --start`).
-- **H notes:** EU desktop sessions stall at 0 steps (3 runs); use `HAI_REGIONS=https://agp.hcompany.ai`.
-  The tester has no shell (`forbid_shell`): an earlier run read the QA log through
-  `run_command_desktop`. Zombie sessions stay `running` after DELETE 204 and hold slots.
-- **Not verified on Windows:** T06 gdigrab + foregrounding, T13 mic.
-- **Judging:** round 1 is online (demo video + "how do I test your product live" link); stage only for
-  the top 8. Frontend work is postponed by the team; backend first.
+- **Done (merged):** T01 (#34), T04 (#35), T15 (#37), T18 (#39), T10 (#36), T05 (#40), T06 (#41).
+  **Stage bug = KB3 on E3M1** (sky keeps normal colours under invulnerability).
+- **Integration branch = `t14-orchestrator-state-machine` (#46).** It now contains every open
+  feature branch: T07 tester (#42), T08 verifier (#43), T11 fix loop (#44), T12 narration (#45),
+  T13 Gladia voice-in (#38), T16 debrief (#47), T17 placement (#48). The stage laptop runs only
+  this branch. `uv sync --extra dev`: ruff clean, 240 passed; `web` build + lint clean.
+- **Stage presets** (open run settings, recorded in `tester_run.json`): `stage-kb3` (sphere near the
+  start) and `stage-play` (shotgun, armour, stimpack, zombie, imps, then the sphere at the end of
+  the first canyon). Fork player-two-qa 5ad5e7f6 (`spawn` QA command).
+- **Waiting for:** stage-laptop runs (3x `stage-play`, 2x `stage-kb3`) and then one full live loop
+  (`python -m app.main --mode live --start` + dashboard + voice).
+- **H notes:** real H runs only on the stage laptop (US region, `HAI_REGIONS=https://agp.hcompany.ai`).
+  The team cancelled the "H showcase" list (#42): no new features, main loop first.
+- **Judging:** round 1 is online (demo video + a live link the jury clicks); stage only for the top 8.
 
 ## Log
 
