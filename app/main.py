@@ -120,7 +120,7 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             return s.session.model_dump(mode="json")
         idle = SessionInfo(id="idle", game="Chocolate Doom (QA build) + Freedoom",
                            build="player-two-qa", started_at=datetime.now(UTC),
-                           live=rt.mode == "live")  # fmt: skip
+                           live=False)  # fmt: skip
         return idle.model_dump(mode="json")
 
     @app.post("/api/session/start", dependencies=[Depends(control)])
