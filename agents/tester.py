@@ -227,7 +227,10 @@ def main(argv: list[str] | None = None) -> int:
     cfg = LauncherConfig.from_env()
     run_dir = (cfg.runs_dir / f"{datetime.now():%Y%m%d-%H%M%S}-tester").resolve()
     game = Game(cfg, run_dir)
-    win = game.start(a.map[0], a.map[1], Speed.parse(a.speed))
+    speed = Speed.parse(a.speed)
+    if not speed.tics:
+        raise SystemExit("the tester prompt assumes frame-step: use --speed step[:N]")
+    win = game.start(a.map[0], a.map[1], speed)
     if win is None:
         game.stop()
         raise SystemExit("game window did not appear")
