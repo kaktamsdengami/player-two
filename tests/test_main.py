@@ -24,3 +24,22 @@ def test_transcript_needs_a_session(tmp_path):
     c = TestClient(create_app(Runtime(tmp_path)))
     r = c.post("/api/transcript", json={"text": "fix it", "final": True})
     assert r.status_code == 409
+
+
+def test_transcript_after_the_session_ended_is_dropped(tmp_path):
+    from types import SimpleNamespace
+
+    from fastapi.testclient import TestClient
+
+    from app.main import Runtime, create_app
+
+    rt = Runtime(tmp_path)
+    seen = []
+    rt.current = SimpleNamespace(
+        info=SimpleNamespace(state="done"), publish=lambda *a: seen.append(a)
+    )
+    c = TestClient(create_app(rt))
+    assert c.post("/api/transcript", json={"text": "hi", "final": True}).status_code == 409
+    rt.current.info.state = "exploring"
+    assert c.post("/api/transcript", json={"text": "hi", "final": True}).status_code == 200
+    assert len(seen) == 1

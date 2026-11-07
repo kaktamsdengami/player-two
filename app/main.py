@@ -186,8 +186,9 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
 
     @app.post("/api/transcript", dependencies=[Depends(control)])
     def transcript(t: TranscriptPayload) -> Any:
-        if not rt.current:
-            raise HTTPException(409, "no session")
+        info = getattr(rt.current, "info", None)
+        if not info or info.state in ("stopped", "done", "error"):
+            raise HTTPException(409, "no running session")
         rt.current.publish(SseType.transcript, t)
         return {"ok": True}
 
