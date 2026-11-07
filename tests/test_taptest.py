@@ -10,6 +10,7 @@ from launcher.taptest import passed, run
 
 def test_passed_needs_one_step_per_tap():
     assert passed([1, 35, 70, 105, 140], 35)
+    assert passed([2, 35, 70, 105, 140], 35)  # level entry ran two tics
     assert not passed([1, 35, 35, 35, 35], 35)  # frozen after the first step (stage run 1)
     assert not passed([1], 35)
     assert not passed([1, 71, 141], 35)  # clock runs on its own (no frame-step)
