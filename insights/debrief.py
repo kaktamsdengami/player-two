@@ -58,7 +58,13 @@ def heatmap(
     if not pts:
         return None, []
     xs, ys = zip(*pts, strict=True)
-    bounds = (min(xs), min(ys), max(xs), max(ys))
+    # snapped to the cell grid: every cell centre is inside and the box is never zero-width
+    bounds = (
+        (min(xs) // cell) * cell,
+        (min(ys) // cell) * cell,
+        (max(xs) // cell + 1) * cell,
+        (max(ys) // cell + 1) * cell,
+    )
     cells: dict[tuple[int, int], HeatCell] = {}
 
     def at(e: GameEvent) -> HeatCell:

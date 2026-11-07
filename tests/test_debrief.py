@@ -159,3 +159,20 @@ def test_search_drops_non_http_urls(monkeypatch):
     with respx.mock:
         respx.post(linkup.URL).respond(json={"results": results})
         assert [c.url for c in linkup.search("q")] == ["https://a.b/c"]
+
+
+def test_heatmap_bounds_contain_every_cell():
+    from app.contracts import GameEvent
+
+    ev = GameEvent.model_validate(
+        {
+            "t": 1,
+            "tic": 35,
+            "type": "death",
+            "map": "E1M1",
+            "player": {"x": 10, "y": 20, "angle": 0},
+        }
+    )
+    (x0, y0, x1, y1), cells = debrief.heatmap([ev])
+    assert x1 > x0 and y1 > y0
+    assert all(x0 <= c.x <= x1 and y0 <= c.y <= y1 for c in cells)
