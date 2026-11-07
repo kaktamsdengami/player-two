@@ -226,3 +226,12 @@ def test_label_font_path_for_windows_ffmpeg(monkeypatch):
     monkeypatch.setenv("P2_FONT", "C:\\Windows\\Fonts\\arialbd.ttf")
     args = capture.cut_args(Path("r.mp4"), 0, 4, Path("c.mp4"), label="RECORDED")
     assert r"fontfile='C\:/Windows/Fonts/arialbd.ttf':" in args[args.index("-vf") + 1]
+
+
+def test_preset_adds_start_lines(tmp_path):
+    cfg = _cfg(tmp_path)
+    cfg.start, cfg.preset = "tough", "stage-kb3"
+    path = Game(cfg, tmp_path / "run").start_script()
+    assert path.read_text() == "1 health 999\n1 spawn 2022 -100 -224\n"
+    cfg.start = "off"
+    assert Game(cfg, tmp_path / "run2").start_script().read_text() == "1 spawn 2022 -100 -224\n"

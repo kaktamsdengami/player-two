@@ -1,7 +1,7 @@
 """Hostile-tester agent: one H desktop session (pixels only) on the running QA build.
 
 Usage (game window must be on this machine's screen; the SDK serves it as a `user_device` desktop):
-    python -m agents.tester --map 3 1 --steps 120 --minutes 15
+    python -m agents.tester --map 3 1 --steps 120 --minutes 20
 The tester never receives the known-bug list or the event log. The launcher records the screen and
 keeps the hidden event log for the verifier (T08).
 """
@@ -48,6 +48,11 @@ DEFAULT_TASK = (
     "Test this level like a hostile QA tester. Explore, provoke the game, and report every bug "
     "you find with report_finding. Finish with a short summary."
 )
+
+
+def with_plan(task: str, plan: str | None) -> str:
+    """A developer's focus area (a test plan names an area, never a bug); none: free exploration."""
+    return f"{task}\n\nThe developer asks you to focus on: {plan.strip()}" if plan else task
 
 
 class TesterAnswer(BaseModel):
@@ -223,7 +228,7 @@ class Tester:
         self,
         task: str = DEFAULT_TASK,
         max_steps: int = 120,
-        max_time_s: float = 900,
+        max_time_s: float = 1200,
         idle_timeout_s: int = 600,
         min_slots: int = 2,
     ) -> TesterRun:
@@ -282,15 +287,17 @@ class Tester:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from launcher.config import LauncherConfig, Speed
+    from launcher.config import PRESETS, LauncherConfig, Speed
     from launcher.game import Game
 
     p = argparse.ArgumentParser(prog="python -m agents.tester")
-    p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
+    p.add_argument("--map", nargs=2, type=int, metavar=("EPISODE", "MAP"), help="default E3M1")
     p.add_argument("--speed", default="step")
     p.add_argument("--steps", type=int, default=120)  # ~6-7 s each: fits 15 min
-    p.add_argument("--minutes", type=float, default=15)
+    p.add_argument("--minutes", type=float, default=20)
     p.add_argument("--task", default=DEFAULT_TASK)
+    p.add_argument("--plan", help="developer's focus area, appended to the task")
+    p.add_argument("--preset", choices=sorted(PRESETS), help="QA start preset (map, spawns, plan)")
     a = p.parse_args(argv)
     from dotenv import find_dotenv, load_dotenv
 
@@ -300,6 +307,10 @@ def main(argv: list[str] | None = None) -> int:
     except HBusyError as e:
         raise SystemExit(str(e)) from None
     cfg = LauncherConfig.from_env()
+    cfg.preset = a.preset or cfg.preset
+    preset = PRESETS.get(cfg.preset)
+    a.map = a.map or (list(preset.map) if preset else [3, 1])
+    plan = a.plan or (preset.plan if preset else None)
     run_dir = (cfg.runs_dir / f"{datetime.now():%Y%m%d-%H%M%S}-tester").resolve()
     game = Game(cfg, run_dir)
     speed = Speed.parse(a.speed)
@@ -314,7 +325,8 @@ def main(argv: list[str] | None = None) -> int:
     rec = capture.record(win, run_dir / "recording.mp4", cfg.fps)
     tester = Tester()
     try:
-        run = tester.start(a.task, a.steps, a.minutes * 60, idle_timeout_s=60)
+        task = with_plan(a.task, plan)
+        run = tester.start(task, a.steps, a.minutes * 60, idle_timeout_s=60)
         print(json.dumps({"session_id": run.session_id, "share_url": run.share_url}), flush=True)
         run = tester.follow(run_dir / "actions.jsonl")
     except BaseException:
@@ -328,6 +340,9 @@ def main(argv: list[str] | None = None) -> int:
         "recording": str(rec.path),
         "speed": speed.spec(),
         "start": cfg.start,
+        "preset": cfg.preset,
+        "plan": plan,
+        "map": a.map,
     }
     (run_dir / "tester_run.json").write_text(json.dumps(out, indent=2, default=str))
     print(json.dumps(out, indent=2, default=str))

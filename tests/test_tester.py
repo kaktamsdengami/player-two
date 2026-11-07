@@ -42,3 +42,12 @@ def test_tester_model_switch(monkeypatch):
     assert tester.agent_spec(TesterTools(), "x")["model"] == "holo4-35b-a3b"
     monkeypatch.setenv("P2_TESTER_MODEL", "holo4-27b")
     assert tester.agent_spec(TesterTools(), "x")["model"] == "holo4-27b"
+
+
+def test_plan_appends_focus_area():
+    from agents.tester import DEFAULT_TASK, with_plan
+
+    assert with_plan(DEFAULT_TASK, None) == DEFAULT_TASK
+    assert with_plan("Play.", " power-ups ").endswith(
+        "The developer asks you to focus on: power-ups"
+    )

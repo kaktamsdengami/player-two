@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from launcher.config import LauncherConfig, Speed
+from launcher.config import PRESETS, LauncherConfig, Speed
 from launcher.log import EventLog
 from launcher.window import Window, find_window, foreground
 
@@ -61,10 +61,13 @@ class Game:
     def start_script(self) -> Path | None:
         """QA start state for free play (replay scripts set their own)."""
         line = {"god": "1 god", "tough": "1 health 999"}.get(self.cfg.start)
-        if not line:
+        lines = [line] if line else []
+        if self.cfg.preset:
+            lines += PRESETS[self.cfg.preset].lines
+        if not lines:
             return None
         path = self.run_dir / "qa_start.txt"
-        path.write_text(line + "\n")
+        path.write_text("".join(x + "\n" for x in lines))
         return path
 
     def start(

@@ -67,6 +67,32 @@ class Speed:
         return float(self.slowmo or 1)
 
 
+@dataclass(frozen=True)
+class Preset:
+    """A reproducible QA start: map, extra QA-script lines at tic 1, a suggested test plan."""
+
+    map: tuple[int, int]
+    lines: tuple[str, ...]
+    plan: str = ""
+
+
+PRESETS = {
+    # E3M1 has no invulnerability sphere: put one a few steps ahead of the start, under the red sky
+    "stage-kb3": Preset(
+        map=(3, 1),
+        lines=("1 spawn 2022 -100 -224",),
+        plan="Test power-ups, especially invulnerability, and check that the whole screen, "
+        "including the sky, renders correctly while a power-up is active.",
+    ),
+}
+
+
+def _preset(name: str) -> str:
+    if name and name not in PRESETS:
+        raise ValueError(f"unknown preset {name!r}: {', '.join(PRESETS)}")
+    return name
+
+
 @dataclass
 class LauncherConfig:
     fork_dir: Path
@@ -85,6 +111,7 @@ class LauncherConfig:
     fps: int = 30
     window_title: str = "Chocolate Doom"
     start: str = "tough"  # START_MODES; applied on every launch without a QA script
+    preset: str = ""  # PRESETS key: extra start lines (e.g. a spawned power-up)
 
     @classmethod
     def from_env(cls) -> LauncherConfig:
@@ -98,6 +125,7 @@ class LauncherConfig:
             runs_dir=_env_path("P2_RUNS_DIR", Path("recordings")),
             fullscreen=os.environ.get("P2_FULLSCREEN", "0") == "1",
             start=_start_mode(os.environ.get("P2_GOD", "tough")),
+            preset=_preset(os.environ.get("P2_PRESET", "")),
         )
 
     def extraconfig(self) -> str:
