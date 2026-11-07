@@ -81,8 +81,10 @@ PRESETS = {
     "stage-kb3": Preset(
         map=(3, 1),
         lines=("1 spawn 2022 -100 -224",),
-        plan="Test power-ups, especially invulnerability, and check that the whole screen, "
-        "including the sky, renders correctly while a power-up is active.",
+        plan="Test power-ups, especially invulnerability. Expected behaviour (from the developer): "
+        "While invulnerable, the whole screen should be drawn inverted (white/grey), "
+        "including the sky. Compare the sky with the walls: if the sky keeps its normal "
+        "colour, report it.",
     ),
     # longer stage run: a shotgun, armour, a stimpack and a zombie on the way to the imps, then
     # the sphere at the far end of the first canyon (scripted walk: shotgun at tic 24, sphere ~200)
@@ -96,8 +98,10 @@ PRESETS = {
             "1 spawn 2022 -600 60",
         ),
         plan="Play through the first area like a real player: fight, pick up weapons and items. "
-        "Test power-ups, and check that the whole screen, including the sky, renders correctly "
-        "while a power-up is active.",
+        "Test power-ups. Expected behaviour (from the developer): "
+        "While invulnerable, the whole screen should be drawn inverted (white/grey), "
+        "including the sky. Compare the sky with the walls: if the sky keeps its normal "
+        "colour, report it.",
     ),
 }
 

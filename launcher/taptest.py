@@ -65,6 +65,7 @@ def run(
             while last_tic(game.log_path) < 1 and time.monotonic() < end:
                 time.sleep(0.2)
             game.window()  # focus again once the first frame is drawn
+            tap(KEYS[0])  # warm-up: on a cold Windows start the first key can be lost
             time.sleep(settle)
             seen = [last_tic(game.log_path)]
             for i in range(taps):
