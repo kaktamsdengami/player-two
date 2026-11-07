@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import html
+import json
 import os
+import time
 from collections.abc import Callable
 
 import httpx
@@ -45,3 +47,35 @@ def search(query: str, depth: str = "standard", timeout: float = 60.0) -> list[C
             )
         )
     return out
+
+
+RETRIES = 2
+RETRY_STATUS = {400, 429, 500, 502, 503, 504}
+
+
+def structured(query: str, schema: dict, depth: str = "standard", timeout: float = 90.0) -> dict:
+    """Linkup structured output with sources: {"data": <schema>, "sources": [...]}."""
+    try:
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except ImportError:
+        pass
+    key = os.environ.get("LINKUP_API_KEY")
+    if not key:
+        raise RuntimeError("LINKUP_API_KEY is not set")
+    body = {
+        "q": query,
+        "depth": depth,
+        "outputType": "structured",
+        "structuredOutputSchema": json.dumps(schema),
+        "includeSources": True,
+    }
+    for attempt in range(RETRIES + 1):
+        r = httpx.post(URL, json=body, headers={"Authorization": f"Bearer {key}"}, timeout=timeout)
+        # back-to-back structured calls sometimes get a 400 that succeeds when repeated
+        if r.status_code not in RETRY_STATUS or attempt == RETRIES:
+            break
+        time.sleep(2.0 * (attempt + 1))
+    r.raise_for_status()
+    return r.json()

@@ -139,6 +139,23 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - Open: a real H run that reports a known bug (stage laptop or Devin VM), see the PR.
 
 ||||||| b9fe6d8
+||||||| cf48dac
+### 2026-11-07: T17 product-placement scout (Devin)
+
+- `python -m insights.placement <run_dir> [--every 5] [--spots 5] [--no-linkup]` →
+  `<run_dir>/placement.json` (list of `PlacementSpot`). Frames every 5 s from the run's recording
+  (ffmpeg) → H Models API vision (`holo4-27b`, `HAI_API_KEY`, override `P2_VISION_MODEL`) lists
+  surfaces per frame → same surface merged across frames → score = screen time × mean visibility.
+  The tester's `note(tags=["placement"])` calls become spots too.
+- Brands: `insights.linkup.structured` (Linkup `outputType=structured`, `includeSources`), 3
+  candidates per spot; a candidate without an http(s) source link is dropped. Every spot keeps the
+  "Suggestions only. No brand deal exists or is implied." disclaimer.
+- Real APIs on the Devin VM (keys bound from org secrets), on the recording of an earlier VM tester
+  run on E3M1 (exploratory, not the acceptance run): 4 spots (left/right rock wall 45 s, path 35 s,
+  red rock wall 5 s), each with 3 brands and a source link. Linkup structured calls sometimes return
+  a 400 that succeeds when repeated, and a vision call can time out: both are retried now.
+- Acceptance (≥3 spots on the real tester run) still runs on the stage laptop after the tester run.
+
 ### 2026-11-07: T16 design debrief (Devin)
 
 - `python -m insights.debrief <run_dir> [--no-linkup]` → `<run_dir>/debrief.json` (`DebriefReport`).
