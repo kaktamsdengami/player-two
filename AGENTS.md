@@ -87,6 +87,23 @@ docs/       PLAN, CONTRACTS, HANDOFF, GAME, pitch/
 - Ask for human confirmation before irreversible or outward actions: merges, publishing, terms of
   service, purchases.
 
+## H desktop sessions (from the T03 spike, see issue #4)
+
+- A running `h/holo-desktop` session holds 2 concurrent slots. After it ends, 1 slot stays busy
+  for about 15 minutes. On the Free plan (3 slots) that is easy to exhaust.
+- **Reuse one long session and send follow-up messages.** Do not create a new session for every
+  test.
+- Check `GET /sessions/quota` before you create a session, and never let a session sit
+  `queued` while it waits to drive the desktop.
+- Make the region configurable: `HAI_BASE_URL` set to `https://agp.hcompany.ai` (US) or
+  `https://agp.eu.hcompany.ai` (EU).
+- Never kill the CLI or SDK while a session is running. Stop sessions with cancel or
+  `holo local stop`.
+- Before each session, the launcher puts the game window in the foreground (fullscreen or
+  borderless; Chocolate Doom with `-nomouse`). The tester prompt forbids leaving the game window.
+- About 4–7 s per agent action, and every key hold lasts at least one step. **Real-time play needs
+  the QA frame-step mode.**
+
 ## Definition of done (every task)
 
 The issue's acceptance checks pass, with the exact commands and their output in the PR (for
