@@ -191,3 +191,38 @@ def test_choose_region_skips_a_region_returning_404(monkeypatch):
         return {"available": 2}
 
     assert choose_region(2, q) == REGIONS[1]
+
+
+def test_choose_region_raises_on_rejected_request(monkeypatch):
+    import httpx
+    import pytest
+
+    from agents.tester import REGIONS, choose_region
+
+    monkeypatch.setenv("HAI_BASE_URL", REGIONS[0])
+    resp = httpx.Response(422, request=httpx.Request("GET", REGIONS[0]))
+
+    def q(url):
+        raise httpx.HTTPStatusError("bad", request=resp.request, response=resp)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        choose_region(2, q)
+
+
+def test_quota_404_is_not_retried():
+    import httpx
+
+    from agents.tester import with_retry
+
+    calls = []
+    resp = httpx.Response(404, request=httpx.Request("GET", "http://x"))
+
+    def f():
+        calls.append(1)
+        raise httpx.HTTPStatusError("nf", request=resp.request, response=resp)
+
+    try:
+        with_retry(f, sleep=lambda s: None)
+    except httpx.HTTPStatusError:
+        pass
+    assert len(calls) == 1

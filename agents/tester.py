@@ -57,8 +57,8 @@ def with_retry(fn: Any, tries: int = 4, base_s: float = 2.0, sleep: Any = time.s
             return fn()
         except httpx.HTTPError as e:
             code = getattr(getattr(e, "response", None), "status_code", None)
-            if code in (401, 403):
-                raise  # a bad key fails in every region
+            if code and 400 <= code < 500 and code not in (404, 429):
+                raise  # a bad key or request fails in every region; waiting won't help
             if i == tries - 1:
                 raise
             sleep(base_s * 2**i)
@@ -90,8 +90,8 @@ def choose_region(min_slots: int = 2, quota_fn: Any = None) -> str:
             seen[url] = quota_fn(url).get("available", 0)
         except httpx.HTTPError as e:
             code = getattr(getattr(e, "response", None), "status_code", None)
-            if code in (401, 403):
-                raise  # a bad key fails in every region
+            if code and 400 <= code < 500 and code not in (404, 429):
+                raise  # a bad key or request fails in every region; waiting won't help
             seen[url] = f"error: {type(e).__name__}"
             continue
         if seen[url] >= min_slots:
