@@ -157,3 +157,20 @@ def test_notes_add_no_screen_time_to_sampled_spots():
     ]
     out = {s.name: s.screen_time_s for s in placement.spots(seen, "s", every_s=5)}
     assert out == {"billboard wall": 5, "crate": 5}
+
+
+def test_structured_retries_a_transient_400(monkeypatch):
+    from insights import linkup
+
+    codes = iter([400, 200])
+    calls = []
+
+    def post(url, json, headers, timeout):
+        calls.append(json)
+        return httpx.Response(next(codes), json={"data": {}}, request=httpx.Request("POST", url))
+
+    monkeypatch.setenv("LINKUP_API_KEY", "k")
+    monkeypatch.setattr(linkup.httpx, "post", post)
+    monkeypatch.setattr(linkup.time, "sleep", lambda s: None)
+    assert linkup.structured("q", {"type": "object"}) == {"data": {}}
+    assert len(calls) == 2
