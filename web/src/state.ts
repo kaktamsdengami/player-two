@@ -94,7 +94,10 @@ export function applyEvent(state: State, e: SseEvent): State {
       {
         const next = d as Partial<SessionInfo>
         // a new session starts clean; updates to the same session only patch what they carry
-        const base = next.id && next.id !== snap.session.id ? {} : snap.session
+        const base =
+          next.id && next.id !== snap.session.id
+            ? { state: 'idle', speed: 'frame-step', live: false, steps: 0, findings: 0 }
+            : snap.session
         return { ...state, snap: { ...snap, session: { ...base, ...next } as SessionInfo } }
       }
     case 'agent.action':
