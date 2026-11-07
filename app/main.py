@@ -55,7 +55,7 @@ def control(request: Request) -> None:
 class StartRequest(BaseModel):
     mode: str | None = None  # "live" | "recorded"
     plan: str | None = None  # developer's focus area for the tester ("Test plan")
-    preset: str | None = None  # launcher PRESETS key, e.g. "stage-kb3"
+    preset: str | None = None  # launcher PRESETS key, e.g. "stage-kb3"; "" = none; null = P2_PRESET
 
 
 class Runtime:

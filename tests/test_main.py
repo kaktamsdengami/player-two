@@ -1,5 +1,3 @@
-
-
 def test_start_passes_plan_and_preset(tmp_path):
     from app.main import Runtime
 

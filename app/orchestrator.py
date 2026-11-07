@@ -440,7 +440,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     cfg = LauncherConfig.from_env()
     if preset and preset not in PRESETS:
         raise ValueError(f"unknown preset {preset!r}: {', '.join(PRESETS)}")
-    cfg.preset = preset or cfg.preset  # every launch (tester, verifier) starts the same way
+    if preset is not None:  # "" = free exploration even when P2_PRESET is set
+        cfg.preset = preset  # every launch (tester, verifier) starts the same way
     if cfg.preset:
         episode, map_ = PRESETS[cfg.preset].map
         plan = plan or PRESETS[cfg.preset].plan
