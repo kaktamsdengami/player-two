@@ -91,6 +91,8 @@ PRESETS = {
     "stage-play": Preset(
         map=(3, 1),
         lines=(
+            "1 spawn 3004 -20 -224",
+            "1 spawn 3004 -120 -190",
             "1 spawn 2001 -150 -224",
             "1 spawn 2018 -330 -120",
             "1 spawn 2011 -437 -25",
