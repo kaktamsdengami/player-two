@@ -8,6 +8,7 @@ import unicodedata
 from app.contracts import Intent, VoiceIntent
 
 _FIX_EN = r"(fix|patch|repair|correct)\b"
+_ADV_EN = r"((ever|even|really|just|bother|try|need|have) (to )?)?"
 _FIX_FR = r"(corrige|repare|fixe|patche|touche)\w*"
 
 # Order matters: the first rule that matches wins ("don't fix it" must be `no`, not `fix`).
@@ -16,7 +17,7 @@ RULES: list[tuple[Intent, tuple[str, ...]]] = [
     (
         Intent.no,
         (
-            rf"\b(don'?t|do not|never|no need to) {_FIX_EN}",
+            rf"\b(don'?t|do not|never|no need to) {_ADV_EN}{_FIX_EN}",
             rf"\bne (le |la |les |l'|pas )?{_FIX_FR}",
             rf"\b(pas|jamais) (besoin de )?{_FIX_FR}",
             r"^no\b",
