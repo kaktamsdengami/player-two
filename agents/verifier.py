@@ -175,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         Game(cfg, a.run_dir / "verify"),
         a.map[0],
         a.map[1],
-        Speed.parse(a.speed or run.get("speed", "step")),
+        Speed.parse(a.speed or run.get("speed", "step:35")),  # runs before 12-tic steps
     )
     out = []
     for raw in run["findings"]:
