@@ -1,0 +1,114 @@
+# Known bugs of the PLAYER TWO QA build (Chocolate Doom 3.1.1 + Freedoom 0.13.0 freedoom1.wad).
+# HIDDEN FROM THE TESTER AGENT. Only the verifier and the eval harness may read this file.
+# Schema: app.contracts.KnownBug. Reproduction scripts live in the fork under qa/ (docs/GAME.md).
+# Freedoom renames strings via DEHACKED: GOTMEDIKIT = "Took a large health refill.",
+# GOTMEDINEED = "Took a large health refill. Never give up!".
+
+- id: KB1
+  title: Medikit "REALLY need" message never appears
+  source_url: https://doomwiki.org/wiki/Picked_up_a_medikit_that_you_REALLY_need!
+  map: E1M1
+  steps:
+    - Start E1M1 on skill 3.
+    - Get health below 25.
+    - Pick up a medikit (E1M1 has one at x=32 y=480, next to the start room).
+  expected: >-
+    The low-health message GOTMEDINEED ("Took a large health refill. Never give up!" in Freedoom).
+  actual: >-
+    The plain GOTMEDIKIT message ("Took a large health refill."), because P_TouchSpecialThing
+    tests player->health < 25 after P_GiveBody has already added the 25 points.
+  log_signature:
+    description: medikit picked up below 25 health shows the plain medikit message
+    all_of:
+      - type: pickup
+        where:
+          data.sprite: MEDI
+          data.health_before: {lt: 25}
+          data.message: Took a large health refill.
+  upstream_fix_ref: >-
+    Not fixed in Chocolate Doom (vanilla behaviour kept on purpose). Fix: test the health before
+    P_GiveBody in src/doom/p_inter.c (Crispy Doom and other limit-removing ports do this).
+  visual: true
+
+- id: KB2
+  title: Ouch face never shows when the player takes a big hit
+  source_url: https://doomwiki.org/wiki/Ouch_face
+  map: E1M1
+  steps:
+    - Start E1M1 on skill 3 with 100 health.
+    - Take more than 20 points of damage in one hit (the QA script uses `hurt 30`).
+    - Watch the status-bar face.
+  expected: The "ouch" face (wide eyes, open mouth) for a hit of more than 20 points.
+  actual: >-
+    The normal pain or rampage face. ST_updateFaceWidget compares plyr->health - st_oldhealth
+    > ST_MUCHPAIN, which is only true when health goes up.
+  log_signature:
+    description: a hit of more than 20 points is not followed by the ouch face
+    all_of:
+      - type: damage
+        where:
+          data.amount: {gt: 20}
+          player.health: {gt: 0}
+      - type: face
+        where:
+          data.health_delta: {lt: -20}
+    none_of:
+      - type: face
+        where:
+          data.kind: ouch
+    within_tics: 35
+  upstream_fix_ref: >-
+    Not fixed in Chocolate Doom. Fix: compare st_oldhealth - plyr->health > ST_MUCHPAIN in
+    src/doom/st_stuff.c (Crispy Doom fixes it).
+  visual: true
+
+- id: KB3
+  title: Sky keeps its normal colours under invulnerability
+  source_url: https://doomwiki.org/wiki/Invulnerability
+  map: E1M1
+  steps:
+    - Stand under the open sky (E1M1 sector 29, x=-600 y=240, just west of the start).
+    - Take an invulnerability sphere (the QA script uses `give invulnerability`).
+  expected: The whole view, sky included, switches to the inverted grey invulnerability palette.
+  actual: >-
+    Walls, floors and sprites invert but the sky is drawn with the normal colormap
+    (R_DrawPlanes sets dc_colormap = colormaps for sky columns).
+  log_signature:
+    description: sky drawn with the normal colormap while the inverse colormap is active
+    all_of:
+      - type: powerup
+        where:
+          data.power: 0
+      - type: render
+        where:
+          data.flag: sky_ignores_colormap
+          data.fixedcolormap: 32
+  upstream_fix_ref: >-
+    Not fixed in Chocolate Doom. Fix: use fixedcolormap for sky columns when it is set, in
+    src/doom/r_plane.c (Crispy Doom has this as an option).
+  visual: true
+
+- id: KB4
+  title: Long walls wobble while the player turns or moves
+  source_url: https://doomwiki.org/wiki/Long_wall_error
+  map: E1M7
+  steps:
+    - Go to the long brown wall on the south side of the courtyard in E1M7 (line 841, 1344 units).
+    - Stand close to it and look along it, then turn slowly.
+  expected: The wall's edges and texture lines stay straight and still.
+  actual: >-
+    The wall's top and bottom edges and texture lines bend and jitter from frame to frame.
+    R_StoreWallRange/R_ScaleFromGlobalAngle compute the wall distance with low-precision
+    angle tables, so long walls get a visibly wrong scale.
+  log_signature:
+    description: a wall longer than 1024 units is drawn with a measurable distance error
+    all_of:
+      - type: render
+        where:
+          data.flag: wall_distance_error
+          data.length: {ge: 1024}
+          data.error_pct: {ge: 0.5}
+  upstream_fix_ref: >-
+    Not fixed in Chocolate Doom. Fix: compute rw_distance with full precision (Linguica's
+    long-wall fix, used by Crispy Doom and PrBoom+), in src/doom/r_segs.c / r_main.c.
+  visual: true
