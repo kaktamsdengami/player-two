@@ -309,6 +309,10 @@ def main(argv: list[str] | None = None) -> int:
     cfg = LauncherConfig.from_env()
     cfg.preset = a.preset or cfg.preset
     preset = PRESETS.get(cfg.preset)
+    if preset and a.map and tuple(a.map) != preset.map:
+        raise SystemExit(
+            f"preset {cfg.preset} runs on E{preset.map[0]}M{preset.map[1]}: drop --map"
+        )
     a.map = a.map or (list(preset.map) if preset else [3, 1])
     plan = a.plan or (preset.plan if preset else None)
     run_dir = (cfg.runs_dir / f"{datetime.now():%Y%m%d-%H%M%S}-tester").resolve()
