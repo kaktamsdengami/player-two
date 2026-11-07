@@ -112,6 +112,19 @@ def test_listener_dispatch_final_only():
     assert [(i.intent, i.finding_id, i.language) for i in intents] == [("fix", "F-2", "fr")]
 
 
+def test_reader_survives_callback_errors():
+    seen = []
+
+    def on_intent(intent):
+        seen.append(intent.intent)
+        if len(seen) == 1:
+            raise ConnectionError("orchestrator down")
+
+    li = Listener("k", on_intent)
+    li._read([_transcript("fix it"), _transcript("stop")])
+    assert seen == ["fix", "stop"]
+
+
 def test_start_session_posts_config():
     seen = {}
 

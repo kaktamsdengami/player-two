@@ -113,7 +113,10 @@ class Listener:
     def _read(self, ws) -> None:
         try:
             for raw in ws:
-                self.dispatch(raw)
+                try:
+                    self.dispatch(raw)
+                except Exception as e:  # one bad message or callback must not deafen the listener
+                    print(f"voice: dropped message: {type(e).__name__}: {e}", file=sys.stderr)
         except Exception as e:  # connection closed mid-read
             print(f"gladia reader stopped: {type(e).__name__}", file=sys.stderr)
 
