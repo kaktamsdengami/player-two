@@ -109,7 +109,39 @@ class TesterTools:
         return {"answer": reply}
 
     def tools(self) -> list[Tool]:
-        return [tool(self.report_finding), tool(self.note), tool(self.ask_developer)]
+        return [_flat(tool(f)) for f in (self.report_finding, self.note, self.ask_developer)]
+
+
+def flat_schema(schema: dict[str, Any]) -> dict[str, Any]:
+    """Inline `$ref`s and collapse `X | None` to `X`: a plain schema without `$defs`."""
+    defs = schema.get("$defs", {})
+
+    def walk(node: Any) -> Any:
+        if isinstance(node, list):
+            return [walk(x) for x in node]
+        if not isinstance(node, dict):
+            return node
+        if "$ref" in node:
+            return walk(
+                {
+                    **defs[node["$ref"].split("/")[-1]],
+                    **{k: v for k, v in node.items() if k != "$ref"},
+                }
+            )
+        if "anyOf" in node:
+            alts = [a for a in node["anyOf"] if a.get("type") != "null"]
+            if len(alts) == 1:
+                rest = {k: v for k, v in node.items() if k != "anyOf"}
+                return walk({**alts[0], **rest})
+        return {k: walk(v) for k, v in node.items() if k != "$defs"}
+
+    return walk(schema)
+
+
+def _flat(t: Tool) -> Tool:
+    return Tool(
+        name=t.name, description=t.description, input_schema=flat_schema(t.input_schema), fn=t.fn
+    )
 
 
 def _short(e: ValidationError) -> str:

@@ -242,3 +242,15 @@ def test_choose_region_skips_a_region_returning_408(monkeypatch):
         return {"available": 2}
 
     assert choose_region(2, q) == REGIONS[1]
+
+
+def test_tool_schemas_are_flat():
+    import json
+
+    from agents.tools import TesterTools
+
+    for t in TesterTools(session_id="s").tools():
+        s = json.dumps(t.definition())
+        assert "$ref" not in s and "$defs" not in s and "anyOf" not in s, s
+    rf = TesterTools(session_id="s").tools()[0].input_schema["properties"]
+    assert rf["severity"]["enum"] == ["low", "medium", "high", "critical"]
