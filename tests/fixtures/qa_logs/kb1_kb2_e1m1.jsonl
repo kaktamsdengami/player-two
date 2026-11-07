@@ -1,0 +1,22 @@
+{"tic":0,"t":0.013,"map":"E1M1","type":"spawn","player":{"x":-416.00,"y":256.00,"z":0.00,"angle":0.00,"health":100,"armor":0,"sector":140},"data":{}}
+{"tic":0,"t":0.014,"map":"E1M1","type":"level","player":{"x":-416.00,"y":256.00,"z":0.00,"angle":0.00,"health":100,"armor":0,"sector":140},"data":{"episode":1,"map":1,"skill":2}}
+{"tic":1,"t":0.122,"map":"E1M1","type":"face","player":{"x":-416.00,"y":256.00,"z":0.00,"angle":0.00,"health":100,"armor":0,"sector":140},"data":{"index":2,"kind":"straight","health_delta":101}}
+{"tic":2,"t":1.296,"map":"E1M1","type":"qa","player":{"x":-416.00,"y":256.00,"z":0.00,"angle":0.00,"health":100,"armor":0,"sector":140},"data":{"cmd":"health","args":"20"}}
+{"tic":2,"t":1.297,"map":"E1M1","type":"qa","player":{"x":-416.00,"y":256.00,"z":0.00,"angle":0.00,"health":20,"armor":0,"sector":140},"data":{"cmd":"warp","args":"60 480 180"}}
+{"tic":3,"t":1.297,"map":"E1M1","type":"render","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":20,"armor":0,"sector":150},"data":{"flag":"wall_distance_error","line":1030,"length":512.0,"error_pct":0.5}}
+{"tic":3,"t":1.297,"map":"E1M1","type":"qa","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":20,"armor":0,"sector":150},"data":{"cmd":"move","args":"10 0 0 6"}}
+{"tic":3,"t":1.297,"map":"E1M1","type":"pickup","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"actor":{"id":2034907917,"type":"MISC11","x":32.00,"y":480.00,"z":0.00,"health":1000},"data":{"sprite":"MEDI","health_before":20,"health_after":45,"message":"Took a large health refill."}}
+{"tic":4,"t":1.297,"map":"E1M1","type":"message","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"text":"Took a large health refill."}}
+{"tic":18,"t":1.665,"map":"E1M1","type":"face","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"index":16,"kind":"straight","health_delta":0}}
+{"tic":35,"t":2.151,"map":"E1M1","type":"face","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"index":18,"kind":"straight","health_delta":0}}
+{"tic":40,"t":2.322,"map":"E1M1","type":"qa","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"cmd":"shot","args":""}}
+{"tic":42,"t":2.352,"map":"E1M1","type":"message","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"text":"screen shot"}}
+{"tic":69,"t":3.122,"map":"E1M1","type":"face","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"index":17,"kind":"straight","health_delta":0}}
+{"tic":70,"t":3.179,"map":"E1M1","type":"qa","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":45,"armor":0,"sector":150},"data":{"cmd":"health","args":"100"}}
+{"tic":72,"t":3.236,"map":"E1M1","type":"qa","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":100,"armor":0,"sector":150},"data":{"cmd":"hurt","args":"30"}}
+{"tic":72,"t":3.236,"map":"E1M1","type":"damage","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":70,"armor":0,"sector":150},"data":{"amount":30,"inflictor":""}}
+{"tic":73,"t":3.236,"map":"E1M1","type":"face","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":70,"armor":0,"sector":150},"data":{"index":15,"kind":"rampage","health_delta":-30}}
+{"tic":76,"t":3.351,"map":"E1M1","type":"qa","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":70,"armor":0,"sector":150},"data":{"cmd":"shot","args":""}}
+{"tic":78,"t":3.379,"map":"E1M1","type":"message","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":70,"armor":0,"sector":150},"data":{"text":"screen shot"}}
+{"tic":136,"t":5.036,"map":"E1M1","type":"face","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":70,"armor":0,"sector":150},"data":{"index":9,"kind":"straight","health_delta":0}}
+{"tic":140,"t":5.180,"map":"E1M1","type":"qa","player":{"x":60.00,"y":480.00,"z":0.00,"angle":180.00,"health":70,"armor":0,"sector":150},"data":{"cmd":"quit","args":""}}

@@ -1,0 +1,13 @@
+{"tic":0,"t":0.013,"map":"E3M1","type":"spawn","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{}}
+{"tic":0,"t":0.013,"map":"E3M1","type":"level","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"episode":3,"map":1,"skill":2}}
+{"tic":1,"t":0.123,"map":"E3M1","type":"face","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"index":2,"kind":"straight","health_delta":101}}
+{"tic":3,"t":1.299,"map":"E3M1","type":"render","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"flag":"wall_distance_error","line":582,"length":1350.7,"error_pct":1.0}}
+{"tic":5,"t":1.323,"map":"E3M1","type":"qa","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"cmd":"shot","args":""}}
+{"tic":7,"t":1.352,"map":"E3M1","type":"message","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"text":"screen shot"}}
+{"tic":8,"t":1.409,"map":"E3M1","type":"qa","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"cmd":"give","args":"invulnerability"}}
+{"tic":8,"t":1.409,"map":"E3M1","type":"powerup","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"power":0}}
+{"tic":9,"t":1.409,"map":"E3M1","type":"face","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"index":40,"kind":"god","health_delta":0}}
+{"tic":9,"t":1.410,"map":"E3M1","type":"render","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"flag":"sky_ignores_colormap","fixedcolormap":32}}
+{"tic":12,"t":1.523,"map":"E3M1","type":"qa","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"cmd":"shot","args":""}}
+{"tic":14,"t":1.553,"map":"E3M1","type":"message","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"text":"screen shot"}}
+{"tic":20,"t":1.752,"map":"E3M1","type":"qa","player":{"x":112.00,"y":-224.00,"z":32.00,"angle":180.00,"health":100,"armor":0,"sector":1},"data":{"cmd":"quit","args":""}}
