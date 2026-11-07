@@ -226,6 +226,20 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - SSE payloads may omit default fields; `web/src/state.ts` fills them (`normalize`).
 - Not in CI yet (CI is a shared file): run `cd web && npm ci && npm run build && npm run lint`.
 
+### 2026-11-07: T13 voice in, Gladia live STT + intents (Devin)
+
+- `voice/intents.py`: `parse_intent(text)` -> `VoiceIntent` by ordered EN/FR keyword rules
+  (stop > no > fix > skip > explain > yes; "don't fix it" / "ne le corrige pas" is `no`), anything
+  else with 2+ words is `steer`, lone noise is dropped. `button_intent()` is the dashboard fallback.
+- `voice/listen.py`: `POST /v2/live` (solaria default, en+fr, code switching, partials) then the
+  WebSocket; final transcripts -> intent; `--post URL` forwards to `/api/intent` (T14).
+  `--wav` streams a file, `--mic [--ptt]` the microphone.
+- Mic needs `pip install sounddevice` on the stage laptop; not added to `pyproject.toml` (shared
+  file, and CI does not need it).
+- Checked from the VM with the real Gladia API on synthesized WAVs (edge-tts): "Fix it.",
+  "Stop.", "Corrige-le.", "Arrête.", a steer phrase and "Non, ne le corrige pas." all mapped right.
+  **Live microphone on the stage laptop: not run yet (`needs:local`, commands in the PR).**
+
 ### 2026-11-07: T10 Devin API client (Devin)
 - `devin/client.py` `DevinClient` (v3 sessions API): `create_fix_session(finding)` →
   `follow(attempt, on_update)` → `approve_merge` (merge via the same Devin session) or one
