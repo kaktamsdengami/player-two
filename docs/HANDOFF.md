@@ -27,6 +27,13 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T15 dashboard on mock data (Devin)
+- `web/` React 18 + Vite 5 + TS. Tabs: Live, Bugs & fixes, Debrief, Plans, Parent. All views render
+  from `docs/api-mock.json` (labelled MOCK DATA); `VITE_API_BASE=http://host:port` switches to the
+  live REST + SSE API (T14). Buttons post `VoiceIntent` with `source: "button"` to `/api/intent`.
+- SSE payloads may omit default fields; `web/src/state.ts` fills them (`normalize`).
+- Not in CI yet (CI is a shared file): run `cd web && npm ci && npm run build && npm run lint`.
+
 ### 2026-11-07: T04 repo skeleton and CI (Devin)
 - `pyproject.toml` (Python 3.12, `pip install -e ".[dev]"`), CI in `.github/workflows/ci.yml`
   (ruff check, ruff format --check, pytest), package dirs, `scripts/check_keys.py`
