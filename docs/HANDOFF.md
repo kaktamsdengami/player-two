@@ -2,27 +2,36 @@
 
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
-## Current state (2026-11-07 ~21:10 Paris, Devin)
+## Current state (2026-11-07 ~22:00 Paris, Devin)
 
-- **Done (merged):** T01 contracts (#34), T04 skeleton + CI (#35), T15 dashboard on mock data (#37),
-  T18 Stripe test-mode plans (#39), T10 Devin API client (#36), T05 game + QA build (#40),
-  T06 launcher (#41). The KB1 fix PR from the T10 session
-  (https://github.com/kaktamsdengami/chocolate-doom/pull/1) stays open: merge + replay are T11.
+- **Done (merged):** T01 (#34), T04 (#35), T15 dashboard on mock data (#37), T18 Stripe (#39),
+  T10 Devin client (#36), T05 game + QA build (#40), T06 launcher (#41).
   **Stage bug = KB3 on E3M1** (red sky stays red while the world goes grey).
-- **Not verified on Windows yet (T06):** gdigrab capture and Win32 foregrounding (commands in #41).
-- **In progress (branches pushed, PRs next):** T07 tester (`t07-hostile-tester`; QA debug codes
-  allowed, team decision in chat), T08 verifier (`t08-verifier-replay-steps`, 14 oracle tests on
-  real logs), T12 narration on ElevenLabs (`t12-voice-out-narration`; replaces edge-tts from T01).
-  The first real H tester run on the Devin VM got no screenshots (pyscreeze needs
-  `XDG_SESSION_TYPE=x11`, fixed); rerun waits for a free H slot.
-- **Open PRs:** T13 Gladia voice in (#38, needs:local): waits for the stage-laptop mic output
-  (optional: buttons cover every intent).
-- **Next:** T11 fix loop, T14 orchestrator, T09 skills.
-- **Need from you:** the T13 mic check and the T06 Windows check on the stage laptop, when convenient.
-- T18 note: `POST /api/billing/webhook` is a new endpoint; T14 must mount `app.routes_billing.router`
-  and add it to CONTRACTS.md.
+- **Open PRs:** T07 tester (#42), T08 verifier (#43), T11 fix loop (#44, live KB1 loop proven with a
+  scripted finding), T13 Gladia (#38, needs:local).
+- **In progress:** T14 orchestrator (`t14-orchestrator-state-machine`): state machine, SSE bus,
+  RECORDED replay, FastAPI app; unit tests pass. Waiting for a free US H slot for the live run
+  (`python -m app.main --mode live --start`).
+- **H notes:** EU desktop sessions stall at 0 steps (3 runs); use `HAI_REGIONS=https://agp.hcompany.ai`.
+  The tester has no shell (`forbid_shell`): an earlier run read the QA log through
+  `run_command_desktop`. Zombie sessions stay `running` after DELETE 204 and hold slots.
+- **Not verified on Windows:** T06 gdigrab + foregrounding, T13 mic.
+- **Judging:** round 1 is online (demo video + "how do I test your product live" link); stage only for
+  the top 8. Frontend work is postponed by the team; backend first.
 
 ## Log
+
+### 2026-11-07: T14 orchestrator (Devin)
+
+- `app/orchestrator.py`: one thread runs explore → finding → verify → present (ElevenLabs voice +
+  clip) → wait for `fix`/`skip` (button or voice intent) → Devin fix loop → re-verify → follow-up
+  message to the same H session (no new session per finding). Every change is an `SseEvent`,
+  persisted to `events.jsonl`; `Recorded` replays that file with `live=false`.
+- `app/main.py`: REST snapshot + `/api/events` SSE + `/api/intent` + `/api/stop` (cancels H in < 5 s,
+  never kills the process) + `/media/{path}` (runs dir and repo only) + T18 billing router.
+  New endpoint: `POST /api/session/start {"mode": "live"|"recorded"}` (CONTRACTS.md note pending).
+- Merge approval: the developer's `fix` intent is the human approval for the fix PR merge (into the
+  per-run `qa-run/<session>` fork branch, never `player-two-qa`).
 
 ### 2026-11-07: T11 fix loop + upstream comparison (Devin)
 
