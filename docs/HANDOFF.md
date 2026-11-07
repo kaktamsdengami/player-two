@@ -21,6 +21,16 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+- 2026-11-08 (Devin): stage run 4 (`stage-play`, session `0d17032d…`): the agent called
+  `report_finding` on the sky (KB3), replay 31/31 in sync, but the verifier replayed key presses
+  cut at `t_session_s` (wall clock, mostly H thinking) and stopped at tic 140, before the power-up
+  at tic 409. Fix: when the run has `agent.lmp` the verifier plays the tester's demo
+  (`replay: "demo"`) and judges events up to the report tic + the largest `within_tics`
+  (`tester_run.json` now stores `game_started_at`; older runs judge the whole demo).
+  `stage-play` adds two zombies right ahead of the start (holding Ctrl killed both in 5 s on the
+  VM; prompt now says hold Ctrl ~1 s). KB3 fix demo: fork branch `qa-run/kb3-fix-demo` (base for
+  the fix PR, keeps `player-two-qa` buggy for demos).
+
 - 2026-11-08 (Devin): stage run 3 (`stage-play`, session `69026364…`): the preset reached KB3 on
   screen (sky red while the world is inverted) but the agent judged it correct: 0 findings. Team
   request on #42: the stage presets' plan now states the developer's expected behaviour under
