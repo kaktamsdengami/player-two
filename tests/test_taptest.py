@@ -15,6 +15,7 @@ def test_passed_needs_one_step_per_tap():
     assert not passed([1], 35)
     assert not passed([5, 5, 5], 1) and not passed([5, 5, 5], 2)  # frozen, tiny step
     assert passed([2, 3, 4], 1) and passed([1, 2, 4, 6], 2)
+    assert not passed([1, 2, 37, 72], 35)  # first tap lost
     assert not passed([1, 71, 141], 35)  # clock runs on its own (no frame-step)
     assert not passed([1, 35, 105], 35)  # one tap counted twice
 
