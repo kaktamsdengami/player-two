@@ -33,12 +33,16 @@ def demo(cfg: LauncherConfig, seconds: float, speed: Speed) -> dict:
     if win is None:
         game.stop()
         raise RuntimeError("game window did not appear")
-    time.sleep(1.0)
-    shot = capture.screenshot(win, game.run_dir / "start.png")
-    rec = capture.record(win, game.run_dir / "recording.mp4", cfg.fps)
-    time.sleep(seconds)
-    rec.stop()
-    game.stop()
+    try:
+        time.sleep(1.0)
+        shot = capture.screenshot(win, game.run_dir / "start.png")
+        rec = capture.record(win, game.run_dir / "recording.mp4", cfg.fps)
+        try:
+            time.sleep(seconds)
+        finally:
+            rec.stop()
+    finally:
+        game.stop()
     powerups = [e for e in game.log.since() if e.type == "powerup"]
     clip = None
     if powerups:
