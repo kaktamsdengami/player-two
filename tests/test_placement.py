@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+import pytest
 import respx
 
 from app.contracts import AgentNote, PlacementSpot
@@ -126,10 +127,25 @@ def test_frames_drop_leftovers_from_an_earlier_pass(tmp_path, monkeypatch):
     (out / "frame_0009.png").write_bytes(b"old")
 
     def fake_run(cmd, check):
-        (out / "frame_0001.png").write_bytes(b"new")
+        (Path(cmd[-1]).parent / "frame_0001.png").write_bytes(b"new")
 
     monkeypatch.setattr(placement.subprocess, "run", fake_run)
     assert [p.name for _, p in placement.frames(tmp_path / "r.mp4", out)] == ["frame_0001.png"]
+    assert (out / "frame_0001.png").read_bytes() == b"new"
+
+
+def test_failed_extraction_keeps_old_frames(tmp_path, monkeypatch):
+    out = tmp_path / "placement"
+    out.mkdir()
+    (out / "frame_0001.png").write_bytes(b"old")
+
+    def boom(cmd, check):
+        raise placement.subprocess.CalledProcessError(1, cmd)
+
+    monkeypatch.setattr(placement.subprocess, "run", boom)
+    with pytest.raises(placement.subprocess.CalledProcessError):
+        placement.frames(tmp_path / "r.mp4", out)
+    assert (out / "frame_0001.png").read_bytes() == b"old"
 
 
 def test_notes_add_no_screen_time_to_sampled_spots():
