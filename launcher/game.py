@@ -18,6 +18,7 @@ class Game:
     run_dir: Path
     proc: subprocess.Popen | None = None
     started_at: float = 0.0  # wall clock at launch; GameEvent.t counts from about here
+    extra_args: list[str] = field(default_factory=list)  # e.g. ["-qa-trace", "1"]
     log: EventLog = field(init=False)
 
     def __post_init__(self) -> None:
@@ -46,6 +47,7 @@ class Game:
                "-fullscreen" if c.fullscreen else "-window",
                "-extraconfig", str(extra), "-qa-log", str(self.log_path),
                *speed.args()]  # fmt: skip
+        cmd += self.extra_args
         if not c.sound:
             cmd.append("-nosound")
         if record:  # vanilla demo (.lmp appended): the agent's inputs per tic, for replays

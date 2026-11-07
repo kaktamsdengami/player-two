@@ -1,6 +1,6 @@
 """Frame-step pre-flight: a 0 ms key tap must advance the game by one full step.
 
-    python -m launcher.taptest [--taps 4] [--tics 35]
+    python -m launcher.taptest [--taps 4] [--tics 8]
 
 Starts the QA build in frame-step mode, sends key-down + key-up with no delay (like a
 computer-use agent does), and checks that the game clock moves one step per tap.
@@ -16,7 +16,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from launcher.config import LauncherConfig, Speed
+from launcher.config import DEFAULT_STEP, LauncherConfig, Speed
 from launcher.game import Game
 from launcher.window import IS_WINDOWS
 
@@ -52,10 +52,12 @@ def last_tic(log: Path) -> int:
     return tic
 
 
-def run(cfg: LauncherConfig, taps: int = 4, tics: int = 35, settle: float = 2.0) -> list[int]:
+def run(
+    cfg: LauncherConfig, taps: int = 4, tics: int = DEFAULT_STEP, settle: float = 2.0
+) -> list[int]:
     """Returns the game tic after each tap (index 0 = before the first tap)."""
     with tempfile.TemporaryDirectory(prefix="p2-taptest-") as d:
-        game = Game(cfg, Path(d))
+        game = Game(cfg, Path(d), extra_args=["-qa-trace", "1"])  # a log line every tic
         try:
             if game.start(speed=Speed.parse(f"step:{tics}")) is None:
                 raise RuntimeError("game window not found")
@@ -89,7 +91,7 @@ def passed(seen: list[int], tics: int) -> bool:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m launcher.taptest")
     p.add_argument("--taps", type=int, default=4)
-    p.add_argument("--tics", type=int, default=35)
+    p.add_argument("--tics", type=int, default=DEFAULT_STEP)  # the tester's step
     a = p.parse_args(argv)
     from dotenv import find_dotenv, load_dotenv
 
