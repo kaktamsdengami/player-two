@@ -2,8 +2,8 @@
 
 For each `Finding`:
 1. Reset the game to the start of the map.
-2. Replay: the tester's own key presses from its action log (deterministic in frame-step mode),
-   or else a short follow-up to the H session: "do exactly these steps".
+2. Replay: the tester's own demo (`agent.lmp`, exact inputs per tic) when the run recorded one;
+   else its key presses from the action log, or a follow-up to the H session.
 3. Check the replay's event log with the oracles (`agents.oracles`).
 4. Cut a clip of +-5 s around the first proving event.
 5. Status verified (a known signature fired and the finding is about it, or the H replay saw it
@@ -23,6 +23,7 @@ from app.contracts import AgentAction, Clip, Finding, FindingStatus, GameEvent, 
 from launcher import capture
 from launcher.config import Speed
 from launcher.game import Game
+from launcher.log import EventLog
 
 CLIP_BEFORE = CLIP_AFTER = 5.0
 KEY_ALIASES = {"ctrl": "ctrlleft", "control": "ctrlleft", "alt": "altleft", "shift": "shiftleft",
@@ -50,7 +51,7 @@ class Verdict:
     finding: Finding
     proofs: list[Proof] = field(default_factory=list)
     matched: KnownBug | None = None
-    replay: str = "none"  # actions | h_session | none
+    replay: str = "none"  # demo | actions | h_session | none
     clip: Path | None = None
 
     def summary(self) -> dict[str, Any]:
@@ -94,9 +95,12 @@ class Verifier:
         actions: list[AgentAction] | None = None,
         h_replay: Callable[[Finding], bool] | None = None,
         out_dir: Path | None = None,
+        demo: Path | None = None,
     ) -> Verdict:
         out_dir = out_dir or self.game.run_dir / "verify"
         out_dir.mkdir(parents=True, exist_ok=True)
+        if demo and (demo / "agent.lmp").exists():
+            return self.verify_demo(finding, demo, out_dir)
         win = self.game.reset(self.episode, self.map_, self.speed)
         if win is None:
             raise RuntimeError("game window did not appear for the replay")
@@ -131,6 +135,25 @@ class Verifier:
                 ev.t or 0.0, self.game.started_at, rec_started, CLIP_BEFORE, CLIP_AFTER
             )
             verdict.clip = capture.cut_clip(rec.path, start, end, out_dir / f"{finding.id}.mp4")
+            finding.evidence.clip = Clip(path=str(verdict.clip), start_s=0.0, end_s=end - start)
+        return verdict
+
+    def verify_demo(self, finding: Finding, run_dir: Path, out_dir: Path) -> Verdict:
+        """Replay the tester's own demo (exact inputs per tic) instead of re-pressing its keys:
+        H holds keys for wall-clock time, so a key re-press replay drifts in frame-step."""
+        from launcher.replay import replay
+
+        out = replay(self.game.cfg, run_dir, video=self.record)
+        verdict = judge(finding, EventLog(Path(out["events"])).poll(), self.bugs)
+        verdict.replay = "demo"
+        if verdict.matched and out.get("rec_started_at"):
+            ev = next(x for x in verdict.proofs if x.bug is verdict.matched).first
+            start, end = capture.clip_window(
+                ev.t or 0.0, out["game_started_at"], out["rec_started_at"], CLIP_BEFORE, CLIP_AFTER
+            )
+            verdict.clip = capture.cut_clip(
+                Path(out["video"]), start, end, out_dir / f"{finding.id}.mp4"
+            )
             finding.evidence.clip = Clip(path=str(verdict.clip), start_s=0.0, end_s=end - start)
         return verdict
 
@@ -184,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     out = []
     for raw in run["findings"]:
         f = Finding.model_validate(raw)
-        verdict = v.verify(f, actions, out_dir=a.run_dir / "verify" / f.id)
+        verdict = v.verify(f, actions, out_dir=a.run_dir / "verify" / f.id, demo=a.run_dir)
         out.append(verdict.summary() | {"finding_full": f.model_dump(mode="json")})
     (a.run_dir / "verdicts.json").write_text(json.dumps(out, indent=2, default=str))
     print(json.dumps([o | {"finding_full": None} for o in out], indent=2, default=str))

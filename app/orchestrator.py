@@ -518,7 +518,9 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     def verify(f: Finding, actions: list[AgentAction]) -> Finding:
         game.stop()
         v = Verifier(Game(cfg, out_dir / "verify"), episode, map_, speed)
-        verdict = v.verify(f, actions, out_dir=out_dir / "verify" / f.id)
+        # round 1 is the recorded demo; once a later round restarted the game it no longer matches
+        demo = None if (game.run_dir / "agent_events.jsonl").exists() else game.run_dir
+        verdict = v.verify(f, actions, out_dir=out_dir / "verify" / f.id, demo=demo)
         return verdict.finding
 
     def fix(f: Finding, update: Callable[[FixAttempt], None]) -> FixAttempt:

@@ -168,3 +168,28 @@ def test_replay_holds_for_recorded_duration():
     ]
     v.replay_actions(acts, until_s=5)
     assert calls == [(["up"], {"hold_s": 0.9}), (["space"], {})]
+
+
+def test_verifier_replays_the_tester_demo(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    import launcher.replay
+    from agents.verifier import Verifier
+
+    (tmp_path / "agent.lmp").write_bytes(b"\0" * 20)
+    log = tmp_path / "replay_events.jsonl"
+    log.write_text("".join(json.dumps(r) + "\n" for r in _log(E3M1)))
+    calls = []
+
+    def fake_replay(cfg, run_dir, video=True):
+        calls.append((run_dir, video))
+        return {"events": str(log), "game_started_at": 0.0}
+
+    monkeypatch.setattr(launcher.replay, "replay", fake_replay)
+    v = Verifier(SimpleNamespace(cfg=None, run_dir=tmp_path), 3, 1, None, list(BUGS.values()),
+                 record=False)  # fmt: skip
+    f = SKY.model_copy(deep=True)
+    verdict = v.verify(f, [], out_dir=tmp_path / "verify", demo=tmp_path)
+    assert calls == [(tmp_path, False)]
+    assert verdict.replay == "demo" and verdict.matched.id == "KB3"
+    assert f.status == "verified"
