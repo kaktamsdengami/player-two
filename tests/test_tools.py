@@ -254,3 +254,10 @@ def test_tool_schemas_are_flat():
         assert "$ref" not in s and "$defs" not in s and "anyOf" not in s, s
     rf = TesterTools(session_id="s").tools()[0].input_schema["properties"]
     assert rf["severity"]["enum"] == ["low", "medium", "high", "critical"]
+
+
+def test_flat_schema_keeps_null_for_optional_args():
+    from agents.tools import TesterTools
+
+    rf = TesterTools(session_id="s").tools()[0].input_schema["properties"]
+    assert rf["suggested_change"]["type"] == ["string", "null"]

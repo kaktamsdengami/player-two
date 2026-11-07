@@ -113,7 +113,7 @@ class TesterTools:
 
 
 def flat_schema(schema: dict[str, Any]) -> dict[str, Any]:
-    """Inline `$ref`s and collapse `X | None` to `X`: a plain schema without `$defs`."""
+    """Inline `$ref`s and turn `X | None` into `type: [X, "null"]`: no `$defs` or `anyOf`."""
     defs = schema.get("$defs", {})
 
     def walk(node: Any) -> Any:
@@ -132,7 +132,10 @@ def flat_schema(schema: dict[str, Any]) -> dict[str, Any]:
             alts = [a for a in node["anyOf"] if a.get("type") != "null"]
             if len(alts) == 1:
                 rest = {k: v for k, v in node.items() if k != "anyOf"}
-                return walk({**alts[0], **rest})
+                out = walk({**alts[0], **rest})
+                if len(alts) < len(node["anyOf"]) and isinstance(out.get("type"), str):
+                    out["type"] = [out["type"], "null"]
+                return out
         return {k: walk(v) for k, v in node.items() if k != "$defs"}
 
     return walk(schema)
