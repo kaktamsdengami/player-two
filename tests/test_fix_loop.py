@@ -87,6 +87,7 @@ class FakeDevin:
         return a
 
     def send_feedback(self, a, note):
+        assert a.result == FixResult.merged  # so the client drops the merged PR as stale
         self.calls.append("feedback")
         return a.model_copy(update={"round": 2, "result": FixResult.working, "pr_url": None})
 

@@ -130,7 +130,8 @@ class FixLoop:
             self._emit(a, ("FIXED: " if fixed else "NOT FIXED: ") + replay.note)
             if fixed or a.round >= 2:
                 return a, replay
-            a = self._emit(self.devin.send_feedback(a, replay.note), "feedback round sent to Devin")
+            merged = a.model_copy(update={"result": FixResult.merged})  # old PR becomes stale
+            a = self._emit(self.devin.send_feedback(merged, replay.note), "feedback round sent")
 
 
 def add_comparison(a: FixAttempt, bug: KnownBug | None, assess: bool = True) -> FixAttempt:
