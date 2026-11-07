@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react'
+import { useEffect, useReducer, useRef, useState } from 'react'
 import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
@@ -198,6 +198,29 @@ function BugCard({
 }) {
   const clip = f.evidence.clip
   const src = media(clip?.path)
+  const video = useRef<HTMLVideoElement>(null)
+  const [cue, setCue] = useState(-1)
+  const narrate = () => {
+    if (!narration) return
+    const audio = new Audio(media(narration.audio_path) ?? '')
+    let shown = -1
+    audio.ontimeupdate = () => {
+      const i = narration.cues.reduce((last, c, k) => (c.at_s <= audio.currentTime ? k : last), -1)
+      if (i === shown || i < 0) return
+      shown = i
+      setCue(i)
+      const v = video.current
+      if (v && clip) {
+        v.currentTime = clip.start_s + narration.cues[i].clip_s
+        void v.play()
+      }
+    }
+    audio.onended = () => {
+      setCue(-1)
+      video.current?.pause()
+    }
+    void audio.play()
+  }
   return (
     <article className={`card sev-${f.severity}`}>
       <div className="card-head">
@@ -210,6 +233,7 @@ function BugCard({
         <div className="clip">
           {src ? (
             <video
+              ref={video}
               src={`${src}#t=${clip!.start_s},${clip!.end_s}`}
               controls
               muted
@@ -232,7 +256,18 @@ function BugCard({
           <div>
             <b>Actual:</b> {f.actual}
           </div>
-          {narration && <div className="narration">{narration.text}</div>}
+          {narration && (
+            <div className="narration">
+              <button onClick={narrate}>▶ narrate</button>{' '}
+              {narration.cues.length
+                ? narration.cues.map((c, i) => (
+                    <span key={i} className={i === cue ? 'cue-now' : undefined}>
+                      {c.text}{' '}
+                    </span>
+                  ))
+                : narration.text}
+            </div>
+          )}
           {f.evidence.log_excerpt.length > 0 && (
             <details>
               <summary>event log ({f.evidence.log_excerpt.length})</summary>

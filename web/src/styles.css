@@ -106,3 +106,4 @@ pre { font-size: 0.75rem; background: #0b0d12; padding: 0.5rem; border-radius: 6
   letter-spacing: 0.08em;
   margin-right: 0.4em;
 }
+.cue-now { color: var(--fg, #fff); background: rgba(255,200,0,0.18); font-style: normal; }
