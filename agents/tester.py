@@ -39,7 +39,7 @@ class TesterAnswer(BaseModel):
 
 
 REGIONS = ("https://agp.hcompany.ai", "https://agp.eu.hcompany.ai")
-RETRY_STATUS = {429, 500, 502, 503, 504}
+RETRY_STATUS = {408, 429, 500, 502, 503, 504}
 
 
 class HBusyError(RuntimeError):
@@ -90,7 +90,7 @@ def choose_region(min_slots: int = 2, quota_fn: Any = None) -> str:
             seen[url] = quota_fn(url).get("available", 0)
         except httpx.HTTPError as e:
             code = getattr(getattr(e, "response", None), "status_code", None)
-            if code and 400 <= code < 500 and code not in (404, 429):
+            if code and 400 <= code < 500 and code != 404 and code not in RETRY_STATUS:
                 raise  # a bad key or request fails in every region; waiting won't help
             seen[url] = f"error: {type(e).__name__}"
             continue

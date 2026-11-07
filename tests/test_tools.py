@@ -226,3 +226,19 @@ def test_quota_404_is_not_retried():
     except httpx.HTTPStatusError:
         pass
     assert len(calls) == 1
+
+
+def test_choose_region_skips_a_region_returning_408(monkeypatch):
+    import httpx
+
+    from agents.tester import REGIONS, choose_region
+
+    monkeypatch.setenv("HAI_BASE_URL", REGIONS[0])
+
+    def q(url):
+        if url == REGIONS[0]:
+            resp = httpx.Response(408, request=httpx.Request("GET", url))
+            raise httpx.HTTPStatusError("timeout", request=resp.request, response=resp)
+        return {"available": 2}
+
+    assert choose_region(2, q) == REGIONS[1]
