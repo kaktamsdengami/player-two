@@ -13,7 +13,10 @@ _FIX_FR = r"(corrige|repare|fixe|patche|touche)\w*"
 
 # Order matters: the first rule that matches wins ("don't fix it" must be `no`, not `fix`).
 RULES: list[tuple[Intent, tuple[str, ...]]] = [
-    (Intent.stop, (r"\bstop\b", r"\barrete\w*", r"\bhalt\b", r"\bpause\b", r"\bstoppe\w*")),
+    (
+        Intent.stop,
+        (r"(?<!n't )(?<!not )\bstop\b", r"\barrete\w*", r"\bhalt\b", r"\bpause\b", r"\bstoppe\w*"),
+    ),
     (
         Intent.no,
         (

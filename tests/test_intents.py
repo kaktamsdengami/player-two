@@ -153,3 +153,9 @@ def test_start_session_error():
     http = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(401, text="bad")))
     with pytest.raises(RuntimeError, match="401"):
         start_session("x", http=http)
+
+
+def test_negated_stop_does_not_stop():
+    for text in ["don't stop yet", "do not stop", "keep going, don't stop"]:
+        i = parse_intent(text)
+        assert i is None or i.intent != "stop", text
