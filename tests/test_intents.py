@@ -27,6 +27,7 @@ from voice.listen import Listener, handle_message, init_config, start_session
         ("don't patch it", "no"),
         ("Don't wait, fix it", "fix"),
         ("Don't ever fix it", "no"),
+        ("Don't just fix it, explain it too", "fix"),
         ("Do not even try to patch that", "no"),
         ("Don't bother to repair it", "no"),
         ("do not repair that", "no"),

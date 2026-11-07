@@ -8,7 +8,7 @@ import unicodedata
 from app.contracts import Intent, VoiceIntent
 
 _FIX_EN = r"(fix|patch|repair|correct)\b"
-_ADV_EN = r"((ever|even|really|just|bother|try|need|have) (to )?){0,3}"
+_ADV_EN = r"((ever|even|really|bother|try|need|have) (to )?){0,3}"
 _FIX_FR = r"(corrige|repare|fixe|patche|touche)\w*"
 
 # Order matters: the first rule that matches wins ("don't fix it" must be `no`, not `fix`).
