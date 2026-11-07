@@ -27,6 +27,11 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T04 repo skeleton and CI (Devin)
+- `pyproject.toml` (Python 3.12, `pip install -e ".[dev]"`), CI in `.github/workflows/ci.yml`
+  (ruff check, ruff format --check, pytest), package dirs, `scripts/check_keys.py`
+  (`python -m scripts.check_keys` → one line per service, read-only, never prints keys).
+
 ### 2026-11-07: T01 contracts and decisions (Devin)
 - `app/contracts.py` (Pydantic v2, contracts v1.0), `docs/CONTRACTS.md` (decisions + models + SSE +
   REST), `docs/api-mock.json` (MOCK data for every dashboard view), `tests/test_contracts.py`.
