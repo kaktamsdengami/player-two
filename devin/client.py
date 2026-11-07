@@ -64,8 +64,6 @@ def result_from_session(session: dict) -> tuple[FixResult, str | None]:
     status = session.get("status")
     if pr_state == "merged":
         return FixResult.merged, pr_url
-    if pr_url and pr_state != "closed":
-        return FixResult.pr_open, pr_url
     if (
         status in FAILED_STATUSES
         or status == "suspended"
@@ -77,6 +75,8 @@ def result_from_session(session: dict) -> tuple[FixResult, str | None]:
         )
     ):
         return FixResult.failed, pr_url
+    if pr_url and pr_state != "closed":
+        return FixResult.pr_open, pr_url
     if status == "exit" or session.get("status_detail") == "finished":
         return FixResult.failed, pr_url
     if status in ("new", "claimed"):

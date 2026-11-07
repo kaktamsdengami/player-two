@@ -192,3 +192,8 @@ def test_from_env_requires_both(monkeypatch):
     monkeypatch.setenv("DEVIN_API_KEY", "k")
     with pytest.raises(DevinError):
         DevinClient.from_env()
+
+
+def test_error_after_pr_is_failed():
+    s = _session(status="error", detail=None, prs=[("u", "open")])
+    assert result_from_session(s) == ("failed", "u")
