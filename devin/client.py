@@ -55,6 +55,17 @@ def render_prompt(
     )
 
 
+def _hard_failed(session: dict) -> bool:
+    status = session.get("status")
+    if status in FAILED_STATUSES:
+        return True
+    return status == "suspended" and session.get("status_detail") not in (
+        None,
+        "inactivity",
+        "user_request",
+    )
+
+
 def result_from_session(
     session: dict, ignore: frozenset[str] | set[str] = frozenset()
 ) -> tuple[FixResult, str | None]:
@@ -69,16 +80,7 @@ def result_from_session(
     status = session.get("status")
     if pr_state == "merged":
         return FixResult.merged, pr_url
-    if (
-        status in FAILED_STATUSES
-        or status == "suspended"
-        and session.get("status_detail")
-        not in (
-            None,
-            "inactivity",
-            "user_request",
-        )
-    ):
+    if _hard_failed(session):
         return FixResult.failed, pr_url
     if pr_url and pr_state != "closed":
         return FixResult.pr_open, pr_url
@@ -176,7 +178,9 @@ class DevinClient:
         sid = attempt.devin_session_id
         result, pr_url = result_from_session(session, self._stale_prs.get(sid, set()))
         resumed = self._feedback.get(sid)
-        if resumed is not None and session.get("status") not in FAILED_STATUSES:
+        stale_open = result == FixResult.pr_open and pr_url == attempt.pr_url
+        waiting = result in (FixResult.working, FixResult.queued, FixResult.failed) or stale_open
+        if resumed is not None and waiting and not _hard_failed(session):
             # The session still shows its old finished state until Devin picks the feedback up.
             if _is_active(session):
                 self._feedback[sid] = True
@@ -185,6 +189,8 @@ class DevinClient:
                 result = FixResult.working
             else:
                 del self._feedback[sid]
+        elif resumed is not None:
+            del self._feedback[sid]
         update: dict = {"result": result, "pr_url": pr_url or attempt.pr_url}
         if session.get("url"):
             update["devin_session_url"] = session["url"]

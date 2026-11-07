@@ -248,3 +248,31 @@ def test_feedback_on_open_pr_waits_for_devin_to_resume():
     assert dc.refresh(attempt).result == FixResult.working
     attempt = dc.follow(attempt, sleep=lambda s: None)
     assert attempt.result == FixResult.pr_open and attempt.acus == 2.5
+
+
+def test_feedback_after_merge_new_pr_while_still_active():
+    old = "https://github.com/kaktamsdengami/chocolate-doom/pull/7"
+    new = "https://github.com/kaktamsdengami/chocolate-doom/pull/8"
+    fake = FakeDevin(
+        [
+            _session(status="exit", detail="finished", prs=[(old, "merged")]),
+            _session(prs=[(old, "merged"), (new, "open")]),
+        ]
+    )
+    dc = _client(fake)
+    attempt = dc.send_feedback(dc.create_fix_session(_finding()), "still broken")
+    attempt = dc.follow(attempt, sleep=lambda s: None, timeout_s=1)
+    assert attempt.result == FixResult.pr_open and attempt.pr_url == new
+
+
+def test_out_of_credits_after_feedback_fails():
+    pr = "https://github.com/kaktamsdengami/chocolate-doom/pull/7"
+    fake = FakeDevin(
+        [
+            _session(status="exit", detail="finished", prs=[(pr, "merged")]),
+            _session(status="suspended", detail="out_of_credits", prs=[(pr, "merged")]),
+        ]
+    )
+    dc = _client(fake)
+    attempt = dc.send_feedback(dc.create_fix_session(_finding()), "still broken")
+    assert dc.follow(attempt, sleep=lambda s: None, timeout_s=1).result == FixResult.failed
