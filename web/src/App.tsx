@@ -209,7 +209,12 @@ function BugCard({
       <div className="card-body">
         <div className="clip">
           {src ? (
-            <video src={`${src}#t=${clip!.start_s},${clip!.end_s}`} controls muted />
+            <video
+              src={`${src}#t=${clip!.start_s},${clip!.end_s}`}
+              controls
+              muted
+              onLoadedMetadata={(e) => (e.currentTarget.playbackRate = clip!.speed)}
+            />
           ) : (
             <div className="placeholder small">clip {clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}</div>
           )}
