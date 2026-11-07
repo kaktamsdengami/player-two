@@ -218,7 +218,7 @@ def test_feedback_after_merge_waits_for_new_pr():
     seen = []
     attempt = dc.follow(attempt, seen.append, sleep=lambda s: None)
     assert attempt.result == FixResult.pr_open and attempt.pr_url == new
-    assert seen[0].result == FixResult.working
+    assert [a.result for a in seen] == ["pr_open"]
 
 
 def test_from_env_reads_dotenv(tmp_path, monkeypatch):

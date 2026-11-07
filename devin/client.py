@@ -115,9 +115,9 @@ class DevinClient:
     @classmethod
     def from_env(cls, **kw) -> DevinClient:
         try:
-            from dotenv import load_dotenv
+            from dotenv import find_dotenv, load_dotenv
 
-            load_dotenv()
+            load_dotenv(find_dotenv(usecwd=True))
         except ImportError:
             pass
         missing = [k for k in ("DEVIN_API_KEY", "DEVIN_ORG_ID") if not os.environ.get(k)]
