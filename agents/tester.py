@@ -88,7 +88,10 @@ def choose_region(min_slots: int = 2, quota_fn: Any = None) -> str:
     for url in order:
         try:
             seen[url] = quota_fn(url).get("available", 0)
-        except httpx.HTTPError as e:
+        except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as e:
+            code = getattr(getattr(e, "response", None), "status_code", None)
+            if isinstance(e, httpx.HTTPStatusError) and code not in RETRY_STATUS:
+                raise
             seen[url] = f"error: {type(e).__name__}"
             continue
         if seen[url] >= min_slots:

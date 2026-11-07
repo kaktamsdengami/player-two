@@ -159,3 +159,19 @@ def test_choose_region_skips_a_region_whose_quota_fails(monkeypatch):
         return {"available": 3}
 
     assert choose_region(2, q) == REGIONS[1]
+
+
+def test_choose_region_raises_auth_errors_instead_of_busy(monkeypatch):
+    import httpx
+    import pytest
+
+    from agents.tester import REGIONS, choose_region
+
+    monkeypatch.setenv("HAI_BASE_URL", REGIONS[0])
+    resp = httpx.Response(401, request=httpx.Request("GET", REGIONS[0]))
+
+    def q(url):
+        raise httpx.HTTPStatusError("unauthorized", request=resp.request, response=resp)
+
+    with pytest.raises(httpx.HTTPStatusError):
+        choose_region(2, q)
