@@ -24,6 +24,22 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T11 fix loop + upstream comparison (Devin)
+
+- `agents/fix_loop.py`: `FixLoop.run(finding, attempt)`: follow the Devin session to `pr_open`,
+  merge (only if `approve(attempt)`), pull + rebuild the base branch, replay, mark `fixed` /
+  `not_fixed`; on `not_fixed` one `send_feedback` round, then stop with an honest status.
+  `ScriptReplay` replays a known bug with its fork QA script (deterministic, no H) and records a clip.
+- Fixes merge into a per-run fork branch `qa-run/<name>` (made from `player-two-qa`), so the QA
+  branch keeps its known bugs for the next demo. `python -m agents.fix_loop FINDING.json --bug KB1
+  --script qa/kb1_kb2_medikit.txt --map 1 1 --base qa-run/kb1-t11 --merge [--attempt ATTEMPT.json]`.
+- `insights/fix_compare.py`: Devin PR diff vs `KnownBug.upstream_fix_ref` commit (code files only,
+  upstream limited to the files Devin touched), verdict same_approach / different_but_valid /
+  incomplete (replay decides incomplete; an H Models call `holo4-27b` decides the rest, token
+  overlap as fallback), `render_html` side-by-side page. KB3 has no upstream fix: no comparison.
+- Real run: KB1 fork PR #1 merged into `qa-run/kb1-t11`, rebuilt, replay log shows
+  "Never give up!", verdict different_but_valid. The finding was a scripted one, not from the H tester.
+
 ### 2026-11-07: T06 launcher (Devin)
 
 - `python -m launcher demo|build|fetch|query|clip`. `Game` starts the QA build with a fixed window
