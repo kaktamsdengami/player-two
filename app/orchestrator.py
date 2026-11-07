@@ -11,6 +11,7 @@ The core is pure; `build_live()` wires the real tester, verifier, narration and 
 from __future__ import annotations
 
 import itertools
+import json
 import queue
 import threading
 import time
@@ -133,6 +134,9 @@ class Deps:
     build: str = "player-two-qa"
     map: str | None = "E3M1"
     speed: str = "frame-step"
+    run_dir: Path | None = None  # the game's QA log + recording; tester_run.json goes there
+    debrief: Callable[[Path], Any] | None = None  # insights.debrief.build
+    placement: Callable[[Path], list[Any]] | None = None  # insights.placement.scout
 
 
 class Stopped(Exception):
@@ -252,6 +256,7 @@ class Orchestrator:
                     self.handle(self.pending.get())
             self._cancel_h()  # release the H slots and close the game
             self.set_state(SessionState.debriefing)
+            self.debrief()
             self.set_state(SessionState.done)
         except Stopped:
             pass
@@ -261,6 +266,34 @@ class Orchestrator:
             self.error(str(e), "orchestrator")
             self.set_state(SessionState.error)
             self._cancel_h()
+
+    def debrief(self) -> None:
+        """Design debrief + placement scout on this run; each is best effort."""
+        if not (self.deps.debrief or self.deps.placement):
+            return
+        run_dir = self.deps.run_dir or self.out_dir / "run"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        rec = run_dir / "recording.mp4"
+        summary = {
+            "session_id": self.info.h_session_id or self.info.id,
+            "findings": [f.model_dump(mode="json") for f in self.store.findings.values()],
+            "notes": [n.model_dump(mode="json") for n in self.store.notes],
+            "recording": str(rec) if rec.exists() else None,
+        }
+        (run_dir / "tester_run.json").write_text(json.dumps(summary, indent=2))
+        if self.deps.debrief:
+            self._check()
+            try:
+                self.publish(SseType.debrief_ready, self.deps.debrief(run_dir))
+            except Exception as e:  # noqa: BLE001
+                self.error(f"debrief failed: {e}", "debrief")
+        if self.deps.placement:
+            self._check()
+            try:
+                for spot in self.deps.placement(run_dir):
+                    self.publish(SseType.placement_ready, spot)
+            except Exception as e:  # noqa: BLE001
+                self.error(f"placement scout failed: {e}", "placement")
 
     def handle(self, f: Finding) -> None:
         self._check()
@@ -394,6 +427,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     from agents.tools import TesterTools
     from agents.verifier import Verifier
     from devin.client import DevinClient
+    from launcher import capture
     from launcher.build import pull_and_rebuild
     from launcher.config import LauncherConfig, Speed
     from launcher.game import Game
@@ -413,12 +447,18 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             self.tools = TesterTools(on_finding=lambda f: orch.on_finding(f),
                                      on_note=lambda n: orch.on_note(n))  # fmt: skip
             self.tester: Tester | None = None
+            self.rec: Any = None
 
         def start(self, task_: str | None) -> tuple[str, str | None]:
             choose_region()  # raises HBusyError("H busy ... retry in ~15 min"): shown as error
             self.tester = Tester(tools=self.tools)  # the H client binds HAI_BASE_URL here
-            if game.start(episode, map_, speed) is None:
+            win = game.start(episode, map_, speed)
+            if win is None:
                 raise RuntimeError("game window did not appear")
+            try:  # for the placement scout; the loop runs without it
+                self.rec = capture.record(win, game.run_dir / "recording.mp4", cfg.fps)
+            except Exception as e:  # noqa: BLE001
+                orch.error(f"screen recording failed: {e}", "record")
             run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60 * rounds,
                                     max_time_s=900 * rounds, idle_timeout_s=1800)  # fmt: skip
             return run.session_id, run.share_url
@@ -443,6 +483,9 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         def stop(self) -> None:
             if self.tester:
                 self.tester.stop()
+            if self.rec:
+                self.rec.stop()
+                self.rec = None
             game.stop()
 
     def verify(f: Finding, actions: list[AgentAction]) -> Finding:
@@ -479,6 +522,15 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         attach_clip(f, replay)
         return add_comparison(a, bug)
 
-    deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}")
+    try:  # T16 / T17: optional until merged
+        from insights.debrief import build as debrief
+    except ImportError:
+        debrief = None
+    try:
+        from insights.placement import scout as placement
+    except ImportError:
+        placement = None
+    deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}",
+                run_dir=game.run_dir, debrief=debrief, placement=placement)  # fmt: skip
     orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
     return orch

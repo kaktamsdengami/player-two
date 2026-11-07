@@ -1,3 +1,4 @@
+import json
 import threading
 import time
 from datetime import UTC, datetime
@@ -179,3 +180,45 @@ def test_sse_format():
     assert txt.startswith(f"id: {ev.id}\nevent: error\ndata: {{") and txt.endswith("\n\n")
     assert Bus().publish(SseType.error, {}, "s").id > ev.id  # ids grow across sessions
     assert o is not None
+
+
+def test_debrief_and_placement_run_at_the_end(tmp_path):
+    from app.contracts import PlacementSpot
+
+    o = _orch(tmp_path)
+    seen = {}
+
+    def debrief(run_dir):
+        seen["summary"] = json.loads((run_dir / "tester_run.json").read_text())
+        return {"session_id": "h1", "notes": []}
+
+    def placement(run_dir):
+        return [PlacementSpot(id="spot-1", session_id="h1", name="red wall", surface="wall",
+                              location="start", screen_time_s=10, visibility=0.8)]  # fmt: skip
+
+    o.deps.debrief, o.deps.placement = debrief, placement
+    o.start()
+    _wait(lambda: o.info.state == SessionState.awaiting_approval)
+    o.intent(VoiceIntent(intent=Intent.skip, source="button"))
+    o._thread.join(5)
+    assert seen["summary"]["session_id"] == "h1"
+    assert seen["summary"]["findings"][0]["id"] == "f1"
+    assert o.store.debrief == {"session_id": "h1", "notes": []}
+    assert o.store.placement[0]["name"] == "red wall"
+    assert _states(o)[-2:] == ["debriefing", "done"]
+
+
+def test_debrief_failure_does_not_fail_the_session(tmp_path):
+    o = _orch(tmp_path)
+
+    def boom(run_dir):
+        raise RuntimeError("linkup down")
+
+    o.deps.debrief = o.deps.placement = boom
+    o.start()
+    _wait(lambda: o.info.state == SessionState.awaiting_approval)
+    o.intent(VoiceIntent(intent=Intent.skip, source="button"))
+    o._thread.join(5)
+    assert o.info.state == SessionState.done
+    errs = [e.data["where"] for e in o.bus.events if e.type == SseType.error]
+    assert errs == ["debrief", "placement"]
