@@ -16,6 +16,12 @@ Search = Callable[[str], list[Citation]]
 
 
 def search(query: str, depth: str = "standard", timeout: float = 60.0) -> list[Citation]:
+    try:
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except ImportError:
+        pass
     key = os.environ.get("LINKUP_API_KEY")
     if not key:
         raise RuntimeError("LINKUP_API_KEY is not set")
