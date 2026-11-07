@@ -84,6 +84,21 @@ PRESETS = {
         plan="Test power-ups, especially invulnerability, and check that the whole screen, "
         "including the sky, renders correctly while a power-up is active.",
     ),
+    # longer stage run: a shotgun, armour, a stimpack and a zombie on the way to the imps, then
+    # the sphere at the far end of the first canyon (scripted walk: shotgun at tic 24, sphere ~200)
+    "stage-play": Preset(
+        map=(3, 1),
+        lines=(
+            "1 spawn 2001 -150 -224",
+            "1 spawn 2018 -330 -120",
+            "1 spawn 2011 -437 -25",
+            "1 spawn 3004 -520 -40",
+            "1 spawn 2022 -600 60",
+        ),
+        plan="Play through the first area like a real player: fight, pick up weapons and items. "
+        "Test power-ups, and check that the whole screen, including the sky, renders correctly "
+        "while a power-up is active.",
+    ),
 }
 
 
