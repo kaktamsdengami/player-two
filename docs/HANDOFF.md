@@ -21,6 +21,12 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+- 2026-11-08 (Devin): stage run 3 (`stage-play`, session `69026364…`): the preset reached KB3 on
+  screen (sky red while the world is inverted) but the agent judged it correct: 0 findings. Team
+  request on #42: the stage presets' plan now states the developer's expected behaviour under
+  invulnerability (spec-based test plan, visible in the dashboard and `tester_run.json`; runs with
+  it are not "blind" rediscoveries). taptest sends a warm-up tap (cold Windows start lost the first).
+
 - 2026-11-08 (Devin): T12, T13, T16, T17 merged into t14 (T12's branch drops the verifier files; t14
   keeps them). Contract addition: `POST /api/transcript` (`TranscriptPayload` -> `voice.transcript`),
   posted by `voice.listen --post` with `X-P2-Token` when `P2_CONTROL_TOKEN` is set. Debrief counts
