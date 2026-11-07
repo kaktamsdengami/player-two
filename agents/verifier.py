@@ -144,3 +144,38 @@ def judge(
         finding.status = FindingStatus.verified if seen_by_h else FindingStatus.suspected
         finding.known_bug_ref = None
     return Verdict(finding, proofs, hit.bug if hit else None)
+
+
+def main(argv: list[str] | None = None) -> int:
+    """python -m agents.verifier RUN_DIR: verify every finding of a tester run (agents.tester)."""
+    import argparse
+    import json
+
+    from launcher.config import LauncherConfig
+
+    p = argparse.ArgumentParser(prog="python -m agents.verifier")
+    p.add_argument("run_dir", type=Path)
+    p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
+    p.add_argument("--speed", default="step:35")
+    a = p.parse_args(argv)
+    run = json.loads((a.run_dir / "tester_run.json").read_text())
+    actions_file = a.run_dir / "actions.jsonl"
+    actions = [
+        AgentAction.model_validate_json(x)
+        for x in (actions_file.read_text().splitlines() if actions_file.exists() else [])
+        if x.strip()
+    ]
+    cfg = LauncherConfig.from_env()
+    v = Verifier(Game(cfg, a.run_dir / "verify"), a.map[0], a.map[1], Speed.parse(a.speed))
+    out = []
+    for raw in run["findings"]:
+        f = Finding.model_validate(raw)
+        verdict = v.verify(f, actions, out_dir=a.run_dir / "verify" / f.id)
+        out.append(verdict.summary() | {"finding_full": f.model_dump(mode="json")})
+    (a.run_dir / "verdicts.json").write_text(json.dumps(out, indent=2, default=str))
+    print(json.dumps([o | {"finding_full": None} for o in out], indent=2, default=str))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
