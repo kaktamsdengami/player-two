@@ -149,7 +149,7 @@ def test_api_snapshot_intent_stop_and_media(tmp_path):
     rt.current._thread.join(5)
     assert c.get("/api/session").json()["state"] == "done"
     assert c.get("/api/fixes").json()[0]["result"] == "fixed"
-    assert c.post("/api/stop").status_code == 200
+    assert c.post("/api/stop", json={}).status_code == 200
     (tmp_path / "clip.mp4").write_bytes(b"x")
     assert c.get(f"/media{tmp_path}/clip.mp4").content == b"x"
     assert c.get("/media/etc/passwd").status_code == 404
@@ -157,6 +157,7 @@ def test_api_snapshot_intent_stop_and_media(tmp_path):
     (tmp_path / "keys.txt").write_text("SECRET=1")
     assert c.get(f"/media{tmp_path}/.env").status_code == 404
     assert c.get(f"/media{tmp_path}/keys.txt").status_code == 404
+    assert c.post("/api/stop").status_code == 415  # bodyless cross-site POST
     form = {"content-type": "text/plain"}
     assert c.post("/api/stop", content="{}", headers=form).status_code == 415
 
@@ -164,8 +165,8 @@ def test_api_snapshot_intent_stop_and_media(tmp_path):
 def test_control_token(tmp_path, monkeypatch):
     monkeypatch.setenv("P2_CONTROL_TOKEN", "t0k")
     c = TestClient(create_app(Runtime(tmp_path)))
-    assert c.post("/api/stop").status_code == 401
-    assert c.post("/api/stop", headers={"X-P2-Token": "t0k"}).status_code == 200
+    assert c.post("/api/stop", json={}).status_code == 401
+    assert c.post("/api/stop", json={}, headers={"X-P2-Token": "t0k"}).status_code == 200
     assert c.get("/api/plans").status_code == 200  # T18 billing router mounted
 
 

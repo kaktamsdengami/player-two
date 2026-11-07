@@ -45,7 +45,7 @@ def control(request: Request) -> None:
     JSON only, so a cross-site form post needs a CORS preflight; and when `P2_CONTROL_TOKEN` is
     set (any deployment reachable from outside the laptop), the `X-P2-Token` header must match.
     """
-    if "application/json" not in request.headers.get("content-type", "application/json"):
+    if "application/json" not in request.headers.get("content-type", ""):
         raise HTTPException(415, "send JSON")
     token = os.environ.get("P2_CONTROL_TOKEN")
     if token and request.headers.get("x-p2-token") != token:
