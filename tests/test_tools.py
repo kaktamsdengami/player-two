@@ -107,3 +107,40 @@ def test_hold_keeps_its_duration():
     )
     (a,) = to_action("s", 1, 0.0, ev)
     assert a.kind == "key_hold" and a.duration_ms == 1500
+
+
+def test_retry_backs_off_on_transient_errors_only():
+    import httpx
+    import pytest
+
+    from agents.tester import with_retry
+
+    req = httpx.Request("GET", "https://h.example/q")
+    calls, sleeps = [], []
+
+    def flaky():
+        calls.append(1)
+        if len(calls) < 3:
+            raise httpx.HTTPStatusError("busy", request=req, response=httpx.Response(503))
+        return "ok"
+
+    assert with_retry(flaky, sleep=sleeps.append) == "ok" and sleeps == [2.0, 4.0]
+
+    def denied():
+        raise httpx.HTTPStatusError("no", request=req, response=httpx.Response(401))
+
+    with pytest.raises(httpx.HTTPStatusError):
+        with_retry(denied, sleep=sleeps.append)
+
+
+def test_choose_region_falls_back_then_reports_busy(monkeypatch):
+    import pytest
+
+    from agents.tester import REGIONS, HBusyError, choose_region
+
+    monkeypatch.setenv("HAI_BASE_URL", REGIONS[0])
+    free = {REGIONS[0]: 1, REGIONS[1]: 2}
+    assert choose_region(2, lambda u: {"available": free[u]}) == REGIONS[1]
+    free[REGIONS[1]] = 0
+    with pytest.raises(HBusyError, match="retry"):
+        choose_region(2, lambda u: {"available": free[u]})

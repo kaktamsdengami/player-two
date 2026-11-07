@@ -38,19 +38,60 @@ class TesterAnswer(BaseModel):
     finding_titles: list[str]
 
 
+REGIONS = ("https://agp.hcompany.ai", "https://agp.eu.hcompany.ai")
+RETRY_STATUS = {429, 500, 502, 503, 504}
+
+
+class HBusyError(RuntimeError):
+    """No region has enough free H slots; retry later (a desktop slot leaks ~15 min)."""
+
+
 def base_url() -> str:
-    return os.environ.get("HAI_BASE_URL", "https://agp.hcompany.ai").rstrip("/")
+    return os.environ.get("HAI_BASE_URL", REGIONS[0]).rstrip("/")
 
 
-def quota(api_key: str | None = None) -> dict[str, Any]:
+def with_retry(fn: Any, tries: int = 4, base_s: float = 2.0, sleep: Any = time.sleep) -> Any:
+    """Call `fn()`, retrying 429/5xx and timeouts with exponential backoff."""
+    for i in range(tries):
+        try:
+            return fn()
+        except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as e:
+            code = getattr(getattr(e, "response", None), "status_code", None)
+            if isinstance(e, httpx.HTTPStatusError) and code not in RETRY_STATUS:
+                raise
+            if i == tries - 1:
+                raise
+            sleep(base_s * 2**i)
+    raise AssertionError("unreachable")
+
+
+def quota(api_key: str | None = None, url: str | None = None) -> dict[str, Any]:
     key = api_key or os.environ["HAI_API_KEY"]
-    r = httpx.get(
-        f"{base_url()}/api/v2/sessions/quota",
-        headers={"Authorization": f"Bearer {key}"},
-        timeout=20,
-    )
-    r.raise_for_status()
-    return r.json()
+
+    def get() -> dict[str, Any]:
+        r = httpx.get(
+            f"{url or base_url()}/api/v2/sessions/quota",
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=20,
+        )
+        r.raise_for_status()
+        return r.json()
+
+    return with_retry(get)
+
+
+def choose_region(min_slots: int = 2, quota_fn: Any = None) -> str:
+    """First region (HAI_BASE_URL first) with `min_slots` free; sets HAI_BASE_URL to it."""
+    quota_fn = quota_fn or (lambda url: quota(url=url))
+    order = [base_url()] + [r for r in REGIONS if r != base_url()]
+    seen = {}
+    for url in order:
+        q = quota_fn(url)
+        seen[url] = q.get("available", 0)
+        if seen[url] >= min_slots:
+            os.environ["HAI_BASE_URL"] = url
+            return url
+    raise HBusyError(f"H busy (free slots per region: {seen}); retry in ~15 min")
 
 
 def agent_spec(tools: TesterTools, instructions: str | None = None) -> dict[str, Any]:
@@ -224,6 +265,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--minutes", type=float, default=15)
     p.add_argument("--task", default=DEFAULT_TASK)
     a = p.parse_args(argv)
+    try:
+        print(f"H region: {choose_region()}", flush=True)
+    except HBusyError as e:
+        raise SystemExit(str(e)) from None
     cfg = LauncherConfig.from_env()
     run_dir = (cfg.runs_dir / f"{datetime.now():%Y%m%d-%H%M%S}-tester").resolve()
     game = Game(cfg, run_dir)
