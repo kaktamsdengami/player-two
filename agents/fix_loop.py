@@ -202,6 +202,9 @@ def main(argv: list[str] | None = None) -> int:
         on_update=save,
     )
     attempt = FixAttempt.model_validate_json(a.attempt.read_text()) if a.attempt else None
+    if attempt and attempt.round >= 2:
+        # the stale-PR memory of the first round lives in the client that sent the feedback
+        raise SystemExit("cannot resume a feedback round: its first-round PR would count as new")
     result, replay = loop.run(finding, attempt)
     result = add_comparison(result, bug)
     attach_clip(finding, replay)
