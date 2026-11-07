@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         out = {"clip": str(capture.cut_clip(a.src, a.start, a.end, a.out, speed=a.speed,
                                             label=label))}  # fmt: skip
     print(json.dumps(out, indent=2))
-    return 0
+    return 1 if "video_error" in out else 0
 
 
 if __name__ == "__main__":
