@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
+import pytest
 
 from agents.fix_loop import FixLoop, Replay, add_comparison
 from app.contracts import Finding, FixAttempt, FixResult, FixVerdict, KnownBug
@@ -87,6 +88,7 @@ class FakeDevin:
         return a
 
     def send_feedback(self, a, note):
+        assert a.result == FixResult.merged  # so the client drops the merged PR as stale
         self.calls.append("feedback")
         return a.model_copy(update={"round": 2, "result": FixResult.working, "pr_url": None})
 
@@ -206,3 +208,63 @@ def test_add_comparison_needs_upstream_ref(monkeypatch):
     assert add_comparison(a, bug, assess=False).comparison.upstream_fix_ref == REF
     no_up = bug.model_copy(update={"upstream_fix_ref": None})
     assert add_comparison(a, no_up, assess=False).comparison is None
+
+
+class _Proc:
+    def __init__(self, rc):
+        self.returncode = rc
+
+
+class _Log:
+    def __init__(self, events):
+        self.events = events
+
+    def since(self):
+        return self.events
+
+
+class _FakeGame:
+    def __init__(self, rc, events, hang=False):
+        self.proc, self.log, self.hang = _Proc(rc), _Log(events), hang
+        self.run_dir = Path("/tmp/p2-test-script-replay")
+
+    def start(self, *a):
+        return object()
+
+    @property
+    def running(self):
+        return self.hang
+
+    def stop(self):
+        pass
+
+
+def _bug():
+    from agents.oracles import load_known_bugs
+
+    return next(b for b in load_known_bugs() if b.id == "KB1")
+
+
+def _event():
+    from app.contracts import GameEvent
+
+    return GameEvent(tic=1, type="message", data={"text": "hi"})
+
+
+@pytest.mark.parametrize("rc,events,hang", [(139, [1], False), (0, [], False), (None, [1], True)])
+def test_incomplete_replay_is_not_fixed(rc, events, hang):
+    from agents.fix_loop import ScriptReplay
+
+    game = _FakeGame(rc, [_event() for _ in events], hang)
+    r = ScriptReplay(game, _bug(), Path("qa/x.txt"), 1, 1, timeout_s=0.3, record=False)(
+        _finding(), "round1"
+    )
+    assert r.still_there and r.note.startswith("replay incomplete")
+
+
+def test_complete_replay_without_signature_is_fixed():
+    from agents.fix_loop import ScriptReplay
+
+    game = _FakeGame(0, [_event()])
+    r = ScriptReplay(game, _bug(), Path("qa/x.txt"), 1, 1, record=False)(_finding(), "round1")
+    assert not r.still_there

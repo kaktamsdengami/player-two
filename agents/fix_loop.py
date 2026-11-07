@@ -63,11 +63,17 @@ class ScriptReplay:
             end = time.monotonic() + self.timeout_s
             while self.game.running and time.monotonic() < end:
                 time.sleep(0.2)
+            rc = None if self.game.running else self.game.proc.returncode
         finally:
             clip = rec.stop() if rec else None
             self.game.stop()
         events = self.game.log.since()
         hits = proven(events, [self.bug])
+        if rc != 0 or not events:
+            # a crash, a hang or a dead script proves nothing: count it as not fixed
+            why = "timed out" if rc is None else f"exited with {rc}"
+            note = f"replay incomplete: the game {why} after {len(events)} QA log events"
+            return Replay(True, note, clip, time.monotonic() - t0)
         if hits:
             note = f"{self.bug.id} signature still in the QA log: {hits[0].first.model_dump_json()}"
         else:
@@ -80,7 +86,7 @@ class FixLoop:
     devin: DevinClient
     replay: Callable[[Finding, str], Replay]
     rebuild: Callable[[str], Path]
-    approve: Callable[[FixAttempt], bool] = lambda a: True
+    approve: Callable[[FixAttempt], bool] = lambda a: False  # a human says "fix it"
     on_update: Update | None = None
     poll_s: float = 15
     timeout_s: float = 3600
@@ -130,7 +136,8 @@ class FixLoop:
             self._emit(a, ("FIXED: " if fixed else "NOT FIXED: ") + replay.note)
             if fixed or a.round >= 2:
                 return a, replay
-            a = self._emit(self.devin.send_feedback(a, replay.note), "feedback round sent to Devin")
+            merged = a.model_copy(update={"result": FixResult.merged})  # old PR becomes stale
+            a = self._emit(self.devin.send_feedback(merged, replay.note), "feedback round sent")
 
 
 def add_comparison(a: FixAttempt, bug: KnownBug | None, assess: bool = True) -> FixAttempt:
@@ -170,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--base", required=True, help="fork branch the fix merges into (qa-run/...)")
     p.add_argument("--attempt", type=Path, help="resume: FixAttempt JSON of a running session")
     p.add_argument("--out", type=Path, default=Path("recordings/fix_loop"))
-    p.add_argument("--no-merge", action="store_true", help="stop at pr_open (no approval)")
+    p.add_argument("--merge", action="store_true", help="the developer approves merging the PR")
     a = p.parse_args(argv)
 
     finding = Finding.model_validate_json(a.finding.read_text())
@@ -191,10 +198,13 @@ def main(argv: list[str] | None = None) -> int:
         devin=devin,
         replay=ScriptReplay(Game(cfg, a.out), bug, cfg.fork_dir / a.script, *a.map),
         rebuild=lambda ref: pull_and_rebuild(cfg, ref),
-        approve=lambda x: not a.no_merge,
+        approve=lambda x: a.merge,
         on_update=save,
     )
     attempt = FixAttempt.model_validate_json(a.attempt.read_text()) if a.attempt else None
+    if attempt and attempt.round >= 2:
+        # the stale-PR memory of the first round lives in the client that sent the feedback
+        raise SystemExit("cannot resume a feedback round: its first-round PR would count as new")
     result, replay = loop.run(finding, attempt)
     result = add_comparison(result, bug)
     attach_clip(finding, replay)
