@@ -83,6 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--taps", type=int, default=4)
     p.add_argument("--tics", type=int, default=35)
     a = p.parse_args(argv)
+    from dotenv import find_dotenv, load_dotenv
+
+    load_dotenv(find_dotenv(usecwd=True))  # P2_GAME_EXE / P2_IWAD may live in .env
     seen = run(LauncherConfig.from_env(), a.taps, a.tics)
     ok = passed(seen, a.tics)
     print(f"tic after each 0 ms tap: {seen} -> {'PASS' if ok else 'FAIL'}")
