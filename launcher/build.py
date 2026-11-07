@@ -8,6 +8,7 @@ import shutil
 import subprocess
 import zipfile
 from pathlib import Path
+from urllib.parse import quote
 
 from launcher.config import IS_WINDOWS, LauncherConfig
 
@@ -49,7 +50,7 @@ def find_artifact(ref: str, repo: str = GAME_REPO) -> int:
     is_branch = not ref.startswith("pull/") and not re.fullmatch(r"[0-9a-f]{7,40}", ref)
     sha = None if is_branch else resolve_sha(ref, repo)
     out = _run(
-        ["gh", "api", f"repos/{repo}/actions/artifacts?name={WINDOWS_ARTIFACT}&per_page=100",
+        ["gh", "api", f"repos/{repo}/actions/artifacts?name={quote(WINDOWS_ARTIFACT)}&per_page=100",
          "-q", ".artifacts[] | [.id, .expired, .workflow_run.head_branch, .workflow_run.head_sha]"
          " | @tsv"]
     )  # fmt: skip
