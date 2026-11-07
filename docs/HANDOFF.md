@@ -27,7 +27,8 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
   status, notes, recording) into the game run dir, then runs `Deps.debrief` (T16
   `insights.debrief.build`) and `Deps.placement` (T17 `insights.placement.scout`) → `debrief.ready`
   / `placement.ready` events. Both are optional imports until #47/#48 merge, and best effort.
-  Live mode records the game window (`<run>/game/recording.mp4`) for the placement scout.
+  Live mode records the game window into `<run>/run/recording.mp4` for the placement scout, and
+  appends each round's QA log to `<run>/run/events.jsonl` (Game.start wipes it).
 - Shared-file note: `docs/CONTRACTS.md` now lists `POST /api/session/start`, the T18
   `POST /api/billing/webhook`, and the control guard (JSON only, optional `X-P2-Token` when
   `P2_CONTROL_TOKEN` is set, `P2_CORS_ORIGINS`). Both env vars are in `.env.example`.

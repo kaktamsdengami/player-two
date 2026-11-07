@@ -442,7 +442,16 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     scripts = {"KB1": ("qa/kb1_kb2_medikit.txt", 1, 1), "KB2": ("qa/kb1_kb2_medikit.txt", 1, 1),
                "KB3": ("qa/kb3_sky_invul_e3m1.txt", 3, 1),
                "KB4": ("qa/kb4_e1m7.txt", 1, 7)}  # fmt: skip
+    run_dir = out_dir / "run"  # session-wide QA log, recording, tester_run.json
+    run_dir.mkdir(parents=True, exist_ok=True)
     orch: Orchestrator
+
+    def archive() -> None:
+        """Game.start wipes the QA log: keep every round's events for the debrief heatmap."""
+        if not game.running and game.log_path.exists():
+            with (run_dir / "events.jsonl").open("a") as f:
+                f.write(game.log_path.read_text())
+            game.log_path.unlink()
 
     class TesterExplorer:
         def __init__(self) -> None:
@@ -458,7 +467,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             if win is None:
                 raise RuntimeError("game window did not appear")
             try:  # for the placement scout; the loop runs without it
-                self.rec = capture.record(win, game.run_dir / "recording.mp4", cfg.fps)
+                self.rec = capture.record(win, run_dir / "recording.mp4", cfg.fps)
             except Exception as e:  # noqa: BLE001
                 orch.error(f"screen recording failed: {e}", "record")
             run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60 * rounds,
@@ -479,7 +488,9 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                 time.sleep(0.3)
 
         def send(self, message: str) -> None:
-            game.start(episode, map_, speed) if not game.running else None
+            if not game.running:
+                archive()
+                game.start(episode, map_, speed)
             self.tester.send(message)
 
         def stop(self) -> None:
@@ -489,6 +500,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                 self.rec.stop()
                 self.rec = None
             game.stop()
+            archive()
 
     def verify(f: Finding, actions: list[AgentAction]) -> Finding:
         game.stop()
@@ -533,6 +545,6 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     except ImportError:
         placement = None
     deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}",
-                run_dir=game.run_dir, debrief=debrief, placement=placement)  # fmt: skip
+                run_dir=run_dir, debrief=debrief, placement=placement)  # fmt: skip
     orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
     return orch
