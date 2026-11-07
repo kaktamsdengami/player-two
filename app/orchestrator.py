@@ -1,0 +1,452 @@
+"""T14 orchestrator: one process drives a whole PLAYER TWO session.
+
+explore (one long H session) -> finding -> verify -> present (voice + clip) -> wait for the
+developer -> fix (Devin) -> re-verify -> next finding -> follow-up message to the same H session.
+
+Every state change goes through `Orchestrator.publish`: the in-memory `Store` (REST snapshot) and
+the `Bus` (SSE stream, persisted as events.jsonl so a run can be replayed later as RECORDED).
+The core is pure; `build_live()` wires the real tester, verifier, narration and fix loop.
+"""
+
+from __future__ import annotations
+
+import queue
+import threading
+import time
+import uuid
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, Protocol
+
+from app.contracts import (
+    AgentAction,
+    AgentNote,
+    Finding,
+    FindingStatus,
+    FixAttempt,
+    FixResult,
+    Intent,
+    Narration,
+    SessionInfo,
+    SessionState,
+    SseEvent,
+    SseType,
+    VoiceIntent,
+)
+
+FOLLOW_UP = (
+    "Keep testing the same level. Try what you have not tried yet: other power-ups, other walls, "
+    "other doors. Report every new bug with report_finding."
+)
+DECIDE = {Intent.fix, Intent.yes, Intent.skip, Intent.no, Intent.stop}
+
+
+def _now() -> datetime:
+    return datetime.now(UTC)
+
+
+class Bus:
+    """Append-only SSE event list; thread-safe, optionally persisted as JSONL."""
+
+    def __init__(self, path: Path | None = None):
+        self.events: list[SseEvent] = []
+        self.path = path
+        self._lock = threading.Lock()
+
+    def publish(self, type_: SseType, data: dict[str, Any], session_id: str | None) -> SseEvent:
+        with self._lock:
+            ev = SseEvent(id=len(self.events), type=type_, ts=_now(), session_id=session_id,
+                          data=data)  # fmt: skip
+            self.events.append(ev)
+            if self.path:
+                self.path.parent.mkdir(parents=True, exist_ok=True)
+                with self.path.open("a", encoding="utf-8") as f:
+                    f.write(ev.model_dump_json() + "\n")
+        return ev
+
+    def since(self, last_id: int = -1) -> list[SseEvent]:
+        with self._lock:
+            return self.events[last_id + 1 :]
+
+
+def sse_format(ev: SseEvent) -> str:
+    kind = getattr(ev.type, "value", ev.type)
+    return f"id: {ev.id}\nevent: {kind}\ndata: {ev.model_dump_json()}\n\n"
+
+
+@dataclass
+class Store:
+    """What the REST endpoints return; rebuilt from the event stream (live or recorded)."""
+
+    session: SessionInfo | None = None
+    actions: list[AgentAction] = field(default_factory=list)
+    notes: list[AgentNote] = field(default_factory=list)
+    findings: dict[str, Finding] = field(default_factory=dict)
+    fixes: dict[str, FixAttempt] = field(default_factory=dict)
+    narrations: list[Narration] = field(default_factory=list)
+    debrief: dict[str, Any] | None = None
+    placement: list[dict[str, Any]] = field(default_factory=list)
+
+    def apply(self, ev: SseEvent) -> None:
+        d, t = ev.data, ev.type
+        if t == SseType.session_state:
+            self.session = SessionInfo.model_validate(d)
+        elif t == SseType.agent_action:
+            self.actions.append(AgentAction.model_validate(d))
+        elif t == SseType.agent_note:
+            self.notes.append(AgentNote.model_validate(d))
+        elif t in (SseType.finding_new, SseType.finding_updated):
+            f = Finding.model_validate(d)
+            self.findings[f.id] = f
+        elif t == SseType.fix_updated:
+            a = FixAttempt.model_validate(d)
+            self.fixes[a.id] = a
+        elif t == SseType.narration:
+            self.narrations.append(Narration.model_validate(d))
+        elif t == SseType.debrief_ready:
+            self.debrief = d
+        elif t == SseType.placement_ready:
+            self.placement.append(d)
+
+
+class Explorer(Protocol):
+    """One long H session (agents.tester.Tester behind an adapter)."""
+
+    def start(self, task: str | None) -> tuple[str, str | None]: ...
+    def follow(self, on_action: Callable[[AgentAction], None]) -> None: ...
+    def send(self, message: str) -> None: ...
+    def stop(self) -> None: ...
+
+
+@dataclass
+class Deps:
+    explorer: Explorer
+    verify: Callable[[Finding, list[AgentAction]], Finding]
+    narrate: Callable[[Finding, Path], Narration]
+    fix: Callable[[Finding, Callable[[FixAttempt], None]], FixAttempt]
+    game: str = "Chocolate Doom (QA build) + Freedoom"
+    build: str = "player-two-qa"
+    map: str | None = "E3M1"
+    speed: str = "frame-step"
+
+
+class Stopped(Exception):
+    pass
+
+
+class Orchestrator:
+    def __init__(
+        self,
+        deps: Deps,
+        out_dir: Path,
+        rounds: int = 3,
+        approval_timeout_s: float = 600,
+        task: str | None = None,
+    ):
+        self.deps, self.out_dir, self.rounds, self.task = deps, out_dir, rounds, task
+        self.approval_timeout_s = approval_timeout_s
+        out_dir.mkdir(parents=True, exist_ok=True)
+        self.bus = Bus(out_dir / "events.jsonl")
+        self.store = Store()
+        self.intents: queue.Queue[VoiceIntent] = queue.Queue()
+        self.pending: queue.Queue[Finding] = queue.Queue()
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self.info = SessionInfo(
+            id=f"s-{uuid.uuid4().hex[:8]}", game=deps.game, build=deps.build, map=deps.map,
+            started_at=_now(), speed=deps.speed, live=True,
+        )  # fmt: skip
+
+    # ------------------------------------------------------------------ events
+    def publish(self, type_: SseType, model: Any) -> SseEvent:
+        data = model.model_dump(mode="json") if hasattr(model, "model_dump") else dict(model)
+        ev = self.bus.publish(type_, data, self.info.id)
+        self.store.apply(ev)
+        return ev
+
+    def set_state(self, state: SessionState, **update: Any) -> None:
+        update |= {"state": state, "findings": len(self.store.findings),
+                   "steps": len(self.store.actions)}  # fmt: skip
+        self.info = self.info.model_copy(update=update)
+        self.publish(SseType.session_state, self.info)
+
+    def error(self, message: str, where: str) -> None:
+        self.publish(SseType.error, {"message": message, "where": where})
+
+    # ------------------------------------------------------------------ inputs
+    def on_action(self, a: AgentAction) -> None:
+        self.publish(SseType.agent_action, a)
+
+    def on_note(self, n: AgentNote) -> None:
+        self.publish(SseType.agent_note, n)
+
+    def on_finding(self, f: Finding) -> None:
+        self.publish(SseType.finding_new, f)
+        self.pending.put(f)
+
+    def intent(self, i: VoiceIntent) -> None:
+        self.publish(SseType.intent, i)
+        if i.intent == Intent.stop:
+            self.stop()
+        elif i.intent == Intent.steer and i.text:
+            try:
+                self.deps.explorer.send(i.text)
+            except Exception as e:  # noqa: BLE001 - steering is best effort
+                self.error(str(e), "steer")
+        else:
+            self.intents.put(i)
+
+    # ------------------------------------------------------------------ lifecycle
+    @property
+    def running(self) -> bool:
+        return bool(self._thread and self._thread.is_alive())
+
+    def start(self) -> None:
+        if self.running:
+            raise RuntimeError("a session is already running")
+        self._thread = threading.Thread(target=self.run, name="orchestrator", daemon=True)
+        self._thread.start()
+
+    def stop(self, timeout_s: float = 5.0) -> None:
+        """Cancel the H session (within 5 s) and end the run as `stopped`."""
+        if self._stop.is_set():
+            return
+        self._stop.set()
+        t = threading.Thread(target=self._cancel_h, daemon=True)
+        t.start()
+        t.join(timeout_s)
+        if self.info.state not in (SessionState.done, SessionState.error):
+            self.set_state(SessionState.stopped)
+
+    def _cancel_h(self) -> None:
+        try:
+            self.deps.explorer.stop()
+        except Exception as e:  # noqa: BLE001
+            self.error(f"H cancel failed: {e}", "stop")
+
+    def _check(self) -> None:
+        if self._stop.is_set():
+            raise Stopped
+
+    def run(self) -> None:
+        try:
+            self.set_state(SessionState.exploring)
+            h_id, share = self.deps.explorer.start(self.task)
+            self.set_state(SessionState.exploring, h_session_id=h_id, share_url=share)
+            for r in range(self.rounds):
+                self._check()
+                if r:
+                    self.deps.explorer.send(FOLLOW_UP)
+                    self.set_state(SessionState.exploring)
+                self.deps.explorer.follow(self.on_action)
+                self._check()
+                while not self.pending.empty():
+                    self.handle(self.pending.get())
+            self.set_state(SessionState.debriefing)
+            self.set_state(SessionState.done)
+        except Stopped:
+            pass
+        except Exception as e:  # noqa: BLE001 - the dashboard shows it
+            if self._stop.is_set():
+                return
+            self.error(str(e), "orchestrator")
+            self.set_state(SessionState.error)
+            self._cancel_h()
+
+    def handle(self, f: Finding) -> None:
+        self._check()
+        self.set_state(SessionState.verifying)
+        f = self.deps.verify(f, list(self.store.actions))
+        self.publish(SseType.finding_updated, f)
+        if f.status != FindingStatus.verified:
+            return
+        self._check()
+        self.set_state(SessionState.presenting)
+        try:
+            self.publish(SseType.narration, self.deps.narrate(f, self.out_dir / "voice"))
+        except Exception as e:  # noqa: BLE001 - the clip still plays without a voice
+            self.error(f"narration failed: {e}", "narrate")
+        f = f.model_copy(update={"status": FindingStatus.presented})
+        self.publish(SseType.finding_updated, f)
+        self.set_state(SessionState.awaiting_approval)
+        if not self.wait_for_fix():
+            return
+        f = f.model_copy(update={"status": FindingStatus.fixing})
+        self.publish(SseType.finding_updated, f)
+        self.set_state(SessionState.fixing)
+
+        def update(a: FixAttempt) -> None:
+            if a.result == FixResult.merged and self.info.state != SessionState.reverifying:
+                self.set_state(SessionState.reverifying)
+            self.publish(SseType.fix_updated, a)
+
+        a = self.deps.fix(f, update)
+        self.publish(SseType.fix_updated, a)
+        status = FindingStatus.fixed if a.result == FixResult.fixed else FindingStatus.presented
+        self.publish(SseType.finding_updated, f.model_copy(update={"status": status}))
+
+    def wait_for_fix(self) -> bool:
+        end = time.monotonic() + self.approval_timeout_s
+        while time.monotonic() < end:
+            self._check()
+            try:
+                i = self.intents.get(timeout=0.2)
+            except queue.Empty:
+                continue
+            if i.intent in (Intent.fix, Intent.yes):
+                return True
+            if i.intent in (Intent.skip, Intent.no):
+                return False
+        return False
+
+
+# ---------------------------------------------------------------------- RECORDED replay
+
+
+def play_recording(
+    events_file: Path, publish: Callable[[SseType, dict[str, Any]], Any], pace: float = 1.0,
+    max_gap_s: float = 3.0, stop: threading.Event | None = None,
+) -> None:  # fmt: skip
+    """Re-publish a saved events.jsonl with its timing (gaps capped); marks every state RECORDED."""
+    prev: datetime | None = None
+    for line in events_file.read_text(encoding="utf-8").splitlines():
+        if not line.strip() or (stop and stop.is_set()):
+            continue
+        ev = SseEvent.model_validate_json(line)
+        if prev is not None and pace > 0:
+            time.sleep(min((ev.ts - prev).total_seconds(), max_gap_s) / pace)
+        prev = ev.ts
+        data = dict(ev.data)
+        if ev.type == SseType.session_state:
+            data["live"] = False
+        publish(ev.type, data)
+
+
+class Recorded:
+    """Orchestrator look-alike that replays a saved run (dashboard RECORDED mode)."""
+
+    def __init__(self, events_file: Path, out_dir: Path, pace: float = 1.0):
+        self.events_file, self.pace = events_file, pace
+        self.bus, self.store = Bus(), Store()
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self.out_dir = out_dir
+
+    def _publish(self, t: SseType, d: dict[str, Any]) -> None:
+        ev = self.bus.publish(t, d, d.get("id") if t == SseType.session_state else None)
+        self.store.apply(ev)
+
+    @property
+    def running(self) -> bool:
+        return bool(self._thread and self._thread.is_alive())
+
+    def start(self) -> None:
+        self._thread = threading.Thread(
+            target=play_recording, args=(self.events_file, self._publish, self.pace),
+            kwargs={"stop": self._stop}, daemon=True,
+        )  # fmt: skip
+        self._thread.start()
+
+    def stop(self, timeout_s: float = 5.0) -> None:
+        self._stop.set()
+
+    def intent(self, i: VoiceIntent) -> None:
+        self._publish(SseType.intent, i.model_dump(mode="json"))
+
+
+def iter_sse(bus: Bus, last_id: int = -1, poll_s: float = 0.25) -> Iterator[list[SseEvent]]:
+    while True:
+        evs = bus.since(last_id)
+        if evs:
+            last_id = evs[-1].id
+        yield evs
+        time.sleep(poll_s)
+
+
+# ---------------------------------------------------------------------- live wiring
+
+
+def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None = None,
+               rounds: int = 3) -> Orchestrator:  # fmt: skip
+    """The real thing: H tester, QA-log verifier, ElevenLabs narration, Devin fix loop."""
+    import subprocess
+
+    from agents.fix_loop import FixLoop, ScriptReplay, add_comparison, attach_clip
+    from agents.oracles import load_known_bugs
+    from agents.tester import DEFAULT_TASK, Tester
+    from agents.tools import TesterTools
+    from agents.verifier import Verifier
+    from devin.client import DevinClient
+    from launcher.build import pull_and_rebuild
+    from launcher.config import LauncherConfig, Speed
+    from launcher.game import Game
+    from voice.narrate import narrate
+
+    cfg = LauncherConfig.from_env()
+    speed = Speed.parse("step:35")
+    game = Game(cfg, out_dir / "game")
+    bugs = {b.id: b for b in load_known_bugs()}
+    scripts = {"KB1": ("qa/kb1_kb2_medikit.txt", 1, 1), "KB2": ("qa/kb1_kb2_medikit.txt", 1, 1),
+               "KB3": ("qa/kb3_sky_invul_e3m1.txt", 3, 1)}  # fmt: skip
+    orch: Orchestrator
+
+    class TesterExplorer:
+        def __init__(self) -> None:
+            tools = TesterTools(on_finding=lambda f: orch.on_finding(f),
+                                on_note=lambda n: orch.on_note(n))  # fmt: skip
+            self.tester = Tester(tools=tools)
+
+        def start(self, task_: str | None) -> tuple[str, str | None]:
+            game.start(episode, map_, speed)
+            run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60, max_time_s=900)
+            return run.session_id, run.share_url
+
+        def follow(self, on_action: Callable[[AgentAction], None]) -> None:
+            seen = len(self.tester.run.actions) if self.tester.run else 0
+            log = out_dir / "actions.jsonl"
+            start = self.tester.run.events if self.tester.run else 0
+            t = threading.Thread(target=self.tester.follow, args=(log, start), daemon=True)
+            t.start()
+            while t.is_alive() or (self.tester.run and seen < len(self.tester.run.actions)):
+                acts = self.tester.run.actions if self.tester.run else []
+                for a in acts[seen:]:
+                    on_action(a)
+                seen = len(acts)
+                time.sleep(0.3)
+
+        def send(self, message: str) -> None:
+            game.start(episode, map_, speed) if not game.running else None
+            self.tester.send(message)
+
+        def stop(self) -> None:
+            self.tester.stop()
+            game.stop()
+
+    def verify(f: Finding, actions: list[AgentAction]) -> Finding:
+        game.stop()
+        v = Verifier(Game(cfg, out_dir / "verify"), episode, map_, speed)
+        verdict = v.verify(f, actions, out_dir=out_dir / "verify" / f.id)
+        return verdict.finding
+
+    def fix(f: Finding, update: Callable[[FixAttempt], None]) -> FixAttempt:
+        bug = bugs[f.known_bug_ref or ""]
+        script, ep, mp = scripts[bug.id]
+        branch = f"qa-run/{orch.info.id}"
+        subprocess.run(["git", "-C", str(cfg.fork_dir), "push", "-q", "origin",
+                        f"origin/player-two-qa:refs/heads/{branch}"], check=False)  # fmt: skip
+        loop = FixLoop(
+            devin=DevinClient.from_env(base_branch=branch),
+            replay=ScriptReplay(Game(cfg, out_dir / "fix"), bug, cfg.fork_dir / script, ep, mp),
+            rebuild=lambda ref: pull_and_rebuild(cfg, ref),
+            approve=lambda a: True,  # the developer already said "fix it" on the dashboard
+            on_update=update,
+        )
+        a, replay = loop.run(f)
+        attach_clip(f, replay)
+        return add_comparison(a, bug)
+
+    deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}")
+    orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
+    return orch
