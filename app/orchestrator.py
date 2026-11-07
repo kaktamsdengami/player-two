@@ -474,7 +474,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                 self.rec = capture.record(win, run_dir / "recording.mp4", cfg.fps)
             except Exception as e:  # noqa: BLE001
                 orch.error(f"screen recording failed: {e}", "record")
-            run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60 * rounds,
+            run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=120 * rounds,
                                     max_time_s=900 * rounds, idle_timeout_s=1800)  # fmt: skip
             return run.session_id, run.share_url
 
