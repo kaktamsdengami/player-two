@@ -43,7 +43,11 @@ export function subscribe(onEvent: (e: SseEvent) => void): () => void {
   if (!USING_MOCK) {
     const es = new EventSource(`${API_BASE}/api/events`)
     // the stream names each event (`event: <type>`), so onmessage alone would never fire
-    const handle = (m: MessageEvent) => onEvent(JSON.parse(m.data) as SseEvent)
+    // the native connection `error` event shares the name of our `error` type but has no data
+    const handle = (m: Event) => {
+      const data = (m as MessageEvent).data
+      if (typeof data === 'string' && data) onEvent(JSON.parse(data) as SseEvent)
+    }
     es.onmessage = handle
     for (const t of SSE_TYPES) es.addEventListener(t, handle)
     return () => es.close()
