@@ -64,8 +64,12 @@ docs/       PLAN, CONTRACTS, HANDOFF, GAME, pitch/
 
 ## Working rules
 
-- One issue = one branch `txx-short-name` = one PR that links the issue. Do not close issues; the
-  orchestrator closes them after checking.
+- One issue = one branch `txx-short-name` = one PR that links the issue.
+- **Merging:** Devin may merge its own PR once CI is green and the PR shows the acceptance checks
+  passing. Then close the issue and move dependent issues from `status:blocked` to
+  `status:ready`. Exceptions:
+  - a `needs:team` decision is never merged without a team member's approval comment;
+  - a `needs:local` check is never claimed as passed without real output from the stage laptop.
 - Touch only the files your issue owns. Shared files (`app/contracts.py`, CI, `AGENTS.md`,
   `docs/CONTRACTS.md`, `pyproject.toml`) need a note in the issue before editing.
 - Commit small and push after every working step, including WIP. A session that gets cut off must
