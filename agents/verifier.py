@@ -125,9 +125,8 @@ class Verifier:
         events = self.game.log.since()
         verdict = judge(finding, events, self.bugs, seen_by_h)
         verdict.replay = v_replay
-        if rec and verdict.proofs:
-            p = verdict.matched and next(x for x in verdict.proofs if x.bug is verdict.matched)
-            ev = (p or verdict.proofs[0]).first
+        if rec and verdict.matched:
+            ev = next(x for x in verdict.proofs if x.bug is verdict.matched).first
             start, end = capture.clip_window(
                 ev.t or 0.0, self.game.started_at, rec_started, CLIP_BEFORE, CLIP_AFTER
             )
