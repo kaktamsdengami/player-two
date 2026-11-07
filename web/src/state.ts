@@ -94,11 +94,13 @@ export function applyEvent(state: State, e: SseEvent): State {
       {
         const next = d as Partial<SessionInfo>
         // a new session starts clean; updates to the same session only patch what they carry
-        const base =
-          next.id && next.id !== snap.session.id
-            ? { state: 'idle', speed: 'frame-step', live: false, steps: 0, findings: 0 }
-            : snap.session
-        return { ...state, snap: { ...snap, session: { ...base, ...next } as SessionInfo } }
+        if (next.id && next.id !== snap.session.id) {
+          const base = { state: 'idle', speed: 'frame-step', live: false, steps: 0, findings: 0 }
+          const debrief = { ...snap.debrief, session_id: next.id, heatmap: [], notes: [], suggestions: [], references: [] }
+          const fresh = { actions: [], notes: [], findings: [], fixes: [], narrations: [], placement: [], debrief }
+          return { ...state, snap: { ...snap, ...fresh, session: { ...base, ...next } as SessionInfo } }
+        }
+        return { ...state, snap: { ...snap, session: { ...snap.session, ...next } as SessionInfo } }
       }
     case 'agent.action':
       return {
