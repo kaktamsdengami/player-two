@@ -27,6 +27,13 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T10 Devin API client (Devin)
+- `devin/client.py` `DevinClient` (v3 sessions API): `create_fix_session(finding)` →
+  `follow(attempt, on_update)` → `approve_merge` (merge via the same Devin session) or one
+  `send_feedback` round. Prompt: `devin/prompts/fix_bug.md` (no known-bug ref, no upstream fix).
+- Default `max_acu_limit=10` per fix session; repo `kaktamsdengami/chocolate-doom`, base `player-two-qa`.
+- Open: the real-session check needs the game fork (T05) and Devin GitHub access to it.
+
 ### 2026-11-07: T04 repo skeleton and CI (Devin)
 - `pyproject.toml` (Python 3.12, `pip install -e ".[dev]"`), CI in `.github/workflows/ci.yml`
   (ruff check, ruff format --check, pytest), package dirs, `scripts/check_keys.py`
