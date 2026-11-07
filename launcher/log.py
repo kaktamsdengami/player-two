@@ -115,15 +115,14 @@ class EventLog:
     def wait_for(
         self, sig: LogSignature, timeout: float, since_t: float | None = None, every: float = 0.2
     ) -> list[GameEvent] | None:
-        """Poll a live log. While polling, a `none_of` only counts once the log has passed its
-        window. At the timeout the log is taken as final (quiet tics write no events)."""
+        """Poll a live log. A `none_of` only counts once the log has passed its window; with no
+        `within_tics` that means never here: stop the game, then call `happened`."""
         end = time.monotonic() + timeout
         while True:
-            final = time.monotonic() >= end
             events = self.since(since_t)
             last = self.events[-1].tic if self.events else 0
-            hits = signature_hits(sig, events, until_tic=None if final else last)
-            if hits or final:
+            hits = signature_hits(sig, events, until_tic=last)
+            if hits or time.monotonic() >= end:
                 return hits
             time.sleep(every)
 

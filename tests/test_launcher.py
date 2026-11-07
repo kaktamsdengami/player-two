@@ -193,6 +193,4 @@ def test_open_none_of_window_is_not_proof_yet(tmp_path):
     log_path.write_text(
         _ev(10, "a").model_dump_json() + "\n" + _ev(20, "x").model_dump_json() + "\n"
     )
-    log = EventLog(log_path)
-    assert signature_hits(sig, log.since(), until_tic=20) is None
-    assert log.wait_for(sig, timeout=0) is not None  # at the timeout the quiet log is final
+    assert EventLog(log_path).wait_for(sig, timeout=0) is None
