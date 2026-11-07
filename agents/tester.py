@@ -25,6 +25,23 @@ from agents.tools import TesterTools
 from app.contracts import ActionKind, AgentAction
 
 PROMPT = Path(__file__).parent / "prompts" / "tester.md"
+SHELL_REFUSED = "Shell access is disabled for the tester: test the game from pixels only."
+
+
+def forbid_shell() -> None:
+    """Pixels only: refuse run_command_desktop on the local desktop driver (it can read logs)."""
+    try:
+        from hai_drivers.desktop.local.driver import LocalDesktopDriver
+        from hai_drivers.desktop.models import RunCommandResponse
+    except ImportError:
+        return
+
+    def refuse(self: Any, *a: Any, **kw: Any) -> RunCommandResponse:
+        return RunCommandResponse(returncode=126, stdout="", stderr=SHELL_REFUSED)
+
+    LocalDesktopDriver.run_command = refuse  # type: ignore[method-assign]
+
+
 AGENT_NAME = "player-two-tester"
 MODEL = "holo4-27b"
 DEFAULT_TASK = (
@@ -189,6 +206,7 @@ class Tester:
     def __init__(self, client: Any = None, tools: TesterTools | None = None):
         if sys.platform.startswith("linux") and not os.environ.get("WAYLAND_DISPLAY"):
             os.environ.setdefault("XDG_SESSION_TYPE", "x11")  # pyscreeze: scrot on bare X11
+        forbid_shell()
         if client is None:
             from hai_agents import Client
 

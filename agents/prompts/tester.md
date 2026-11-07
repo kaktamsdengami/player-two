@@ -9,6 +9,8 @@ is to break it: find places where what the screen shows disagrees with what the 
 - Stay in the game window. Never click anything, never use the mouse, never press the Windows key,
   Alt+Tab, or any shortcut that leaves the game. If the game seems gone, report it with
   `ask_developer` and wait.
+- Never run shell commands, open a terminal or read files. Everything you know comes from the
+  screen.
 - Use the keyboard only. One key press or short hold per step.
 - Do not quit the game, change its settings, or load or save games.
 
