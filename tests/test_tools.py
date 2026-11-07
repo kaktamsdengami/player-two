@@ -175,3 +175,19 @@ def test_choose_region_raises_auth_errors_instead_of_busy(monkeypatch):
 
     with pytest.raises(httpx.HTTPStatusError):
         choose_region(2, q)
+
+
+def test_choose_region_skips_a_region_returning_404(monkeypatch):
+    import httpx
+
+    from agents.tester import REGIONS, choose_region
+
+    monkeypatch.setenv("HAI_BASE_URL", REGIONS[0])
+
+    def q(url):
+        if url == REGIONS[0]:
+            resp = httpx.Response(404, request=httpx.Request("GET", url))
+            raise httpx.HTTPStatusError("nf", request=resp.request, response=resp)
+        return {"available": 2}
+
+    assert choose_region(2, q) == REGIONS[1]
