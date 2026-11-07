@@ -24,6 +24,20 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T17 product-placement scout (Devin)
+
+- `python -m insights.placement <run_dir> [--every 5] [--spots 5] [--no-linkup]` →
+  `<run_dir>/placement.json` (list of `PlacementSpot`). Frames every 5 s from the run's recording
+  (ffmpeg) → H Models API vision (`holo4-27b`, `HAI_API_KEY`, override `P2_VISION_MODEL`) lists
+  surfaces per frame → same surface merged across frames → score = screen time × mean visibility.
+  The tester's `note(tags=["placement"])` calls become spots too.
+- Brands: `insights.linkup.structured` (Linkup `outputType=structured`, `includeSources`), 3
+  candidates per spot; a candidate without an http(s) source link is dropped. Every spot keeps the
+  "Suggestions only. No brand deal exists or is implied." disclaimer.
+- Checked on the Devin VM: unit tests, frame extraction on a real recording (13 frames). The VM has
+  no `HAI_API_KEY` / `LINKUP_API_KEY`, so the real vision + Linkup pass (≥3 spots, acceptance) runs
+  on the stage laptop after the tester run.
+
 ### 2026-11-07: T16 design debrief (Devin)
 
 - `python -m insights.debrief <run_dir> [--no-linkup]` → `<run_dir>/debrief.json` (`DebriefReport`).

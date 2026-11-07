@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 import os
 from collections.abc import Callable
 
@@ -45,3 +46,30 @@ def search(query: str, depth: str = "standard", timeout: float = 60.0) -> list[C
             )
         )
     return out
+
+
+def structured(query: str, schema: dict, depth: str = "standard", timeout: float = 90.0) -> dict:
+    """Linkup structured output with sources: {"data": <schema>, "sources": [...]}."""
+    try:
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except ImportError:
+        pass
+    key = os.environ.get("LINKUP_API_KEY")
+    if not key:
+        raise RuntimeError("LINKUP_API_KEY is not set")
+    r = httpx.post(
+        URL,
+        json={
+            "q": query,
+            "depth": depth,
+            "outputType": "structured",
+            "structuredOutputSchema": json.dumps(schema),
+            "includeSources": True,
+        },
+        headers={"Authorization": f"Bearer {key}"},
+        timeout=timeout,
+    )
+    r.raise_for_status()
+    return r.json()
