@@ -48,3 +48,24 @@ def test_live_stripe_key_flagged():
     env = {**ENV, "STRIPE_SECRET_KEY": "sk_live_x"}
     results = dict(check_keys.run(only={"stripe"}, env=env, client=_client()))
     assert "stripe-mode" in results
+
+
+def test_unknown_service_rejected():
+    import pytest
+
+    with pytest.raises(ValueError):
+        check_keys.run(only={"devni"}, env=ENV, client=_client())
+
+
+def test_live_stripe_key_ignored_when_stripe_not_selected():
+    env = {**ENV, "STRIPE_SECRET_KEY": "sk_live_x"}
+    results = dict(check_keys.run(only={"gladia"}, env=env, client=_client()))
+    assert results == {"gladia": "HTTP 200"}
+
+
+def test_non_h_base_url_never_receives_the_key():
+    seen = []
+    env = {**ENV, "HAI_BASE_URL": "https://evil.example.com"}
+    results = dict(check_keys.run(only={"h-agents"}, env=env, client=_client(200, seen)))
+    assert results["h-agents"].startswith("CONFIG")
+    assert seen == []

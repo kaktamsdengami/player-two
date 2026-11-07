@@ -28,7 +28,11 @@ class Check:
 
 
 def _h_base(env: dict[str, str]) -> str:
-    return env.get("HAI_BASE_URL", "https://agp.hcompany.ai").rstrip("/")
+    base = env.get("HAI_BASE_URL", "https://agp.hcompany.ai").rstrip("/")
+    url = httpx.URL(base)
+    if url.scheme != "https" or not (url.host or "").endswith(".hcompany.ai"):
+        raise ValueError("HAI_BASE_URL must be an https://*.hcompany.ai URL")
+    return base
 
 
 CHECKS = [
@@ -97,6 +101,9 @@ def run(
     client: httpx.Client | None = None,
 ) -> list[tuple[str, str]]:
     env = dict(os.environ if env is None else env)
+    unknown = (only or set()) - {c.name for c in CHECKS}
+    if unknown:
+        raise ValueError(f"unknown service(s): {','.join(sorted(unknown))}")
     client = client or httpx.Client(timeout=15)
     results = []
     for check in CHECKS:
@@ -107,11 +114,17 @@ def run(
             results.append((check.name, f"MISSING {','.join(missing)}"))
             continue
         try:
-            status = client.send(check.request(env)).status_code
+            request = check.request(env)
+        except ValueError as exc:
+            results.append((check.name, f"CONFIG {exc}"))
+            continue
+        try:
+            status = client.send(request).status_code
             results.append((check.name, f"HTTP {status}"))
         except httpx.HTTPError as exc:
             results.append((check.name, f"ERROR {type(exc).__name__}"))
-    if env.get("STRIPE_SECRET_KEY", "").startswith("sk_live"):
+    stripe_selected = not only or "stripe" in only
+    if stripe_selected and env.get("STRIPE_SECRET_KEY", "").startswith("sk_live"):
         results.append(("stripe-mode", "LIVE KEY (expected test mode)"))
     return results
 
@@ -122,7 +135,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if load_dotenv:
         load_dotenv()
-    results = run(set(args.only.split(",")) if args.only else None)
+    try:
+        results = run(set(args.only.split(",")) if args.only else None)
+    except ValueError as exc:
+        parser.error(str(exc))
     for name, status in results:
         print(f"{name:12} {status}")
     return 0 if all(s == "HTTP 200" for _, s in results) else 1
