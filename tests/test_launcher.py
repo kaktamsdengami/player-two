@@ -220,3 +220,9 @@ def test_start_mode_off_and_env(tmp_path, monkeypatch):
     monkeypatch.setenv("P2_GOD", "yes")
     with pytest.raises(ValueError):
         LauncherConfig.from_env()
+
+
+def test_label_font_path_for_windows_ffmpeg(monkeypatch):
+    monkeypatch.setenv("P2_FONT", "C:\\Windows\\Fonts\\arialbd.ttf")
+    args = capture.cut_args(Path("r.mp4"), 0, 4, Path("c.mp4"), label="RECORDED")
+    assert r"fontfile='C\:/Windows/Fonts/arialbd.ttf':" in args[args.index("-vf") + 1]

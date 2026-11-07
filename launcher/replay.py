@@ -71,9 +71,17 @@ def replay(cfg: LauncherConfig, run_dir: Path, video: bool = True) -> dict:
         game.stop()
     out = {"demo": str(lmp), "tics": tics, "events": str(game.log_path),
            "game_started_at": game.started_at, "label": LABEL}  # fmt: skip
+    meta = run_dir / "replay.json"
     if rec:
+        out |= {"video": str(rec.path), "rec_started_at": rec.started_at}
+        meta.write_text(
+            json.dumps(out, indent=2)
+        )  # the raw video is usable even if labelling fails
         final = run_dir / "agent_replay.mp4"
-        capture.cut_clip(rec.path, 0, 24 * 3600, final, label=LABEL)
-        out |= {"video": str(final), "rec_started_at": rec.started_at}
-    (run_dir / "replay.json").write_text(json.dumps(out, indent=2))
+        try:
+            capture.cut_clip(rec.path, 0, 24 * 3600, final, label=LABEL)
+            out["video"] = str(final)
+        except (subprocess.CalledProcessError, OSError) as e:
+            out["label_error"] = str(e)
+    meta.write_text(json.dumps(out, indent=2))
     return out
