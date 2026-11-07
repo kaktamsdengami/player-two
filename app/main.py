@@ -95,6 +95,12 @@ def _mock(key: str) -> Any:
 
 
 def create_app(rt: Runtime | None = None) -> FastAPI:
+    try:  # P2_CONTROL_TOKEN / P2_CORS_ORIGINS may live in .env
+        from dotenv import find_dotenv, load_dotenv
+
+        load_dotenv(find_dotenv(usecwd=True))
+    except ImportError:
+        pass
     rt = rt or Runtime(
         Path(os.environ.get("P2_RUNS_DIR", "recordings")).resolve(),
         os.environ.get("P2_MODE", "recorded"),

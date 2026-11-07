@@ -222,3 +222,13 @@ def test_debrief_failure_does_not_fail_the_session(tmp_path):
     assert o.info.state == SessionState.done
     errs = [e.data["where"] for e in o.bus.events if e.type == SseType.error]
     assert errs == ["debrief", "placement"]
+
+
+def test_control_token_from_dotenv(tmp_path, monkeypatch):
+    monkeypatch.setenv("P2_CONTROL_TOKEN", "")  # restored (unset) after the test
+    monkeypatch.delenv("P2_CONTROL_TOKEN")
+    (tmp_path / ".env").write_text("P2_CONTROL_TOKEN=fromfile\n")
+    monkeypatch.chdir(tmp_path)
+    c = TestClient(create_app(Runtime(tmp_path)))
+    assert c.post("/api/stop", json={}).status_code == 401
+    assert c.post("/api/stop", json={}, headers={"X-P2-Token": "fromfile"}).status_code == 200
