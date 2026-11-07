@@ -80,7 +80,8 @@ def passed(seen: list[int], tics: int) -> bool:
     Steps end on whole multiples of the step time, so the first one (after the one or two tics
     the QA build runs on level entry) and rounding may be up to 2 tics short or long."""
     deltas = [b - a for a, b in zip(seen, seen[1:], strict=False)]
-    if not deltas or not 1 <= deltas[0] <= tics + 2:  # the first step may end early
+    # the first step ends on the first whole step after level entry (tic ~tics), not tics later
+    if not deltas or not (seen[0] < seen[1] and tics - 2 <= seen[1] <= seen[0] + tics + 2):
         return False
     return all(d > tics // 2 and abs(d - tics) <= 2 for d in deltas[1:])
 
