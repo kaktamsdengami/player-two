@@ -194,9 +194,14 @@ def main(argv: list[str] | None = None) -> int:
 
     def on_intent(intent: VoiceIntent) -> None:
         if args.post:
-            r = httpx.post(f"{args.post.rstrip('/')}/api/intent", json=intent.model_dump(), timeout=5)
+            r = httpx.post(
+                f"{args.post.rstrip('/')}/api/intent", json=intent.model_dump(), timeout=5
+            )
             if r.status_code >= 400:
-                print(f"voice: /api/intent rejected {intent.intent}: HTTP {r.status_code}", file=sys.stderr)
+                print(
+                    f"voice: /api/intent rejected {intent.intent}: HTTP {r.status_code}",
+                    file=sys.stderr,
+                )
 
     def on_transcript(text: str, final: bool, lang: str | None) -> None:
         if final:
