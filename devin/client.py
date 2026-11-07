@@ -55,9 +55,14 @@ def render_prompt(
     )
 
 
-def result_from_session(session: dict) -> tuple[FixResult, str | None]:
-    """Map a v3 SessionResponse to our FixResult and the PR URL (if any)."""
-    prs = session.get("pull_requests") or []
+def result_from_session(
+    session: dict, ignore: frozenset[str] | set[str] = frozenset()
+) -> tuple[FixResult, str | None]:
+    """Map a v3 SessionResponse to our FixResult and the PR URL (if any).
+
+    `ignore`: PR URLs from an earlier round (a merged fix that failed re-verification).
+    """
+    prs = [p for p in session.get("pull_requests") or [] if p.get("pr_url") not in ignore]
     pr = prs[-1] if prs else None
     pr_url = pr.get("pr_url") if pr else None
     pr_state = (pr.get("pr_state") or "").lower() if pr else ""
@@ -105,6 +110,7 @@ class DevinClient:
         self.http = client or httpx.Client(timeout=30)
         self.base = f"{base_url.rstrip('/')}/v3/organizations/{org_id}/sessions"
         self.headers = {"Authorization": f"Bearer {api_key}"}
+        self._stale_prs: dict[str, set[str]] = {}
 
     @classmethod
     def from_env(cls, **kw) -> DevinClient:
@@ -152,7 +158,9 @@ class DevinClient:
         self._req("POST", f"/{devin_id}/messages", json={"message": message})
 
     def _apply(self, attempt: FixAttempt, session: dict) -> FixAttempt:
-        result, pr_url = result_from_session(session)
+        result, pr_url = result_from_session(
+            session, self._stale_prs.get(attempt.devin_session_id, set())
+        )
         update: dict = {"result": result, "pr_url": pr_url or attempt.pr_url}
         if session.get("url"):
             update["devin_session_url"] = session["url"]
@@ -207,14 +215,18 @@ class DevinClient:
         """The single feedback round after the re-verify says "not fixed"."""
         if attempt.round >= 2:
             raise DevinError("feedback round already used")
+        merged = attempt.result == FixResult.merged
+        where = "open a new PR" if merged else "fix it on the same PR and push"
         self.send_message(
             attempt.devin_session_id,
             "Not fixed: PLAYER TWO replayed the repro on your branch and the bug is still there.\n"
-            f"{verifier_note}\nPlease fix it on the same PR and push.",
+            f"{verifier_note}\nPlease {where}.",
         )
-        return attempt.model_copy(
-            update={"round": 2, "result": FixResult.working, "finished_at": None}
-        )
+        update: dict = {"round": 2, "result": FixResult.working, "finished_at": None}
+        if merged and attempt.pr_url:
+            self._stale_prs.setdefault(attempt.devin_session_id, set()).add(attempt.pr_url)
+            update["pr_url"] = None
+        return attempt.model_copy(update=update)
 
 
 def _demo(argv: list[str] | None = None) -> int:

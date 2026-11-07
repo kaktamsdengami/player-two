@@ -197,3 +197,24 @@ def test_from_env_requires_both(monkeypatch):
 def test_error_after_pr_is_failed():
     s = _session(status="error", detail=None, prs=[("u", "open")])
     assert result_from_session(s) == ("failed", "u")
+
+
+def test_feedback_after_merge_waits_for_new_pr():
+    old = "https://github.com/kaktamsdengami/chocolate-doom/pull/7"
+    new = "https://github.com/kaktamsdengami/chocolate-doom/pull/8"
+    fake = FakeDevin(
+        [
+            _session(prs=[(old, "merged")]),
+            _session(prs=[(old, "merged")]),
+            _session(prs=[(old, "merged"), (new, "open")]),
+        ]
+    )
+    dc = _client(fake)
+    attempt = dc.create_fix_session(_finding())
+    assert attempt.result == FixResult.merged
+    attempt = dc.send_feedback(attempt, "still broken")
+    assert attempt.pr_url is None and "new PR" in fake.requests[-1][2]["message"]
+    seen = []
+    attempt = dc.follow(attempt, seen.append, sleep=lambda s: None)
+    assert attempt.result == FixResult.pr_open and attempt.pr_url == new
+    assert seen[0].result == FixResult.working
