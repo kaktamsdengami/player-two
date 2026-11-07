@@ -145,6 +145,14 @@ def test_late_checkout_for_canceled_subscription_ignored(tmp_path):
     assert s.active is None
 
 
+def test_set_without_subscription_drops_old_one(tmp_path):
+    s = PlanStore(tmp_path / "b.json")
+    apply_event(event(plan="pro", sub="sub_1"), s)
+    s.set(PlanId.kid)
+    apply_event(event(etype="customer.subscription.deleted", plan="kid", paid=None, oid="sub_9"), s)
+    assert s.active is None
+
+
 def test_plans_catalog_flags():
     out = plans(PlanId.kid, {PlanId.kid: "price_k"})
     assert [p.id for p in out] == ["pro", "parent", "kid"]

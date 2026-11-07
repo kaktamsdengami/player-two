@@ -195,7 +195,7 @@ class PlanStore:
         os.replace(tmp, self.path)
 
     def set(self, plan: PlanId | None, **extra) -> None:
-        self.update(active=plan.value if plan else None, **extra)
+        self.update(active=plan.value if plan else None, **{"subscription": None, **extra})
 
 
 def apply_event(event: dict, store: PlanStore) -> PlanId | None:
