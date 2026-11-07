@@ -27,6 +27,23 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T15 merged (#37); T13 open (#38, needs:local) (Devin)
+
+- T15 dashboard merged. `VITE_API_BASE` checked against a throwaway stand-in API (mock JSON +
+  named SSE events): header shows LIVE and SSE notes arrive. The real T14 server is untested.
+- T18 (#19) moved to ready (its only dependency was T15).
+- T13 (#38): Gladia listener + EN/FR intents; real Gladia API checked from the VM with synthesized
+  WAVs. **Needs from you:** run the mic commands in #38 on the stage laptop and paste the output.
+- Still blocked: T05 needs `kaktamsdengami/chocolate-doom` (fork of chocolate-doom/chocolate-doom)
+  with the Devin GitHub integration given access; T10 (#36) real-session check waits on that fork.
+
+### 2026-11-07: T15 dashboard on mock data (Devin)
+- `web/` React 18 + Vite 5 + TS. Tabs: Live, Bugs & fixes, Debrief, Plans, Parent. All views render
+  from `docs/api-mock.json` (labelled MOCK DATA); `VITE_API_BASE=http://host:port` switches to the
+  live REST + SSE API (T14). Buttons post `VoiceIntent` with `source: "button"` to `/api/intent`.
+- SSE payloads may omit default fields; `web/src/state.ts` fills them (`normalize`).
+- Not in CI yet (CI is a shared file): run `cd web && npm ci && npm run build && npm run lint`.
+
 ### 2026-11-07: T10 Devin API client (Devin)
 - `devin/client.py` `DevinClient` (v3 sessions API): `create_fix_session(finding)` →
   `follow(attempt, on_update)` → `approve_merge` (merge via the same Devin session) or one
