@@ -72,9 +72,10 @@ def run(cfg: LauncherConfig, taps: int = 4, tics: int = 35, settle: float = 2.0)
 
 
 def passed(seen: list[int], tics: int) -> bool:
-    """Every tap moved the clock by about one step (the first step starts from tic 1, as the
-    QA build runs one tic on level entry to draw the first frame)."""
-    return len(seen) > 1 and all(b - a >= tics - 1 for a, b in zip(seen, seen[1:], strict=False))
+    """Every tap moved the clock by exactly one step: not frozen, not free-running, not counted
+    twice (the first step starts from tic 1, as the QA build runs one tic on level entry)."""
+    steps = zip(seen, seen[1:], strict=False)
+    return len(seen) > 1 and all(tics - 1 <= b - a <= tics for a, b in steps)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -82,6 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--taps", type=int, default=4)
     p.add_argument("--tics", type=int, default=35)
     a = p.parse_args(argv)
+    from dotenv import find_dotenv, load_dotenv
+
+    load_dotenv(find_dotenv(usecwd=True))  # P2_GAME_EXE / P2_IWAD may live in .env
     seen = run(LauncherConfig.from_env(), a.taps, a.tics)
     ok = passed(seen, a.tics)
     print(f"tic after each 0 ms tap: {seen} -> {'PASS' if ok else 'FAIL'}")
