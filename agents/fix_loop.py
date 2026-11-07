@@ -86,7 +86,7 @@ class FixLoop:
     devin: DevinClient
     replay: Callable[[Finding, str], Replay]
     rebuild: Callable[[str], Path]
-    approve: Callable[[FixAttempt], bool] = lambda a: True
+    approve: Callable[[FixAttempt], bool] = lambda a: False  # a human says "fix it"
     on_update: Update | None = None
     poll_s: float = 15
     timeout_s: float = 3600
@@ -177,7 +177,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--base", required=True, help="fork branch the fix merges into (qa-run/...)")
     p.add_argument("--attempt", type=Path, help="resume: FixAttempt JSON of a running session")
     p.add_argument("--out", type=Path, default=Path("recordings/fix_loop"))
-    p.add_argument("--no-merge", action="store_true", help="stop at pr_open (no approval)")
+    p.add_argument("--merge", action="store_true", help="the developer approves merging the PR")
     a = p.parse_args(argv)
 
     finding = Finding.model_validate_json(a.finding.read_text())
@@ -198,7 +198,7 @@ def main(argv: list[str] | None = None) -> int:
         devin=devin,
         replay=ScriptReplay(Game(cfg, a.out), bug, cfg.fork_dir / a.script, *a.map),
         rebuild=lambda ref: pull_and_rebuild(cfg, ref),
-        approve=lambda x: not a.no_merge,
+        approve=lambda x: a.merge,
         on_update=save,
     )
     attempt = FixAttempt.model_validate_json(a.attempt.read_text()) if a.attempt else None
