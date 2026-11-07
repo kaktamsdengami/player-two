@@ -375,7 +375,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
 
     from agents.fix_loop import FixLoop, ScriptReplay, add_comparison, attach_clip
     from agents.oracles import load_known_bugs
-    from agents.tester import DEFAULT_TASK, Tester
+    from agents.tester import DEFAULT_TASK, Tester, choose_region
     from agents.tools import TesterTools
     from agents.verifier import Verifier
     from devin.client import DevinClient
@@ -399,8 +399,11 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             self.tester = Tester(tools=tools)
 
         def start(self, task_: str | None) -> tuple[str, str | None]:
-            game.start(episode, map_, speed)
-            run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60, max_time_s=900)
+            choose_region()  # raises HBusyError("H busy ... retry in ~15 min"): shown as error
+            if game.start(episode, map_, speed) is None:
+                raise RuntimeError("game window did not appear")
+            run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60 * rounds,
+                                    max_time_s=900 * rounds, idle_timeout_s=1800)  # fmt: skip
             return run.session_id, run.share_url
 
         def follow(self, on_action: Callable[[AgentAction], None]) -> None:

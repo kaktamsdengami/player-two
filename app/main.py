@@ -176,3 +176,28 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
 
 
 app = create_app()
+
+
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    import uvicorn
+
+    p = argparse.ArgumentParser(prog="python -m app.main")
+    p.add_argument("--mode", choices=["live", "recorded"], default=os.environ.get("P2_MODE"))
+    p.add_argument("--recording", type=Path, help="events.jsonl for RECORDED mode")
+    p.add_argument("--runs", type=Path, default=Path(os.environ.get("P2_RUNS_DIR", "recordings")))
+    p.add_argument("--start", action="store_true", help="start a session right away")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8000)
+    a = p.parse_args(argv)
+    rt = Runtime(a.runs.resolve(), a.mode or "recorded", a.recording)
+    api = create_app(rt)
+    if a.start:
+        api.router.on_startup.append(lambda: rt.start() and None)
+    uvicorn.run(api, host=a.host, port=a.port)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
