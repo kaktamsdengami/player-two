@@ -180,14 +180,13 @@ class PlanStore:
         a = self.load().get("active")
         return PlanId(a) if a in PlanId._value2member_map_ else None
 
-    def set(self, plan: PlanId | None, **extra) -> None:
+    def update(self, **fields) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        state = {
-            "active": plan.value if plan else None,
-            "updated": datetime.now(UTC).isoformat(),
-            **extra,
-        }
+        state = {**self.load(), **fields, "updated": datetime.now(UTC).isoformat()}
         self.path.write_text(json.dumps(state))
+
+    def set(self, plan: PlanId | None, **extra) -> None:
+        self.update(active=plan.value if plan else None, **extra)
 
 
 def apply_event(event: dict, store: PlanStore) -> PlanId | None:
@@ -197,13 +196,21 @@ def apply_event(event: dict, store: PlanStore) -> PlanId | None:
     if plan not in PlanId._value2member_map_:
         return None
     etype = event.get("type")
+    state = store.load()
+    canceled = state.get("canceled") or []
     if etype in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
-        if obj.get("payment_status") not in ("paid", "no_payment_required"):
+        sub = obj.get("subscription")
+        if obj.get("payment_status") not in ("paid", "no_payment_required") or sub in canceled:
             return None
-        store.set(PlanId(plan), event_id=event.get("id"), checkout=obj.get("id"))
+        store.set(PlanId(plan), event_id=event.get("id"), checkout=obj.get("id"), subscription=sub)
         return PlanId(plan)
-    if etype == "customer.subscription.deleted" and store.active == PlanId(plan):
-        store.set(None, event_id=event.get("id"))
+    if etype == "customer.subscription.deleted":
+        sub = obj.get("id")
+        canceled = [*canceled, sub][-50:]
+        if state.get("active") == plan and state.get("subscription") in (None, sub):
+            store.set(None, event_id=event.get("id"), subscription=None, canceled=canceled)
+        else:
+            store.update(canceled=canceled)
     return None
 
 

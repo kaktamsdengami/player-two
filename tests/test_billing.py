@@ -26,8 +26,17 @@ KEY = "sk_test_" + "x" * 20
 WHSEC = "whsec_test_secret"
 
 
-def event(etype="checkout.session.completed", plan="parent", paid="paid", eid="evt_1"):
-    obj = {"id": "cs_1", "object": "checkout.session", "metadata": {"plan": plan}}
+def event(
+    etype="checkout.session.completed",
+    plan="parent",
+    paid="paid",
+    eid="evt_1",
+    sub=None,
+    oid="cs_1",
+):
+    obj = {"id": oid, "object": "checkout.session", "metadata": {"plan": plan}}
+    if sub:
+        obj["subscription"] = sub
     if paid is not None:
         obj["payment_status"] = paid
     return {"id": eid, "type": etype, "data": {"object": obj}}
@@ -113,6 +122,26 @@ def test_apply_subscription_deleted_clears_matching_plan(tmp_path):
     apply_event(event(etype="customer.subscription.deleted", plan="kid", paid=None), s)
     assert s.active == PlanId.pro
     apply_event(event(etype="customer.subscription.deleted", plan="pro", paid=None), s)
+    assert s.active is None
+
+
+def test_old_subscription_deleted_keeps_newer(tmp_path):
+    s = PlanStore(tmp_path / "b.json")
+    apply_event(event(plan="pro", sub="sub_old"), s)
+    apply_event(event(plan="pro", sub="sub_new", eid="evt_2"), s)
+    gone = event(etype="customer.subscription.deleted", plan="pro", paid=None, oid="sub_old")
+    apply_event(gone, s)
+    assert s.active == PlanId.pro and s.load()["subscription"] == "sub_new"
+    apply_event({**gone, "data": {"object": {**gone["data"]["object"], "id": "sub_new"}}}, s)
+    assert s.active is None
+
+
+def test_late_checkout_for_canceled_subscription_ignored(tmp_path):
+    s = PlanStore(tmp_path / "b.json")
+    apply_event(event(plan="kid", sub="sub_1"), s)
+    apply_event(event(etype="customer.subscription.deleted", plan="kid", paid=None, oid="sub_1"), s)
+    assert s.active is None
+    assert apply_event(event(plan="kid", sub="sub_1", eid="evt_retry"), s) is None
     assert s.active is None
 
 
