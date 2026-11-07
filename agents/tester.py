@@ -292,6 +292,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--minutes", type=float, default=15)
     p.add_argument("--task", default=DEFAULT_TASK)
     a = p.parse_args(argv)
+    from dotenv import find_dotenv, load_dotenv
+
+    load_dotenv(find_dotenv(usecwd=True))
     try:
         print(f"H region: {choose_region()}", flush=True)
     except HBusyError as e:
