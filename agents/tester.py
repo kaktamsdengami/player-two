@@ -343,6 +343,7 @@ def main(argv: list[str] | None = None) -> int:
         "run_dir": str(run_dir),
         "recording": str(rec.path),
         "speed": speed.spec(),
+        "game_started_at": game.started_at,
         "start": cfg.start,
         "preset": cfg.preset,
         "plan": plan,

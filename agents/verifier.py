@@ -96,11 +96,12 @@ class Verifier:
         h_replay: Callable[[Finding], bool] | None = None,
         out_dir: Path | None = None,
         demo: Path | None = None,
+        demo_started_at: float | None = None,
     ) -> Verdict:
         out_dir = out_dir or self.game.run_dir / "verify"
         out_dir.mkdir(parents=True, exist_ok=True)
         if demo and (demo / "agent.lmp").exists():
-            return self.verify_demo(finding, demo, out_dir)
+            return self.verify_demo(finding, demo, out_dir, demo_started_at)
         win = self.game.reset(self.episode, self.map_, self.speed)
         if win is None:
             raise RuntimeError("game window did not appear for the replay")
@@ -138,13 +139,20 @@ class Verifier:
             finding.evidence.clip = Clip(path=str(verdict.clip), start_s=0.0, end_s=end - start)
         return verdict
 
-    def verify_demo(self, finding: Finding, run_dir: Path, out_dir: Path) -> Verdict:
+    def verify_demo(
+        self, finding: Finding, run_dir: Path, out_dir: Path, started_at: float | None = None
+    ) -> Verdict:
         """Replay the tester's own demo (exact inputs per tic) instead of re-pressing its keys:
-        H holds keys for wall-clock time, so a key re-press replay drifts in frame-step."""
+        H holds keys for wall-clock time, so a key re-press replay drifts in frame-step.
+        `started_at` (the recorded game's launch time) cuts the replay log at the report."""
         from launcher.replay import replay
 
         out = replay(self.game.cfg, run_dir, video=self.record)
-        verdict = judge(finding, EventLog(Path(out["events"])).poll(), self.bugs)
+        events = EventLog(Path(out["events"])).poll()
+        cut = report_tic(run_dir, finding, started_at)
+        if cut is not None:
+            events = [e for e in events if e.tic <= cut]
+        verdict = judge(finding, events, self.bugs)
         verdict.replay = "demo"
         if verdict.matched and out.get("rec_started_at"):
             ev = next(x for x in verdict.proofs if x.bug is verdict.matched).first
@@ -156,6 +164,16 @@ class Verifier:
             )
             finding.evidence.clip = Clip(path=str(verdict.clip), start_s=0.0, end_s=end - start)
         return verdict
+
+
+def report_tic(run_dir: Path, finding: Finding, started_at: float | None) -> int | None:
+    """Last game tic the recorded run reached before the finding was reported."""
+    if started_at is None:
+        return None
+    log = run_dir / "agent_events.jsonl"
+    events = EventLog(log if log.exists() else run_dir / "events.jsonl").poll()
+    at = finding.reported_at.timestamp() - started_at
+    return max((e.tic for e in events if e.t is not None and e.t <= at), default=0)
 
 
 def judge(
@@ -207,7 +225,10 @@ def main(argv: list[str] | None = None) -> int:
     out = []
     for raw in run["findings"]:
         f = Finding.model_validate(raw)
-        verdict = v.verify(f, actions, out_dir=a.run_dir / "verify" / f.id, demo=a.run_dir)
+        verdict = v.verify(
+            f, actions, out_dir=a.run_dir / "verify" / f.id, demo=a.run_dir,
+            demo_started_at=run.get("game_started_at"),
+        )  # fmt: skip
         out.append(verdict.summary() | {"finding_full": f.model_dump(mode="json")})
     (a.run_dir / "verdicts.json").write_text(json.dumps(out, indent=2, default=str))
     print(json.dumps([o | {"finding_full": None} for o in out], indent=2, default=str))

@@ -193,3 +193,27 @@ def test_verifier_replays_the_tester_demo(tmp_path, monkeypatch):
     assert calls == [(tmp_path, False)]
     assert verdict.replay == "demo" and verdict.matched.id == "KB3"
     assert f.status == "verified"
+
+
+def test_demo_verdict_ignores_events_after_the_report(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    import launcher.replay
+    from agents.verifier import Verifier
+
+    rows = _log(E3M1)
+    (tmp_path / "agent.lmp").write_bytes(b"\0" * 20)
+    (tmp_path / "events.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    monkeypatch.setattr(
+        launcher.replay, "replay", lambda cfg, d, video=True: {"events": str(d / "events.jsonl")}
+    )
+    v = Verifier(SimpleNamespace(cfg=None, run_dir=tmp_path), 3, 1, None, list(BUGS.values()),
+                 record=False)  # fmt: skip
+    first = min(r["t"] for r in rows if r["type"] == "powerup")
+    f = SKY.model_copy(deep=True)
+    before = f.reported_at.timestamp() - (first - 0.01)  # reported just before the power-up
+    verdict = v.verify(f, [], out_dir=tmp_path / "v", demo=tmp_path, demo_started_at=before)
+    assert verdict.matched is None
+    f = SKY.model_copy(deep=True)
+    verdict = v.verify(f, [], out_dir=tmp_path / "v", demo=tmp_path, demo_started_at=0.0)
+    assert verdict.matched.id == "KB3"
