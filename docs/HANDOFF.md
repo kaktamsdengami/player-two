@@ -27,5 +27,11 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T01 contracts and decisions (Devin)
+- `app/contracts.py` (Pydantic v2, contracts v1.0), `docs/CONTRACTS.md` (decisions + models + SSE +
+  REST), `docs/api-mock.json` (MOCK data for every dashboard view), `tests/test_contracts.py`.
+- Decisions: name PLAYER TWO; TTS edge-tts; intents fix/skip/explain/stop/yes/no + steer;
+  JSONL `GameEvent` log + `LogSignature` oracle shape.
+
 ### 2026-11-07: repo created (Claude, orchestrator)
 - Created the repo with PLAN, AGENTS, CLAUDE and HANDOFF; created the labels, milestones and issues.
