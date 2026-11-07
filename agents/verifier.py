@@ -73,7 +73,7 @@ class Verifier:
     map_: int
     speed: Speed
     bugs: list[KnownBug] = field(default_factory=load_known_bugs)
-    press: Callable[[Sequence[str]], None] = press_keys
+    press: Callable[..., None] = press_keys
     step_wait_s: float = 1.2  # one frame-step (35 tics) plus margin
     record: bool = True
 
@@ -82,7 +82,10 @@ class Verifier:
             if until_s is not None and a.t_session_s > until_s:
                 break
             if a.keys and a.kind in ("key_press", "key_hold", "type_text"):
-                self.press(a.keys)
+                if a.kind == "key_hold" and a.duration_ms:
+                    self.press(a.keys, hold_s=a.duration_ms / 1000)
+                else:
+                    self.press(a.keys)
                 time.sleep(self.step_wait_s)
 
     def verify(
