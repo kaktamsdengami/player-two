@@ -43,9 +43,20 @@ class Game:
                *speed.args()]  # fmt: skip
         if not c.sound:
             cmd.append("-nosound")
+        if script is None:
+            script = self.start_script()
         if script:
             cmd += ["-qa-script", str(script)]
         return cmd
+
+    def start_script(self) -> Path | None:
+        """QA start state for free play (replay scripts set their own)."""
+        line = {"god": "1 god", "tough": "1 health 999"}.get(self.cfg.start)
+        if not line:
+            return None
+        path = self.run_dir / "qa_start.txt"
+        path.write_text(line + "\n")
+        return path
 
     def start(
         self,

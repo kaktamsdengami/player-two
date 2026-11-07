@@ -74,7 +74,7 @@ class Verifier:
     speed: Speed
     bugs: list[KnownBug] = field(default_factory=load_known_bugs)
     press: Callable[..., None] = press_keys
-    step_wait_s: float = 1.2  # one frame-step (35 tics) plus margin
+    step_wait_s: float = 1.2  # one frame-step (up to 35 tics) plus margin
     record: bool = True
 
     def replay_actions(self, actions: list[AgentAction], until_s: float | None) -> None:
@@ -161,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m agents.verifier")
     p.add_argument("run_dir", type=Path)
     p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
-    p.add_argument("--speed", default="step:35")
+    p.add_argument("--speed", help="default: the tester run's speed")
     a = p.parse_args(argv)
     run = json.loads((a.run_dir / "tester_run.json").read_text())
     actions_file = a.run_dir / "actions.jsonl"
@@ -171,7 +171,12 @@ def main(argv: list[str] | None = None) -> int:
         if x.strip()
     ]
     cfg = LauncherConfig.from_env()
-    v = Verifier(Game(cfg, a.run_dir / "verify"), a.map[0], a.map[1], Speed.parse(a.speed))
+    v = Verifier(
+        Game(cfg, a.run_dir / "verify"),
+        a.map[0],
+        a.map[1],
+        Speed.parse(a.speed or run.get("speed", "step")),
+    )
     out = []
     for raw in run["findings"]:
         f = Finding.model_validate(raw)
