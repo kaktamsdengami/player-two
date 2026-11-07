@@ -28,6 +28,15 @@ replaying the bug, and writes a design and product-placement debrief.
 
 ## Labels that change how you work
 
+- **Ask as little as possible.** Decide on your own whenever a reasonable default exists, and note
+  the decision in HANDOFF.md.
+  - Only `needs:team` decisions, and anything irreversible or outward (publishing, terms of service,
+    purchases, deleting data), go to the team.
+  - Put all your open questions into **one** issue comment at a time. Give each question your
+    recommended default.
+  - Mention `@kaktamsdengami` **only** in that comment. No other comment mentions anyone.
+  - If nobody answers within 60 minutes, go ahead with your recommended default and say so in the
+    thread. This does not apply to irreversible or outward actions: those always wait.
 - `needs:team`: **talk to the team before building.** Post your proposal as a comment on the
   issue. Cover the game choice, version, bugs, QA patches, tester persona and on-stage look. Wait
   for an answer from a team member before you implement.
