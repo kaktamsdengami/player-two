@@ -76,6 +76,9 @@ def to_action(session_id: str, step: int, started: float, event: Any) -> list[Ag
     out = []
     for req in data["tool_reqs"]:
         name, args = req.get("tool_name", ""), req.get("args") or {}
+        dur = args.get("duration_ms")
+        if dur is None and args.get("duration") is not None:
+            dur = float(args["duration"]) * 1000
         keys = args.get("keys") or args.get("key") or []
         keys = [keys] if isinstance(keys, str) else list(keys)
         if name in {"report_finding", "note", "ask_developer"}:
@@ -100,6 +103,7 @@ def to_action(session_id: str, step: int, started: float, event: Any) -> list[Ag
                 t_session_s=max(0.0, ts.timestamp() - started),
                 kind=kind,
                 keys=[str(k) for k in keys],
+                duration_ms=int(dur) if dur is not None and kind == ActionKind.key_hold else None,
                 description=f"{name} {json.dumps(args, default=str)[:200]}",
             )
         )

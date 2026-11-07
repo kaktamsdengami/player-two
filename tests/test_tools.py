@@ -95,3 +95,15 @@ def test_policy_steps_become_timestamped_actions():
     assert acts[0].keys == ["up"] and acts[2].keys == ["left"]
     assert all(a.t_session_s == 10 and a.step == 3 for a in acts)
     assert tester.to_action("s1", 0, 0, SimpleNamespace(data={"kind": "observation_event"})) == []
+
+
+def test_hold_keeps_its_duration():
+    from types import SimpleNamespace
+
+    from agents.tester import to_action
+
+    ev = SimpleNamespace(
+        data={"tool_reqs": [{"tool_name": "hold_key", "args": {"keys": ["up"], "duration": 1.5}}]}
+    )
+    (a,) = to_action("s", 1, 0.0, ev)
+    assert a.kind == "key_hold" and a.duration_ms == 1500
