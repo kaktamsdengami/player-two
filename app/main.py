@@ -54,6 +54,8 @@ def control(request: Request) -> None:
 
 class StartRequest(BaseModel):
     mode: str | None = None  # "live" | "recorded"
+    plan: str | None = None  # developer's focus area for the tester ("Test plan")
+    preset: str | None = None  # launcher PRESETS key, e.g. "stage-kb3"
 
 
 class Runtime:
@@ -64,7 +66,9 @@ class Runtime:
         self.current: Orchestrator | Recorded | None = None
         self.factory = None  # tests inject a factory returning an Orchestrator
 
-    def new(self, mode: str | None = None) -> Orchestrator | Recorded:
+    def new(
+        self, mode: str | None = None, plan: str | None = None, preset: str | None = None
+    ) -> Orchestrator | Recorded:
         mode = mode or self.mode
         out = self.runs_dir / datetime.now().strftime("%Y%m%d-%H%M%S-session")
         if self.factory:
@@ -75,13 +79,15 @@ class Runtime:
             return Recorded(self.recording, out)
         from app.orchestrator import build_live
 
-        return build_live(out)
+        return build_live(out, plan=plan, preset=preset)
 
-    def start(self, mode: str | None = None) -> Orchestrator | Recorded:
+    def start(
+        self, mode: str | None = None, plan: str | None = None, preset: str | None = None
+    ) -> Orchestrator | Recorded:
         if self.current and self.current.running:
             raise HTTPException(409, "a session is already running")
         try:
-            self.current = self.new(mode)
+            self.current = self.new(mode, plan, preset)
         except HTTPException:
             raise
         except Exception as e:  # noqa: BLE001 - e.g. H busy, missing keys
@@ -131,7 +137,8 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
 
     @app.post("/api/session/start", dependencies=[Depends(control)])
     def start(req: StartRequest | None = None) -> Any:
-        o = rt.start(req.mode if req else None)
+        req = req or StartRequest()
+        o = rt.start(req.mode, req.plan, req.preset)
         return {"started": True, "live": isinstance(o, Orchestrator)}
 
     @app.get("/api/actions")

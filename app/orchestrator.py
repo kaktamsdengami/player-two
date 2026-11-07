@@ -420,23 +420,31 @@ def iter_sse(bus: Bus, last_id: int = -1, poll_s: float = 0.25) -> Iterator[list
 
 
 def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None = None,
-               rounds: int = 3) -> Orchestrator:  # fmt: skip
+               rounds: int = 3, plan: str | None = None,
+               preset: str | None = None) -> Orchestrator:  # fmt: skip
     """The real thing: H tester, QA-log verifier, ElevenLabs narration, Devin fix loop."""
     import subprocess
 
     from agents.fix_loop import FixLoop, ScriptReplay, add_comparison, attach_clip
     from agents.oracles import load_known_bugs
-    from agents.tester import DEFAULT_TASK, Tester, choose_region
+    from agents.tester import DEFAULT_TASK, Tester, choose_region, with_plan
     from agents.tools import TesterTools
     from agents.verifier import Verifier
     from devin.client import DevinClient
     from launcher import capture
     from launcher.build import pull_and_rebuild
-    from launcher.config import LauncherConfig, Speed
+    from launcher.config import PRESETS, LauncherConfig, Speed
     from launcher.game import Game
     from voice.narrate import narrate
 
     cfg = LauncherConfig.from_env()
+    if preset and preset not in PRESETS:
+        raise ValueError(f"unknown preset {preset!r}: {', '.join(PRESETS)}")
+    cfg.preset = preset or cfg.preset  # every launch (tester, verifier) starts the same way
+    if cfg.preset:
+        episode, map_ = PRESETS[cfg.preset].map
+        plan = plan or PRESETS[cfg.preset].plan
+    task = with_plan(task or DEFAULT_TASK, plan)
     speed = Speed.parse("step")
     game = Game(cfg, out_dir / "game")
     bugs = {b.id: b for b in load_known_bugs()}
@@ -550,6 +558,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         placement = None
     deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}",
                 run_dir=run_dir, debrief=debrief, placement=placement,
-                replay={"speed": speed.spec(), "start": cfg.start})  # fmt: skip
+                replay={"speed": speed.spec(), "start": cfg.start, "preset": cfg.preset,
+                        "plan": plan})  # fmt: skip
     orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
     return orch

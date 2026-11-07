@@ -107,3 +107,7 @@ pre { font-size: 0.75rem; background: #0b0d12; padding: 0.5rem; border-radius: 6
   margin-right: 0.4em;
 }
 .cue-now { color: var(--fg, #fff); background: rgba(255,200,0,0.18); font-style: normal; }
+.new-run { background: #10131a; border: 1px solid var(--line); border-radius: 10px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; }
+.new-run summary { cursor: pointer; font-weight: 600; }
+.new-run label { display: block; margin: 0.5rem 0; font-size: 0.9rem; }
+.new-run textarea, .new-run select { display: block; width: 100%; margin-top: 0.25rem; background: #0b0d12; color: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem; font: inherit; }

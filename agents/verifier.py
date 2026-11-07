@@ -160,7 +160,8 @@ def main(argv: list[str] | None = None) -> int:
 
     p = argparse.ArgumentParser(prog="python -m agents.verifier")
     p.add_argument("run_dir", type=Path)
-    p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
+    p.add_argument("--map", nargs=2, type=int, metavar=("EPISODE", "MAP"),
+                   help="default: the tester run's map (else E3M1)")  # fmt: skip
     p.add_argument("--speed", help="default: the tester run's speed")
     a = p.parse_args(argv)
     run = json.loads((a.run_dir / "tester_run.json").read_text())
@@ -172,6 +173,8 @@ def main(argv: list[str] | None = None) -> int:
     ]
     cfg = LauncherConfig.from_env()
     cfg.start = run.get("start", "off")  # replay in the tester's start state (older runs: none)
+    cfg.preset = run.get("preset") or ""  # same spawned items as the tester run
+    a.map = a.map or run.get("map") or [3, 1]
     v = Verifier(
         Game(cfg, a.run_dir / "verify"),
         a.map[0],

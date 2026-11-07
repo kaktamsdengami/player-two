@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, stopSession, subscribe } from './api'
+import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
@@ -110,6 +110,7 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         )}
       </section>
       <section className="panel side">
+        <NewRun />
         <VoicePanel voice={voice} onIntent={onIntent} />
         <h2>Action timeline</h2>
         <ol className="timeline">
@@ -136,6 +137,44 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         </ul>
       </section>
     </div>
+  )
+}
+
+/** New live run: an optional test plan (a focus area, never a bug) and a QA start preset. */
+function NewRun() {
+  const [plan, setPlan] = useState('')
+  const [preset, setPreset] = useState('')
+  const [status, setStatus] = useState('')
+  const start = () => {
+    setStatus('starting…')
+    startSession(plan, preset)
+      .then(() => setStatus(USING_MOCK ? 'mock mode: not started' : 'started'))
+      .catch((e: Error) => setStatus(e.message))
+  }
+  return (
+    <details className="new-run">
+      <summary>New run</summary>
+      <label>
+        Test plan (optional)
+        <textarea
+          rows={3}
+          value={plan}
+          placeholder="e.g. Test power-ups and check the whole screen renders correctly while one is active."
+          onChange={(e) => setPlan(e.target.value)}
+        />
+      </label>
+      <label>
+        Start
+        <select value={preset} onChange={(e) => setPreset(e.target.value)}>
+          <option value="">E3M1, free exploration</option>
+          <option value="stage-kb3">stage-kb3 (E3M1, power-up near the start)</option>
+        </select>
+      </label>
+      <button className="primary" onClick={start}>
+        Start live run
+      </button>{' '}
+      <span className="dim">{status}</span>
+    </details>
   )
 }
 

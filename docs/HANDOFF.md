@@ -21,6 +21,14 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+- 2026-11-08 ~00:30 (Devin): team decision on #42 (stage demo). `agents.tester --plan "<text>"`
+  appends "The developer asks you to focus on: ..."; `--preset stage-kb3` (launcher `PRESETS`,
+  `P2_PRESET`) starts E3M1 with an invulnerability sphere spawned ~200 units ahead under the red
+  sky (fork QA script `spawn <doomednum> <x> <y>`, player-two-qa 5ad5e7f6; E3M1 has no sphere of
+  its own and its only door is the exit). Preset lines go into `qa_start.txt`, so `launcher replay`
+  and the verifier start the same way. Dashboard Live tab: "New run" (test plan + preset).
+  Tester prompt: door/switch/lift/item rules; default 120 steps / 20 min.
+
 ### 2026-11-08 ~02:00: team decision on #42: faster model, 8-tic steps, demo replay (Devin)
 
 - Tester model `holo4-35b-a3b` by default; `P2_TESTER_MODEL=holo4-27b` to compare.

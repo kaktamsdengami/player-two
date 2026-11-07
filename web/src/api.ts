@@ -74,6 +74,8 @@ async function post(path: string, body?: unknown): Promise<void> {
 
 export const sendIntent = (intent: VoiceIntent) => post('/api/intent', intent)
 export const stopSession = () => post('/api/stop')
+export const startSession = (plan: string, preset: string) =>
+  post('/api/session/start', { mode: 'live', plan: plan.trim() || null, preset: preset || null })
 
 export async function checkout(plan: string): Promise<string | null> {
   if (USING_MOCK) return null
