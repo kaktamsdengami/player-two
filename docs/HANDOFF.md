@@ -46,7 +46,7 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
   known bugs.
 - Default frame-step 12 tics (`DEFAULT_STEP`); fork 516905e6: a key held past its step keeps the
   game running (tap = 12 tics, 2 s hold = 70 tics, measured with `-qa-trace 1`).
-- `P2_GOD=god|tough|off` (default god, team decision): QA start script for free play only
+- `P2_GOD=god|tough|off` (default tough since ~02:30, Dmitry delegated the choice; was god): QA start script for free play only
   (replay scripts set their own). Note: vanilla god mode blocks all damage (no pain face, no
   damage events), so damage bugs such as KB2 cannot trigger; `tough` = 999 health. Asked the team.
 - The verifier replays at the speed saved in `tester_run.json`; the orchestrator uses 12 tics.
