@@ -89,6 +89,13 @@ def result_from_session(
     return FixResult.working, pr_url
 
 
+def _is_active(session: dict) -> bool:
+    status, detail = session.get("status"), session.get("status_detail")
+    if status in ("new", "claimed", "resuming"):
+        return True
+    return status == "running" and detail not in ("finished", "waiting_for_user")
+
+
 class DevinClient:
     def __init__(
         self,
@@ -111,6 +118,8 @@ class DevinClient:
         self.base = f"{base_url.rstrip('/')}/v3/organizations/{org_id}/sessions"
         self.headers = {"Authorization": f"Bearer {api_key}"}
         self._stale_prs: dict[str, set[str]] = {}
+        # after feedback: devin_id -> whether Devin has been seen working on it again
+        self._feedback: dict[str, bool] = {}
 
     @classmethod
     def from_env(cls, **kw) -> DevinClient:
@@ -164,9 +173,18 @@ class DevinClient:
         self._req("POST", f"/{devin_id}/messages", json={"message": message})
 
     def _apply(self, attempt: FixAttempt, session: dict) -> FixAttempt:
-        result, pr_url = result_from_session(
-            session, self._stale_prs.get(attempt.devin_session_id, set())
-        )
+        sid = attempt.devin_session_id
+        result, pr_url = result_from_session(session, self._stale_prs.get(sid, set()))
+        resumed = self._feedback.get(sid)
+        if resumed is not None and session.get("status") not in FAILED_STATUSES:
+            # The session still shows its old finished state until Devin picks the feedback up.
+            if _is_active(session):
+                self._feedback[sid] = True
+                result = FixResult.working
+            elif not resumed:
+                result = FixResult.working
+            else:
+                del self._feedback[sid]
         update: dict = {"result": result, "pr_url": pr_url or attempt.pr_url}
         if session.get("url"):
             update["devin_session_url"] = session["url"]
@@ -229,6 +247,7 @@ class DevinClient:
             f"{verifier_note}\nPlease {where}.",
         )
         update: dict = {"round": 2, "result": FixResult.working, "finished_at": None}
+        self._feedback[attempt.devin_session_id] = False
         if merged and attempt.pr_url:
             self._stale_prs.setdefault(attempt.devin_session_id, set()).add(attempt.pr_url)
             update["pr_url"] = None

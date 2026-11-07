@@ -205,9 +205,10 @@ def test_feedback_after_merge_waits_for_new_pr():
     new = "https://github.com/kaktamsdengami/chocolate-doom/pull/8"
     fake = FakeDevin(
         [
+            _session(status="exit", detail="finished", prs=[(old, "merged")]),
+            _session(status="exit", detail="finished", prs=[(old, "merged")]),
             _session(prs=[(old, "merged")]),
-            _session(prs=[(old, "merged")]),
-            _session(prs=[(old, "merged"), (new, "open")]),
+            _session(status="exit", detail="finished", prs=[(old, "merged"), (new, "open")]),
         ]
     )
     dc = _client(fake)
@@ -227,3 +228,23 @@ def test_from_env_reads_dotenv(tmp_path, monkeypatch):
     (tmp_path / ".env").write_text("DEVIN_API_KEY=k\nDEVIN_ORG_ID=org-x\n")
     monkeypatch.chdir(tmp_path)
     assert DevinClient.from_env().org_id == "org-x"
+
+
+def test_feedback_on_open_pr_waits_for_devin_to_resume():
+    pr = "https://github.com/kaktamsdengami/chocolate-doom/pull/7"
+    done = dict(status="running", detail="waiting_for_user", prs=[(pr, "open")])
+    fake = FakeDevin(
+        [
+            _session(**done),
+            _session(**done),
+            _session(prs=[(pr, "open")]),
+            _session(**done, acus=2.5),
+        ]
+    )
+    dc = _client(fake)
+    attempt = dc.create_fix_session(_finding())
+    assert attempt.result == FixResult.pr_open
+    attempt = dc.send_feedback(attempt, "still broken")
+    assert dc.refresh(attempt).result == FixResult.working
+    attempt = dc.follow(attempt, sleep=lambda s: None)
+    assert attempt.result == FixResult.pr_open and attempt.acus == 2.5
