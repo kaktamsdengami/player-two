@@ -24,6 +24,20 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 ## Log
 
+### 2026-11-07: T16 design debrief (Devin)
+
+- `python -m insights.debrief <run_dir> [--no-linkup]` → `<run_dir>/debrief.json` (`DebriefReport`).
+  Heatmap: `death` events and level restarts (every `level` event after the first per map) in
+  128-unit cells over the bounds of all player positions. Notes come from `tester_run.json`.
+  Suggestions: one per finding (`suggested_change`, or built from actual → expected); verified
+  findings from `verdicts.json` replace the tester's. References: one Linkup search (`POST
+  /v1/search`, `searchResults`), 2 citations from different sites. The topic follows the notes'
+  tags (`too_hard`, `confusing`) and the deaths.
+- Shared `insights/linkup.py` (new file, also used by T17).
+- Checked on the Devin VM: Linkup search works with the real key. Ran it on a real but short H
+  run (E3M1, 13 actions, no deaths, no notes). The acceptance run with real evidence goes on the
+  stage laptop, after the tester run.
+
 ### 2026-11-07: T06 launcher (Devin)
 
 - `python -m launcher demo|build|fetch|query|clip`. `Game` starts the QA build with a fixed window
