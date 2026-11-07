@@ -9,21 +9,47 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from app.contracts import VoiceIntent
+from app.contracts import SessionInfo, VoiceIntent
 from app.orchestrator import Orchestrator, Recorded, sse_format
 from app.routes_billing import router as billing_router
 
 ROOT = Path(__file__).resolve().parent.parent
 MOCK = ROOT / "docs" / "api-mock.json"
+MEDIA_SUFFIXES = {
+    ".mp4",
+    ".webm",
+    ".mp3",
+    ".wav",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+    ".gif",
+    ".html",
+}
+DEV_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+
+
+def control(request: Request) -> None:
+    """Guard for endpoints that start, steer, stop or approve (a `fix` intent merges a PR).
+
+    JSON only, so a cross-site form post needs a CORS preflight; and when `P2_CONTROL_TOKEN` is
+    set (any deployment reachable from outside the laptop), the `X-P2-Token` header must match.
+    """
+    if "application/json" not in request.headers.get("content-type", "application/json"):
+        raise HTTPException(415, "send JSON")
+    token = os.environ.get("P2_CONTROL_TOKEN")
+    if token and request.headers.get("x-p2-token") != token:
+        raise HTTPException(401, "missing or wrong X-P2-Token")
 
 
 class StartRequest(BaseModel):
@@ -76,8 +102,9 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     )
     app = FastAPI(title="PLAYER TWO")
     app.state.rt = rt
-    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
-                       allow_headers=["*"])  # fmt: skip
+    origins = [o.strip() for o in os.environ.get("P2_CORS_ORIGINS", DEV_ORIGINS).split(",")]
+    app.add_middleware(CORSMiddleware, allow_origins=[o for o in origins if o],
+                       allow_methods=["*"], allow_headers=["*"])  # fmt: skip
     app.include_router(billing_router)
 
     def store():
@@ -89,9 +116,14 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     @app.get("/api/session")
     def session() -> Any:
         s = store()
-        return s.session.model_dump(mode="json") if s and s.session else None
+        if s and s.session:
+            return s.session.model_dump(mode="json")
+        idle = SessionInfo(id="idle", game="Chocolate Doom (QA build) + Freedoom",
+                           build="player-two-qa", started_at=datetime.now(UTC),
+                           live=rt.mode == "live")  # fmt: skip
+        return idle.model_dump(mode="json")
 
-    @app.post("/api/session/start")
+    @app.post("/api/session/start", dependencies=[Depends(control)])
     def start(req: StartRequest | None = None) -> Any:
         o = rt.start(req.mode if req else None)
         return {"started": True, "live": isinstance(o, Orchestrator)}
@@ -132,14 +164,14 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     def parent_report() -> Any:
         return _mock("GET /api/parent/report")
 
-    @app.post("/api/intent")
+    @app.post("/api/intent", dependencies=[Depends(control)])
     def intent(i: VoiceIntent) -> Any:
         if not rt.current:
             raise HTTPException(409, "no session")
         rt.current.intent(i)
         return {"ok": True}
 
-    @app.post("/api/stop")
+    @app.post("/api/stop", dependencies=[Depends(control)])
     def stop() -> Any:
         if rt.current:
             rt.current.stop()
@@ -152,11 +184,9 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
 
         async def gen():
             nonlocal last
-            bus = None
             while not await request.is_disconnected():
-                if rt.current and rt.current.bus is not bus:
-                    bus, last = rt.current.bus, (last if bus is None else -1)
-                for ev in bus.since(last) if bus else []:
+                bus = rt.current.bus if rt.current else None
+                for ev in bus.since(last) if bus else []:  # ids grow across sessions
                     last = ev.id
                     yield sse_format(ev)
                 await asyncio.sleep(0.25)
@@ -167,8 +197,15 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     @app.get("/media/{path:path}")
     def media(path: str) -> FileResponse:
         p = Path("/" + path).resolve()
-        roots = [rt.runs_dir.resolve(), ROOT.resolve()]
-        if not any(p.is_relative_to(r) for r in roots) or not p.is_file():
+        roots = [
+            rt.runs_dir.resolve(),
+            (ROOT / "recordings").resolve(),
+            (ROOT / "eval" / "runs").resolve(),
+        ]
+        if rt.recording:
+            roots.append(rt.recording.resolve().parent)
+        ok = any(p.is_relative_to(r) for r in roots) and p.suffix.lower() in MEDIA_SUFFIXES
+        if not ok or any(part.startswith(".") for part in p.parts) or not p.is_file():
             raise HTTPException(404, "not found")
         return FileResponse(p)
 

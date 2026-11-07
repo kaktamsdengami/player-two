@@ -141,7 +141,7 @@ def test_api_snapshot_intent_stop_and_media(tmp_path):
     rt = Runtime(tmp_path)
     rt.factory = lambda out: _orch(out)
     c = TestClient(create_app(rt))
-    assert c.get("/api/session").json() is None
+    assert c.get("/api/session").json()["state"] == "idle"
     assert c.post("/api/session/start", json={"mode": "live"}).json()["live"] is True
     _wait(lambda: rt.current.info.state == SessionState.awaiting_approval)
     assert c.get("/api/findings").json()[0]["status"] == "presented"
@@ -153,6 +153,19 @@ def test_api_snapshot_intent_stop_and_media(tmp_path):
     (tmp_path / "clip.mp4").write_bytes(b"x")
     assert c.get(f"/media{tmp_path}/clip.mp4").content == b"x"
     assert c.get("/media/etc/passwd").status_code == 404
+    (tmp_path / ".env").write_text("SECRET=1")
+    (tmp_path / "keys.txt").write_text("SECRET=1")
+    assert c.get(f"/media{tmp_path}/.env").status_code == 404
+    assert c.get(f"/media{tmp_path}/keys.txt").status_code == 404
+    form = {"content-type": "text/plain"}
+    assert c.post("/api/stop", content="{}", headers=form).status_code == 415
+
+
+def test_control_token(tmp_path, monkeypatch):
+    monkeypatch.setenv("P2_CONTROL_TOKEN", "t0k")
+    c = TestClient(create_app(Runtime(tmp_path)))
+    assert c.post("/api/stop").status_code == 401
+    assert c.post("/api/stop", headers={"X-P2-Token": "t0k"}).status_code == 200
     assert c.get("/api/plans").status_code == 200  # T18 billing router mounted
 
 
@@ -162,5 +175,6 @@ def test_sse_format():
 
     ev = Bus().publish(SseType.error, {"message": "m", "where": "w"}, "s")
     txt = sse_format(ev)
-    assert txt.startswith("id: 0\nevent: error\ndata: {") and txt.endswith("\n\n")
+    assert txt.startswith(f"id: {ev.id}\nevent: error\ndata: {{") and txt.endswith("\n\n")
+    assert Bus().publish(SseType.error, {}, "s").id > ev.id  # ids grow across sessions
     assert o is not None

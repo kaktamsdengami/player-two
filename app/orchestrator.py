@@ -10,6 +10,7 @@ The core is pure; `build_live()` wires the real tester, verifier, narration and 
 
 from __future__ import annotations
 
+import itertools
 import queue
 import threading
 import time
@@ -50,6 +51,8 @@ def _now() -> datetime:
 class Bus:
     """Append-only SSE event list; thread-safe, optionally persisted as JSONL."""
 
+    _ids = itertools.count()  # process-wide, so ids keep growing across sessions (Last-Event-ID)
+
     def __init__(self, path: Path | None = None):
         self.events: list[SseEvent] = []
         self.path = path
@@ -57,7 +60,7 @@ class Bus:
 
     def publish(self, type_: SseType, data: dict[str, Any], session_id: str | None) -> SseEvent:
         with self._lock:
-            ev = SseEvent(id=len(self.events), type=type_, ts=_now(), session_id=session_id,
+            ev = SseEvent(id=next(Bus._ids), type=type_, ts=_now(), session_id=session_id,
                           data=data)  # fmt: skip
             self.events.append(ev)
             if self.path:
@@ -68,7 +71,7 @@ class Bus:
 
     def since(self, last_id: int = -1) -> list[SseEvent]:
         with self._lock:
-            return self.events[last_id + 1 :]
+            return [e for e in self.events if e.id > last_id]
 
 
 def sse_format(ev: SseEvent) -> str:
@@ -234,6 +237,9 @@ class Orchestrator:
         try:
             self.set_state(SessionState.exploring)
             h_id, share = self.deps.explorer.start(self.task)
+            if self._stop.is_set():  # stop arrived while the H session was being created
+                self._cancel_h()
+                raise Stopped
             self.set_state(SessionState.exploring, h_session_id=h_id, share_url=share)
             for r in range(self.rounds):
                 self._check()
@@ -244,6 +250,7 @@ class Orchestrator:
                 self._check()
                 while not self.pending.empty():
                     self.handle(self.pending.get())
+            self._cancel_h()  # release the H slots and close the game
             self.set_state(SessionState.debriefing)
             self.set_state(SessionState.done)
         except Stopped:
@@ -282,10 +289,18 @@ class Orchestrator:
                 self.set_state(SessionState.reverifying)
             self.publish(SseType.fix_updated, a)
 
-        a = self.deps.fix(f, update)
+        try:
+            a = self.deps.fix(f, update)
+        except Exception as e:  # noqa: BLE001 - one failed fix must not end the session
+            self.error(f"fix failed: {e}", "fix")
+            self.publish(
+                SseType.finding_updated, f.model_copy(update={"status": FindingStatus.presented})
+            )
+            return
         self.publish(SseType.fix_updated, a)
         status = FindingStatus.fixed if a.result == FixResult.fixed else FindingStatus.presented
         self.publish(SseType.finding_updated, f.model_copy(update={"status": status}))
+        self._check()
 
     def wait_for_fix(self) -> bool:
         end = time.monotonic() + self.approval_timeout_s
@@ -389,17 +404,19 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     game = Game(cfg, out_dir / "game")
     bugs = {b.id: b for b in load_known_bugs()}
     scripts = {"KB1": ("qa/kb1_kb2_medikit.txt", 1, 1), "KB2": ("qa/kb1_kb2_medikit.txt", 1, 1),
-               "KB3": ("qa/kb3_sky_invul_e3m1.txt", 3, 1)}  # fmt: skip
+               "KB3": ("qa/kb3_sky_invul_e3m1.txt", 3, 1),
+               "KB4": ("qa/kb4_e1m7.txt", 1, 7)}  # fmt: skip
     orch: Orchestrator
 
     class TesterExplorer:
         def __init__(self) -> None:
-            tools = TesterTools(on_finding=lambda f: orch.on_finding(f),
-                                on_note=lambda n: orch.on_note(n))  # fmt: skip
-            self.tester = Tester(tools=tools)
+            self.tools = TesterTools(on_finding=lambda f: orch.on_finding(f),
+                                     on_note=lambda n: orch.on_note(n))  # fmt: skip
+            self.tester: Tester | None = None
 
         def start(self, task_: str | None) -> tuple[str, str | None]:
             choose_region()  # raises HBusyError("H busy ... retry in ~15 min"): shown as error
+            self.tester = Tester(tools=self.tools)  # the H client binds HAI_BASE_URL here
             if game.start(episode, map_, speed) is None:
                 raise RuntimeError("game window did not appear")
             run = self.tester.start(task=task_ or DEFAULT_TASK, max_steps=60 * rounds,
@@ -424,7 +441,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             self.tester.send(message)
 
         def stop(self) -> None:
-            self.tester.stop()
+            if self.tester:
+                self.tester.stop()
             game.stop()
 
     def verify(f: Finding, actions: list[AgentAction]) -> Finding:
@@ -434,16 +452,27 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         return verdict.finding
 
     def fix(f: Finding, update: Callable[[FixAttempt], None]) -> FixAttempt:
-        bug = bugs[f.known_bug_ref or ""]
+        if f.known_bug_ref not in bugs or f.known_bug_ref not in scripts:
+            raise RuntimeError(f"no replay script for {f.known_bug_ref or 'an unmatched finding'}")
+        bug = bugs[f.known_bug_ref]
         script, ep, mp = scripts[bug.id]
         branch = f"qa-run/{orch.info.id}"
         subprocess.run(["git", "-C", str(cfg.fork_dir), "push", "-q", "origin",
                         f"origin/player-two-qa:refs/heads/{branch}"], check=False)  # fmt: skip
+        approved: list[str | None] = []
+
+        def approve_once(a: FixAttempt) -> bool:
+            """The developer's "fix it" approves one merge; a feedback-round PR stays open."""
+            if orch._stop.is_set() or approved:
+                return False
+            approved.append(a.pr_url)
+            return True
+
         loop = FixLoop(
             devin=DevinClient.from_env(base_branch=branch),
             replay=ScriptReplay(Game(cfg, out_dir / "fix"), bug, cfg.fork_dir / script, ep, mp),
             rebuild=lambda ref: pull_and_rebuild(cfg, ref),
-            approve=lambda a: True,  # the developer already said "fix it" on the dashboard
+            approve=approve_once,
             on_update=update,
         )
         a, replay = loop.run(f)
