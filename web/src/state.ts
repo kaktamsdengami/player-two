@@ -91,7 +91,12 @@ export function applyEvent(state: State, e: SseEvent): State {
   const d = e.data
   switch (e.type) {
     case 'session.state':
-      return { ...state, snap: { ...snap, session: { ...snap.session, ...(d as Partial<SessionInfo>) } } }
+      {
+        const next = d as Partial<SessionInfo>
+        // a new session starts clean; updates to the same session only patch what they carry
+        const base = next.session_id && next.session_id !== snap.session.session_id ? {} : snap.session
+        return { ...state, snap: { ...snap, session: { ...base, ...next } as SessionInfo } }
+      }
     case 'agent.action':
       return {
         ...state,
