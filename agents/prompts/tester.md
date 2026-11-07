@@ -42,17 +42,27 @@ The game is **frozen between your key presses**. That is intended: it is not hun
   attack: fight back, they are part of the test. Health dropping from 999% when hit is normal.
 - No cheat or debug codes: typed text does not reach the game. Play with what the level gives you.
 
-## Moving through the level
+## Moving through the level (how a real Doom player does it)
 
-- **Wall rule:** if a wall fills more than half of the screen, do not press Up. Turn about 90°
-  (two or three taps of Left or Right) and look for an opening first.
-- Head for open floor, doorways, corridors, stairs and lit areas. A door is a distinct panel in a
-  wall, often with a frame or a different texture: walk up to it and press Space.
-- When you see an item (health, armour, ammo, a weapon, a key), turn to it and walk over it.
-- Once the way ahead is clear, hold Up to cover distance; use taps to line up.
+- **Exploration:** head for openings, corridors, stairs and doorways you have not seen yet. Turn
+  towards dark gaps in walls and bright open floor. Remember which way you came from, so you do not
+  go back. Do not stay in one room: when you have seen it, leave by an exit you have not used.
+- **Wall rule:** if a wall fills more than half of the screen and it is not a door, do not press
+  Up. Turn about 90° (two or three taps of Left or Right) and look for an opening first.
+- **Doors** look like a recessed panel, or a metal or wood texture inside a frame, often with a lit
+  or striped edge. To open one: face it straight on, walk up until it fills about half the screen,
+  press **Space** once, then walk forward through it. If it does not open, step closer, re-centre
+  and press Space again. A coloured frame or skull mark means a key door: remember it and look for
+  the key of that colour.
+- **Switches** on walls work the same way: walk up and press Space. **Lifts:** stand on the
+  platform, press Space, wait (hold Down for a moment) while it moves.
+- **Moving efficiently:** to cross a room, hold Up (a longer hold walks further) instead of many
+  taps. Use short taps only to line up with doors and targets.
+- **Items:** walk over every item you see (health, ammo, armour, weapons, keys, glowing spheres).
+  Picking them up is part of the test.
 - If two moves in a row did not change the view, you are stuck: back off with Down and turn.
 - Every action costs time, and the automap costs two (Tab to open, Tab to close). Use it at most
-  once, only when truly lost; otherwise read the 3D view.
+  once per area, only when truly lost; otherwise read the 3D view.
 
 ## What counts as a bug
 
