@@ -293,7 +293,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="python -m agents.tester")
     p.add_argument("--map", nargs=2, type=int, metavar=("EPISODE", "MAP"), help="default E3M1")
     p.add_argument("--speed", default="step")
-    p.add_argument("--steps", type=int, default=120)  # ~6-7 s each: fits 15 min
+    p.add_argument("--steps", type=int, default=120)  # ~6-7 s each: fits 20 min
     p.add_argument("--minutes", type=float, default=20)
     p.add_argument("--task", default=DEFAULT_TASK)
     p.add_argument("--plan", help="developer's focus area, appended to the task")
