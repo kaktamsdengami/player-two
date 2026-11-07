@@ -115,19 +115,24 @@ def detect(frame: Path, model: str | None = None, timeout: float = 90.0) -> list
     except ImportError:
         pass
     img = base64.b64encode(frame.read_bytes()).decode()
-    r = httpx.post(
-        MODELS_URL,
-        headers={"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"},
-        json={
-            "model": model or os.environ.get("P2_VISION_MODEL", VISION_MODEL),
-            "temperature": 0,
-            "messages": [{"role": "user", "content": [
-                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}},
-                {"type": "text", "text": DETECT_PROMPT},
-            ]}],
-        },
-        timeout=timeout,
-    )  # fmt: skip
+    body = {
+        "model": model or os.environ.get("P2_VISION_MODEL", VISION_MODEL),
+        "temperature": 0,
+        "messages": [{"role": "user", "content": [
+            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}},
+            {"type": "text", "text": DETECT_PROMPT},
+        ]}],
+    }  # fmt: skip
+    headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
+    for attempt in (0, 1):  # one retry: the Models API sometimes times out on a single frame
+        try:
+            r = httpx.post(MODELS_URL, headers=headers, json=body, timeout=timeout)
+        except httpx.TimeoutException:
+            if attempt:
+                raise
+            continue
+        if r.status_code not in (429, 500, 502, 503, 504) or attempt:
+            break
     r.raise_for_status()
     spots = _json(r.json()["choices"][0]["message"]["content"]).get("spots", [])
     return [s for s in spots if isinstance(s, dict) and s.get("name")]

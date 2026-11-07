@@ -174,3 +174,24 @@ def test_structured_retries_a_transient_400(monkeypatch):
     monkeypatch.setattr(linkup.time, "sleep", lambda s: None)
     assert linkup.structured("q", {"type": "object"}) == {"data": {}}
     assert len(calls) == 2
+
+
+def test_detect_retries_once_after_a_timeout(tmp_path, monkeypatch):
+    frame = tmp_path / "f.png"
+    frame.write_bytes(b"png")
+    calls = []
+    content = '{"spots": [{"name": "Wall", "surface": "wall"}]}'
+
+    def post(url, headers, json, timeout):
+        calls.append(url)
+        if len(calls) == 1:
+            raise httpx.ReadTimeout("slow")
+        return httpx.Response(
+            200,
+            json={"choices": [{"message": {"content": content}}]},
+            request=httpx.Request("POST", url),
+        )
+
+    monkeypatch.setenv("HAI_API_KEY", "k")
+    monkeypatch.setattr(placement.httpx, "post", post)
+    assert placement.detect(frame)[0]["name"] == "Wall" and len(calls) == 2
