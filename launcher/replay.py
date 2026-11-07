@@ -72,7 +72,9 @@ def replay(cfg: LauncherConfig, run_dir: Path, video: bool = True) -> dict:
     out = {"demo": str(lmp), "tics": tics, "events": str(game.log_path),
            "game_started_at": game.started_at, "label": LABEL}  # fmt: skip
     meta = run_dir / "replay.json"
-    if rec:
+    if rec and not (rec.path.exists() and rec.path.stat().st_size):
+        out["video_error"] = f"ffmpeg wrote no video to {rec.path}"
+    elif rec:
         out |= {"video": str(rec.path), "rec_started_at": rec.started_at}
         meta.write_text(
             json.dumps(out, indent=2)
