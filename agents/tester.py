@@ -242,6 +242,9 @@ def main(argv: list[str] | None = None) -> int:
         run = tester.start(a.task, a.steps, a.minutes * 60, idle_timeout_s=60)
         print(json.dumps({"session_id": run.session_id, "share_url": run.share_url}), flush=True)
         run = tester.follow(run_dir / "actions.jsonl")
+    except BaseException:
+        tester.stop()
+        raise
     finally:
         rec.stop()
         game.stop()
