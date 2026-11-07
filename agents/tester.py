@@ -136,6 +136,8 @@ class Tester:
     """Runs and steers one long H session; send follow-ups instead of new sessions."""
 
     def __init__(self, client: Any = None, tools: TesterTools | None = None):
+        if sys.platform.startswith("linux") and not os.environ.get("WAYLAND_DISPLAY"):
+            os.environ.setdefault("XDG_SESSION_TYPE", "x11")  # pyscreeze: scrot on bare X11
         if client is None:
             from hai_agents import Client
 
@@ -211,8 +213,6 @@ def main(argv: list[str] | None = None) -> int:
     from launcher.config import LauncherConfig, Speed
     from launcher.game import Game
 
-    if sys.platform.startswith("linux") and not os.environ.get("WAYLAND_DISPLAY"):
-        os.environ.setdefault("XDG_SESSION_TYPE", "x11")  # pyscreeze: use scrot on bare X11
     p = argparse.ArgumentParser(prog="python -m agents.tester")
     p.add_argument("--map", nargs=2, type=int, default=[3, 1], metavar=("EPISODE", "MAP"))
     p.add_argument("--speed", default="step:35")
