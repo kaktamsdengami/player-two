@@ -12,9 +12,14 @@ const TABS: [Tab, string][] = [
   ['parent', 'Parent'],
 ]
 
+const tabFromHash = (): Tab => {
+  const h = location.hash.slice(1)
+  return TABS.some(([id]) => id === h) ? (h as Tab) : 'live'
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
-  const [tab, setTab] = useState<Tab>(() => (location.hash.slice(1) as Tab) || 'live')
+  const [tab, setTab] = useState<Tab>(tabFromHash)
 
   useEffect(() => {
     loadSnapshot()
@@ -24,8 +29,14 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    location.hash = tab
+    if (location.hash.slice(1) !== tab) location.hash = tab
   }, [tab])
+
+  useEffect(() => {
+    const onHash = () => setTab(tabFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   const intent = (i: Intent, finding_id?: string, text = '') => {
     const body = { intent: i, source: 'button' as const, finding_id: finding_id ?? null, text }
@@ -50,7 +61,14 @@ export default function App() {
           ))}
         </nav>
       </header>
-      {state.error && <div className="error">{state.error}</div>}
+      {state.error && (
+        <div className="error" role="alert">
+          <span>{state.error}</span>
+          <button className="link" onClick={() => dispatch({ type: 'dismiss' })} aria-label="dismiss">
+            ✕
+          </button>
+        </div>
+      )}
       {!snap ? (
         <main className="loading">Loading…</main>
       ) : (
@@ -88,7 +106,9 @@ function SessionBar({ snap }: { snap: Snapshot }) {
 function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onIntent: (i: Intent) => void }) {
   const s = snap.session
   const last = snap.actions[snap.actions.length - 1]
-  const shot = media(last?.screenshot)
+  const [badShot, setBadShot] = useState('')
+  const frame = media(last?.screenshot)
+  const shot = frame && frame !== badShot ? frame : null
   return (
     <div className="live-grid">
       <section className="panel agent">
@@ -96,11 +116,19 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         {s.share_url && !USING_MOCK ? (
           <iframe title="H live view" src={s.share_url} />
         ) : shot ? (
-          <img src={shot} alt="latest agent screenshot" />
+          <img src={shot} alt="latest agent screenshot" onError={() => setBadShot(shot)} />
         ) : (
           <div className="placeholder">
             <div>H desktop live view</div>
-            <div className="dim">{USING_MOCK ? 'mock mode: no stream' : 'waiting for the first frame'}</div>
+            <div className="dim">
+              {frame
+                ? 'Screenshot not available for this step.'
+                : USING_MOCK
+                ? 'Demo data: no live stream. Open Bugs & fixes to see a finding.'
+                : active(s.state)
+                  ? 'Waiting for the first frame…'
+                  : 'No run in progress. Start one with New run →'}
+            </div>
           </div>
         )}
         {last && (
@@ -110,9 +138,10 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         )}
       </section>
       <section className="panel side">
-        <NewRun />
-        <VoicePanel voice={voice} onIntent={onIntent} />
+        <NewRun running={active(s.state)} />
+        <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />
         <h2>Action timeline</h2>
+        {!snap.actions.length && <div className="dim small">The agent's key presses appear here.</div>}
         <ol className="timeline">
           {[...snap.actions].reverse().map((a) => (
             <li key={a.step}>
@@ -123,15 +152,19 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
           ))}
         </ol>
         <h2>Tester notes</h2>
+        {!snap.notes.length && <div className="dim small">What the tester notices while playing.</div>}
         <ul className="notes">
           {snap.notes.map((n) => (
             <li key={n.ts}>
-              <span className="t">{fmtS(n.t_session_s)}</span> {n.text}
-              {n.tags.map((t) => (
-                <span key={t} className="tag">
-                  {t}
-                </span>
-              ))}
+              <span className="t">{fmtS(n.t_session_s)}</span>
+              <span className="grow">
+                {n.text}
+                {n.tags.map((t) => (
+                  <span key={t} className="tag">
+                    {t}
+                  </span>
+                ))}
+              </span>
             </li>
           ))}
         </ul>
@@ -141,18 +174,23 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
 }
 
 /** New live run: an optional test plan (a focus area, never a bug) and a QA start preset. */
-function NewRun() {
+function NewRun({ running }: { running: boolean }) {
   const [plan, setPlan] = useState('')
   const [preset, setPreset] = useState('')
   const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
   const start = () => {
-    setStatus('starting…')
+    setBusy(true)
+    setStatus('Starting…')
     startSession(plan, preset)
-      .then(() => setStatus(USING_MOCK ? 'mock mode: not started' : 'started'))
+      .then((r) =>
+        setStatus(!r ? 'Demo data: nothing is started.' : r.live ? 'Live run started.' : 'Recorded run started (replay).'),
+      )
       .catch((e: Error) => setStatus(e.message))
+      .finally(() => setBusy(false))
   }
   return (
-    <details className="new-run">
+    <details className="new-run" open={!running && !USING_MOCK ? true : undefined}>
       <summary>New run</summary>
       <label>
         Test plan (optional)
@@ -171,18 +209,20 @@ function NewRun() {
           <option value="stage-play">stage-play (E3M1, items and enemies on the way to a power-up)</option>
         </select>
       </label>
-      <button className="primary" onClick={start}>
-        Start live run
-      </button>{' '}
-      <span className="dim">{status}</span>
+      <div className="row">
+        <button className="primary" onClick={start} disabled={busy || running}>
+          {running ? 'Run in progress' : 'Start run'}
+        </button>
+        <span className="dim small">{status}</span>
+      </div>
     </details>
   )
 }
 
 const INTENTS: Intent[] = ['fix', 'skip', 'explain', 'yes', 'no', 'stop']
 
-function VoicePanel({ voice, onIntent }: { voice: Voice; onIntent: (i: Intent) => void }) {
-  const fresh = Date.now() - voice.at < 4000
+function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: Intent) => void; enabled: boolean }) {
+  const fresh = enabled && Date.now() - voice.at < 4000
   return (
     <div className="voice">
       <div className={`mic ${fresh ? 'hot' : ''}`} aria-label="voice activity" />
@@ -197,7 +237,13 @@ function VoicePanel({ voice, onIntent }: { voice: Voice; onIntent: (i: Intent) =
       </div>
       <div className="intent-buttons">
         {INTENTS.map((i) => (
-          <button key={i} className={i === 'stop' ? 'danger' : ''} onClick={() => onIntent(i)}>
+          <button
+            key={i}
+            className={`cap ${i === 'stop' ? 'danger' : ''}`}
+            onClick={() => onIntent(i)}
+            disabled={!enabled}
+            title={enabled ? `Send “${i}” as if spoken` : 'Start a run first'}
+          >
             {i}
           </button>
         ))}
@@ -239,13 +285,18 @@ function BugCard({
   const clip = f.evidence.clip
   const src = media(clip?.path)
   const video = useRef<HTMLVideoElement>(null)
+  const [badClip, setBadClip] = useState('')
   const [cue, setCue] = useState(-1)
+  const [playing, setPlaying] = useState(false)
+  const [sent, setSent] = useState('')
+  const act = (i: Intent, label: string) => {
+    onIntent(i, f.id)
+    setSent(USING_MOCK ? `Demo data: “${label}” is not sent.` : `Sent “${label}”.`)
+  }
   const narrate = () => {
-    if (!narration) return
-    const audio = new Audio(media(narration.audio_path) ?? '')
+    if (!narration || playing) return
     let shown = -1
-    audio.ontimeupdate = () => {
-      const i = narration.cues.reduce((last, c, k) => (c.at_s <= audio.currentTime ? k : last), -1)
+    const show = (i: number) => {
       if (i === shown || i < 0) return
       shown = i
       setCue(i)
@@ -255,11 +306,24 @@ function BugCard({
         void v.play()
       }
     }
-    audio.onended = () => {
+    const end = () => {
+      setPlaying(false)
       setCue(-1)
       video.current?.pause()
     }
-    void audio.play()
+    // no audio file (demo data, TTS failed): step through the cues on their own timing
+    const silent = () => {
+      narration.cues.forEach((c, i) => setTimeout(() => show(i), c.at_s * 1000))
+      const last = narration.cues.at(-1)?.at_s ?? 0
+      setTimeout(end, Math.max(narration.duration_s ?? 0, last + 2) * 1000)
+    }
+    setPlaying(true)
+    const src = media(narration.audio_path)
+    if (!src) return silent()
+    const audio = new Audio(src)
+    audio.ontimeupdate = () => show(narration.cues.reduce((last, c, k) => (c.at_s <= audio.currentTime ? k : last), -1))
+    audio.onended = end
+    audio.play().catch(silent)
   }
   return (
     <article className={`card sev-${f.severity}`}>
@@ -271,16 +335,19 @@ function BugCard({
       </div>
       <div className="card-body">
         <div className="clip">
-          {src ? (
+          {src && src !== badClip ? (
             <video
               ref={video}
               src={`${src}#t=${clip!.start_s},${clip!.end_s}`}
               controls
               muted
               onLoadedMetadata={(e) => (e.currentTarget.playbackRate = clip!.speed)}
+              onError={() => setBadClip(src)}
             />
           ) : (
-            <div className="placeholder small">clip {clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}</div>
+            <div className="placeholder small">
+              {src && src === badClip ? 'clip file not available' : `clip ${clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}`}
+            </div>
           )}
           {clip && <span className="speed">RECORDED · {clip.speed}× speed</span>}
         </div>
@@ -297,8 +364,11 @@ function BugCard({
             <b>Actual:</b> {f.actual}
           </div>
           {narration && (
-            <div className="narration">
-              <button onClick={narrate}>▶ narrate</button>{' '}
+            <div className={`narration ${playing ? 'on' : ''}`}>
+              <button onClick={narrate} disabled={playing}>
+                {playing ? 'Narrating…' : '▶ Narrate over the clip'}
+              </button>
+              <br />
               {narration.cues.length
                 ? narration.cues.map((c, i) => (
                     <span key={i} className={i === cue ? 'cue-now' : undefined}>
@@ -320,22 +390,23 @@ function BugCard({
         {!fix && (
           <>
             {(f.status === 'verified' || f.status === 'presented') && (
-              <button className="primary" onClick={() => onIntent('fix', f.id)}>
-                Fix?
+              <button className="primary" onClick={() => act('fix', 'fix it')} title="Ask Devin to fix this bug">
+                Fix with Devin
               </button>
             )}
-            <button onClick={() => onIntent('explain', f.id)}>Explain</button>
-            <button onClick={() => onIntent('skip', f.id)}>Skip</button>
+            <button onClick={() => act('explain', 'explain')}>Explain</button>
+            <button onClick={() => act('skip', 'skip')}>Skip</button>
           </>
         )}
         {fix?.result === 'pr_open' && (
           <>
-            <button className="primary" onClick={() => onIntent('yes', f.id)}>
-              Merge
+            <button className="primary" onClick={() => act('yes', 'merge')} title="Merge Devin's pull request, then replay the bug">
+              Merge PR
             </button>
-            <button onClick={() => onIntent('no', f.id)}>Not yet</button>
+            <button onClick={() => act('no', 'not yet')}>Not yet</button>
           </>
         )}
+        {sent && <span className="dim small">{sent}</span>}
       </div>
       {fix && <DevinPanel fix={fix} />}
     </article>
@@ -385,17 +456,27 @@ function DevinPanel({ fix }: { fix: FixAttempt }) {
 
 function DebriefView({ snap }: { snap: Snapshot }) {
   const d = snap.debrief
+  const ready = Boolean(d.generated_at) || d.heatmap.length + d.notes.length + d.suggestions.length > 0
+  if (!ready && !snap.placement.length)
+    return (
+      <div className="empty">
+        No debrief yet.
+        <div className="small">When a run ends, the tester's design notes, a deaths & retries heatmap and product-placement ideas appear here.</div>
+      </div>
+    )
   return (
     <div className="debrief-grid">
       <section className="panel">
         <h2>Deaths & retries heatmap</h2>
         <Heatmap cells={d.heatmap} bounds={d.map_bounds} />
-        <div className="dim">
-          {d.maps.join(', ')} · {fmtS(d.duration_s)} played
+        <div className="dim small">
+          {[d.maps.join(', '), d.duration_s ? `${fmtS(d.duration_s)} played` : ''].filter(Boolean).join(' · ')}
+          {d.heatmap.length > 0 && ' · bigger, redder circle = more deaths and retries'}
         </div>
       </section>
       <section className="panel">
         <h2>Design notes</h2>
+        {!d.notes.length && <div className="dim small">No design notes.</div>}
         <ul className="notes">
           {d.notes.map((n) => (
             <li key={n.ts}>
@@ -409,12 +490,13 @@ function DebriefView({ snap }: { snap: Snapshot }) {
           ))}
         </ul>
         <h2>Suggestions</h2>
+        {!d.suggestions.length && <div className="dim small">No suggestions.</div>}
         <ul>
           {d.suggestions.map((s) => (
             <li key={s.finding_id + s.suggestion}>{s.suggestion}</li>
           ))}
         </ul>
-        <h2>References</h2>
+        {d.references.length > 0 && <h2>References</h2>}
         <ul>
           {d.references.map((r) => (
             <li key={r.url}>
@@ -427,6 +509,7 @@ function DebriefView({ snap }: { snap: Snapshot }) {
       </section>
       <section className="panel wide">
         <h2>Product placement</h2>
+        {!snap.placement.length && <div className="dim small">No placement spots found in this run.</div>}
         <div className="cards">
           {snap.placement.map((p) => (
             <div key={p.id} className="card">
@@ -452,7 +535,7 @@ function DebriefView({ snap }: { snap: Snapshot }) {
 }
 
 function Heatmap({ cells, bounds }: { cells: { x: number; y: number; deaths: number; retries: number }[]; bounds?: [number, number, number, number] | null }) {
-  if (!cells.length) return <div className="placeholder small">no data</div>
+  if (!cells.length) return <div className="placeholder small">No deaths or retries in this run.</div>
   const [x0, y0, x1, y1] = bounds ?? [
     Math.min(...cells.map((c) => c.x)) - 64,
     Math.min(...cells.map((c) => c.y)) - 64,
@@ -477,7 +560,7 @@ function PlansView({ snap }: { snap: Snapshot }) {
   const [msg, setMsg] = useState('')
   const buy = (id: string) =>
     checkout(id)
-      .then((url) => (url ? (location.href = url) : setMsg('Mock mode: Stripe Checkout opens here in live mode.')))
+      .then((url) => (url ? (location.href = url) : setMsg('Demo data: Stripe Checkout opens here when the API is connected.')))
       .catch((e: Error) => setMsg(e.message))
   return (
     <div>
@@ -501,8 +584,8 @@ function PlansView({ snap }: { snap: Snapshot }) {
           </div>
         ))}
       </div>
-      {msg && <div className="dim center">{msg}</div>}
-      <div className="dim center">Stripe test mode. No real payment.</div>
+      {msg && <div className="center notice">{msg}</div>}
+      <div className="dim center">Stripe test mode. No real payment: use card 4242 4242 4242 4242.</div>
     </div>
   )
 }
@@ -511,6 +594,7 @@ function ParentView({ snap }: { snap: Snapshot }) {
   const p = snap.profile
   return (
     <div className="debrief-grid">
+      <div className="wide notice">Preview with sample data: overnight game checks are not connected yet.</div>
       <section className="panel">
         <h2>Child profile</h2>
         <div className="profile">
@@ -556,5 +640,7 @@ function ParentView({ snap }: { snap: Snapshot }) {
   )
 }
 
+const ACTIVE = ['exploring', 'verifying', 'presenting', 'awaiting_approval', 'fixing', 'reverifying', 'debriefing']
+const active = (state: string) => ACTIVE.includes(state)
 const dots = (n: number) => '●'.repeat(n) + '○'.repeat(5 - n)
 const fmtS = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
