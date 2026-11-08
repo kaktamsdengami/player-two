@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PLAYER TWO · Kid mode: play Doom with Pixel</title>
+    <link rel="stylesheet" href="kid.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">PLAYER <span>TWO</span> · kid mode</div>
+      <div class="dim">Play Doom with Pixel, a friend who watches the screen and talks with you. LIVE: H Holo vision · ElevenLabs voice · Gladia ears</div>
+    </header>
+    <main>
+      <section class="game">
+        <div id="start" class="overlay">
+          <button id="go" class="primary">Play with Pixel</button>
+          <div class="dim">Turn your sound on. Arrows move · Ctrl shoots · Space opens doors · Shift runs</div>
+        </div>
+        <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+      </section>
+      <aside>
+        <div class="pixel">
+          <div id="face" class="face">P</div>
+          <div>
+            <b>Pixel</b>
+            <div id="status" class="dim">waiting for you to start</div>
+          </div>
+        </div>
+        <button id="talk" class="talk" disabled title="Hold to talk to Pixel (or hold T)">Hold to talk (or hold T)</button>
+        <div id="heard" class="heard dim"></div>
+        <ol id="chat" class="chat"></ol>
+        <div class="small dim">
+          Pixel sees only the game picture every few seconds. Your voice goes to speech-to-text only while you hold the button.
+          Doom: <a href="https://github.com/cloudflare/doom-wasm" target="_blank" rel="noreferrer">Chocolate Doom WebAssembly</a> (GPL) +
+          <a href="https://freedoom.github.io" target="_blank" rel="noreferrer">Freedoom</a> (BSD).
+        </div>
+      </aside>
+    </main>
+    <script src="kid.js"></script>
+  </body>
+</html>
