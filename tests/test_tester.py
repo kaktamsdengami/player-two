@@ -126,3 +126,27 @@ def test_stage_presets_require_the_sphere_before_finishing():
 
     assert PRESETS["stage-play"].goal == PRESETS["stage-kb3"].goal == "powerup"
     assert "final answer" in PRESETS["stage-play"].plan
+
+
+def test_follow_gives_up_after_the_stream_retries(monkeypatch):
+    import httpx
+    import pytest
+
+    from agents import tester as t
+
+    class Handle:
+        id = "h1"
+
+        def stream(self, from_index=0):
+            raise httpx.ReadTimeout("still nothing")
+            yield
+
+        def wait_for_completion(self):
+            raise AssertionError("must not block on a dead stream")
+
+    monkeypatch.setattr(t, "forbid_shell", lambda: None)
+    run = t.Tester(client=object())
+    run.handle = Handle()
+    run.run = t.TesterRun("h1", None, "running", None, run.tools)
+    with pytest.raises(httpx.ReadTimeout):
+        run.follow()

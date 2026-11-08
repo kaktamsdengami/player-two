@@ -272,7 +272,7 @@ class Tester:
         f = log_path.open("a", encoding="utf-8") if log_path else None
         start = self.run.events
         try:
-            for _ in range(STREAM_RETRIES):
+            for attempt in range(STREAM_RETRIES):
                 try:
                     for ev in self.handle.stream(from_index=from_index + self.run.events - start):
                         self.run.events += 1
@@ -285,7 +285,8 @@ class Tester:
                                 f.flush()
                     break
                 except httpx.TimeoutException:  # a slow first step: reconnect where we left off
-                    continue
+                    if attempt == STREAM_RETRIES - 1:
+                        raise
         finally:
             if f:
                 f.close()
