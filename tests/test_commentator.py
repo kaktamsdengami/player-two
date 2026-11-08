@@ -83,7 +83,9 @@ def test_speech_failure_keeps_going_and_silent_mode_is_not_spoken(tmp_path):
 
     rows = c.run(grab, tmp_path, 20, lambda s, r: "hello", broken, Quiet(), clock, clock.sleep)
     assert len(rows) >= 2 and all("speech failed" in r["error"] for r in rows)
-    silent = c.run(grab, tmp_path / "s", 20, lambda s, r: "hi", None, Quiet(), clock, clock.sleep)
+    words = iter(["door", "imp", "key", "armour", "stairs", "exit", "ammo", "switch"] * 3)
+    silent = c.run(grab, tmp_path / "s", 20, lambda s, r: next(words), None, Quiet(), clock,
+                   clock.sleep)  # fmt: skip
     s = c.summary(silent)
     assert s["spoken"] == 0 and s["lines"] == len(silent) and s["latency_median_s"] is None
 
@@ -244,3 +246,67 @@ def test_an_unanswered_question_is_asked_once_more(tmp_path):
 
     c.run(grab, tmp_path, 20, ask, lambda t, p: p, quiet, clock, clock.sleep, heard=heard)
     assert asked[:3] == ["where is the key?", "where is the key?", ""]  # retried once, not forever
+
+
+def test_the_buddy_does_not_repeat_itself_or_talk_over_the_child(tmp_path):
+    assert (
+        c.similar("Walk up to that door and press Space!", "walk up to the door, press space")
+        >= c.SAME
+    )
+    assert c.similar("Nice shot!", "Grab that medikit on the left") < c.SAME
+    clock, quiet = Clock(), Quiet()
+
+    def grab(p):
+        p.write_bytes(b"jpg")
+        return p
+
+    def ask(shot, recent):
+        return "Walk up to that door and press Space!"
+
+    rows = c.run(grab, tmp_path, 60, ask, lambda t, p: p, quiet, clock, clock.sleep,
+                 child_speaking=lambda: 5 < clock.t < 40)  # fmt: skip
+    assert len(quiet.played) == 1  # the same tip again is not spoken
+    assert rows[1]["t"] >= 40 and rows[1]["repeat"] and not rows[1]["text"]
+
+
+class Talking(Quiet):
+    def __init__(self):
+        super().__init__()
+        self.on = True
+
+    def busy(self):
+        return self.on
+
+    def stop(self):
+        self.on = False
+
+
+def test_the_child_cuts_the_buddy_off_but_its_own_echo_does_not():
+    heard, speaker, at = [], Talking(), [0.0]
+    on = c.ears(heard, speaker, ["Walk up to that door and press Space!"], at)
+    on("walk up to that door", False, "en")  # the buddy heard through the speakers
+    assert speaker.on and not heard and at[0] == 0.0
+    on("wait how do", False, "en")
+    assert not speaker.on and at[0] > 0  # cut off on the first words, before the final
+    on("wait how do I open it", True, "en")
+    assert heard == ["wait how do I open it"]
+
+
+def test_stream_voice_stop_kills_the_player(tmp_path, monkeypatch):
+    import stat
+
+    player = tmp_path / "player"
+    player.write_text("#!/bin/sh\ncat > /dev/null; sleep 30\n")
+    player.chmod(player.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "k")
+    v = c.StreamVoice()
+    v.exe = str(player)
+    v.http = c.httpx.Client(
+        transport=c.httpx.MockTransport(lambda r: c.httpx.Response(200, content=b"x" * 100))
+    )
+    v.say("hi", tmp_path / "say.mp3")
+    v.feeder.join(5)
+    assert v.busy()
+    v.stop()
+    v.proc.wait(5)
+    assert not v.busy()

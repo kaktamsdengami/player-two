@@ -31,8 +31,9 @@ MODELS_URL = "https://api.hcompany.ai/v1/chat/completions"
 MODEL = "holo4-35b-a3b"  # H's fastest vision model
 PROMPT = Path(__file__).resolve().parent.parent / "agents" / "prompts" / "kid.md"
 EVERY_S = 3.0
-MIN_GAP_S = 6.0
-RECENT = 4
+MIN_GAP_S = 12.0  # between the buddy's own lines; an answer to the child does not wait
+RECENT = 8
+SAME = 0.6  # word overlap above which two lines count as the same line
 GONE_S = 30.0  # the window missing this long = the game was closed, not minimised
 MAX_AGE_S = 3.0  # a line about a frame older than this is dropped, not said
 _http: httpx.Client | None = None
@@ -155,6 +156,7 @@ class StreamVoice:
         cmd = [self.exe, "-nodisp", "-autoexit", "-loglevel", "quiet", "-probesize", "32",
                "-analyzeduration", "0", "-fflags", "nobuffer", "-i", "-"]  # fmt: skip
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+        self.stopped = False
         proc = self.proc
 
         def feed() -> None:
@@ -164,7 +166,8 @@ class StreamVoice:
                         f.write(chunk)
                         proc.stdin.write(chunk)
                 except (OSError, httpx.HTTPError) as e:
-                    print(f"voice stream broke: {e}", file=sys.stderr)
+                    if not self.stopped:
+                        print(f"voice stream broke: {e}", file=sys.stderr)
                 finally:
                     r.close()
                     try:
@@ -178,6 +181,12 @@ class StreamVoice:
 
     def __call__(self, path: Path) -> None:  # already playing since say()
         pass
+
+    def stop(self) -> None:
+        """The child started talking: cut the voice now."""
+        self.stopped = True
+        if self.proc and self.proc.poll() is None:
+            self.proc.kill()
 
 
 def _chain(first: bytes, rest: Any) -> Any:
@@ -218,6 +227,16 @@ class Speaker:
         cmd = [self.exe, "-nodisp", "-autoexit", "-loglevel", "quiet", str(path)]
         self.proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL)
 
+    def stop(self) -> None:
+        if self.busy():
+            self.proc.kill()
+
+
+def similar(a: str, b: str) -> float:
+    """Share of the shorter line's words that are also in the other line (0..1)."""
+    wa, wb = (set(re.findall(r"[a-z0-9']+", x.lower())) for x in (a, b))
+    return len(wa & wb) / min(len(wa), len(wb)) if wa and wb else 0.0
+
 
 class _Retry(str):
     """A question put back after its answer failed: it is not put back a second time."""
@@ -237,14 +256,18 @@ def run(
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
     heard: list[str] | None = None,
+    recent: list[str] | None = None,
+    child_speaking: Callable[[], bool] = lambda: False,
 ) -> list[dict[str, Any]]:
-    """`heard`: what the child said (filled by the voice listener); answered before the gap."""
+    """`heard`: what the child said (filled by the voice listener), answered before the gap.
+    `recent`: the lines spoken so far (shared with the listener to ignore its own echo).
+    `child_speaking`: the buddy does not start a line of its own while the child talks."""
     out.mkdir(parents=True, exist_ok=True)
     path = out / "comments.jsonl"
     n0 = path.read_text(encoding="utf-8").count("\n") if path.exists() else 0  # a reused --out
     log = path.open("a", encoding="utf-8")
     rows: list[dict[str, Any]] = []
-    recent: list[str] = []
+    recent = recent if recent is not None else []
     start, last = clock(), -MIN_GAP_S
 
     def requeue(q: str) -> None:  # a question that got no answer is asked once more
@@ -255,7 +278,7 @@ def run(
         while clock() - start < seconds:
             t0 = clock()
             q = heard[-1] if heard else ""
-            if speaker.busy() or (not q and t0 - last < MIN_GAP_S):
+            if speaker.busy() or (not q and (t0 - last < MIN_GAP_S or child_speaking())):
                 sleep(0.1 if q else 0.5)
                 continue
             n = n0 + len(rows)
@@ -283,6 +306,8 @@ def run(
                                    "vision_s": round(t_text - t_shot, 2)}  # fmt: skip
             if q:
                 row["heard"] = q
+            elif text and any(similar(text, r) >= SAME for r in recent[-RECENT:]):
+                row["text"], row["repeat"], text = "", text, ""  # said that already: stay quiet
             if text:
                 if say:
                     try:
@@ -327,9 +352,32 @@ def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def listen(heard: list[str], speaker: Any, language: str = "English") -> None:
-    """Open mic -> Gladia; every final phrase goes to `heard`. The mic is muted while the buddy
-    speaks, so it does not hear itself."""
+def ears(
+    heard: list[str], speaker: Any, recent: list[str], voice_at: list[float]
+) -> Callable[[str, bool, str | None], None]:
+    """Gladia transcript callback: barge-in on the child's voice, ignore the buddy's own echo."""
+
+    def on_transcript(text: str, final: bool, lang: str | None) -> None:  # noqa: ARG001
+        text = text.strip()
+        if len(text.split()) < 2 or any(similar(text, r) >= SAME for r in recent[-2:]):
+            return  # noise, or the buddy hearing itself through the speakers
+        voice_at[0] = time.monotonic()
+        if speaker.busy() and hasattr(speaker, "stop"):
+            speaker.stop()
+            print(json.dumps({"interrupted_by": text}), flush=True)
+        if final:
+            heard.append(text)
+            print(json.dumps({"heard": text}), flush=True)
+
+    return on_transcript
+
+
+def listen(
+    heard: list[str], speaker: Any, language: str = "English", recent: list[str] | None = None
+) -> Callable[[], bool]:
+    """Open mic -> Gladia; every final phrase goes to `heard`. When the child starts talking the
+    buddy's voice is cut (barge-in). What the mic hears of the buddy's own last lines (`recent`)
+    is ignored. Returns `child_speaking()`."""
     from voice.listen import Listener, mic_chunks
 
     _env()
@@ -337,21 +385,14 @@ def listen(heard: list[str], speaker: Any, language: str = "English") -> None:
     if not key:
         raise SystemExit("--talk needs GLADIA_API_KEY")
     talking = threading.Event()
-
-    def mute() -> None:
-        while True:
-            talking.clear() if speaker.busy() else talking.set()
-            time.sleep(0.1)
-
-    def on_transcript(text: str, final: bool, lang: str | None) -> None:  # noqa: ARG001
-        if final and len(text.strip()) > 2:
-            heard.append(text.strip())
-            print(json.dumps({"heard": text.strip()}), flush=True)
+    talking.set()
+    voice_at = [0.0]
+    on_transcript = ears(heard, speaker, recent if recent is not None else [], voice_at)
 
     code = {"english": "en", "french": "fr"}.get(language.lower())
     listener = Listener(key, lambda intent: None, on_transcript, languages=[code] if code else None)
-    threading.Thread(target=mute, daemon=True).start()
     threading.Thread(target=listener.run, args=(mic_chunks(talking),), daemon=True).start()
+    return lambda: time.monotonic() - voice_at[0] < 2.0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -396,10 +437,11 @@ def main(argv: list[str] | None = None) -> int:
         return comment(shot, recent, a.age, a.language, level=a.map, question=question)
 
     heard: list[str] = []
-    if a.talk:
-        listen(heard, speaker, a.language)
+    recent: list[str] = []
+    child_speaking = listen(heard, speaker, a.language, recent) if a.talk else (lambda: False)
 
-    rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard)
+    rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard, recent=recent,
+               child_speaking=child_speaking)  # fmt: skip
     s = summary(rows)
     (out / "summary.json").write_text(json.dumps(s, indent=2))
     print(json.dumps(s), flush=True)
