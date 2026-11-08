@@ -197,6 +197,7 @@ def prompt(recent: list[dict[str, Any]], instruction: str, w: int, h: int, stall
         .replace("{recent}", "\n".join(lines) or "(none yet: the game just started)")
         .replace("{w}", str(w or 480))
         .replace("{h}", str(h or 300))
+        .replace("{cx}", str((w or 480) // 2))
     )
 
 

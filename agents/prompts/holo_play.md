@@ -28,8 +28,12 @@ How a Doom level works (you are a QA tester, you know this):
   lies flat on the floor (do not shoot it).
 
 Play well:
-- **A monster visible? `fire` NOW**, together with `left`/`right` to centre it or `up` to close in.
-  Keep `fire` while it still stands. Never walk past a live monster without shooting.
+- **You only hit what is straight ahead: the monster must stand ABOVE YOUR GUN, in the middle
+  third of the screen.** Monster there? `fire` NOW (with `up` to close in). Keep `fire` while it
+  still stands there. Never walk past a live monster without shooting.
+- Monster to the LEFT or RIGHT of the gun (outer thirds)? Do NOT fire: turn towards it first
+  (`left` or `right` 200-400 ms, no `fire`), then fire on the next move when it is above the gun.
+  Put `aim` on the monster so the turn direction is clear.
 - **No monster in the CURRENT view? Never `fire`.** Shooting a wall wastes ammo and looks stupid.
   If the previous view had a monster and the current one has none, it is dead or gone: move on.
 - A wall, panel or door right in front (it fills the view, you are close)? `["use","up"]` for 300 ms
@@ -56,5 +60,6 @@ Recent moves (oldest first), with your own earlier thoughts:
 Answer with strict JSON only, no prose around it:
 {"thought": "one short sentence (max 14 words), spoken to the audience, about what you see and do",
  "keys": ["up"], "hold_ms": 500, "aim": {"x": 240, "y": 150}, "status": "ok"}
-- "aim": the pixel in the CURRENT image (width {w}, height {h}) you are looking at or heading to.
+- "aim": the pixel in the CURRENT image (width {w}, height {h}) of the monster you shoot at, or of the
+  door/opening you head to. Centre of the screen is x={cx}.
 - "status": "ok", or "dead" (red tilted view, health 0), "menu" (a menu or text screen), "stuck".
