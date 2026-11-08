@@ -37,7 +37,7 @@ KEYS = {
 }  # fmt: skip
 STATUSES = {"ok", "dead", "menu", "stuck"}
 HOLD_MIN, HOLD_MAX = 100, 1500
-TIMEOUT_S = 12.0
+TIMEOUT_S = 9.0
 JSON_RE = re.compile(r"\{.*\}", re.S)
 # ElevenLabs premade "Eric": a friendly guy; flash = fastest first audio for a live commentary
 HOLO_VOICE = "cjVigY5qzO86Huf0OWal"

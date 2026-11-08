@@ -8,7 +8,7 @@
 
 window.HoloDoom = (() => {
   const KID = '/kid/' // where the WASM build and the WAD are served
-  const SHOT_W = 480
+  const SHOT_W = 640
   const KEYS = {
     up: ['ArrowUp', 38], down: ['ArrowDown', 40], left: ['ArrowLeft', 37], right: ['ArrowRight', 39],
     fire: ['Control', 17, 'ControlLeft'], use: [' ', 32, 'Space'], run: ['Shift', 16, 'ShiftLeft'],
@@ -47,6 +47,7 @@ window.HoloDoom = (() => {
       warp: (q.get('warp') || '1 1').split(/[ ,]/), skill: q.get('skill') || '3', god: !q.has('nogod'),
       recordedUrl: '/jury/recorded/run.json', speak: false, pushUrl: null, onStep: () => {}, onState: () => {},
       onFrame: () => {}, record: q.has('record'), busyLimit: Number(q.get('busy')) || 40,
+      pace: Number(q.get('pace')) || 1200, // ms of plain play between moves: Holo gets time to think, the API budget stretches
     }, opts)
     const el = o.container
     el.classList.add('holo-doom')
@@ -169,11 +170,12 @@ window.HoloDoom = (() => {
       return r.json()
     }
 
-    function localMove(stalled) { // Holo is unreachable for a moment: keep moving sensibly
-      if (stalled && st.lastKeys.includes('up') && !st.lastKeys.includes('use')) return { thought: 'Blocked: maybe a door. Use.', keys: ['use', 'up'], hold_ms: 300, aim: null, status: 'stuck', local: true }
+    function localMove(stalled, why) { // no answer from Holo: say so, stand still (or step off a wall), never pretend
+      const no = 'No answer from Holo (' + why + '): '
+      if (stalled && st.lastKeys.includes('up') && !st.lastKeys.includes('use')) return { thought: no + 'I am against something, trying use.', keys: ['use'], hold_ms: 300, aim: null, status: 'stuck', local: true }
       return stalled
-        ? { thought: 'Nothing changed, I will turn around.', keys: ['left'], hold_ms: 900, aim: null, status: 'stuck', local: true }
-        : { thought: 'Moving on while I think.', keys: ['up'], hold_ms: 500, aim: null, status: 'ok', local: true }
+        ? { thought: no + 'still blocked, turning away from the wall.', keys: ['left'], hold_ms: 600, aim: null, status: 'stuck', local: true }
+        : { thought: no + 'standing still until it answers.', keys: [], hold_ms: 800, aim: null, status: 'waiting', local: true }
     }
 
     async function loadRecorded() {
@@ -249,7 +251,7 @@ window.HoloDoom = (() => {
         if (e.busy) { // the shared H budget is spent for this minute: everyone else gets a turn first
           if (e.retryAfter) { st.busyUntil = Date.now() + e.retryAfter * 1000; emit('busy', { retryAfter: e.retryAfter }) }
           if (++st.busyCount >= o.busyLimit) { setMode('recorded', 'Holo is busy: many people are playing'); st.thinking = false; return 'capped' }
-          move = localMove(stalled); move.error = e.message; move.busy = true
+          move = localMove(stalled, 'shared limit, retry in ' + (e.retryAfter || Math.ceil(Math.max(0, st.busyUntil - Date.now()) / 1000)) + ' s'); move.error = e.message; move.busy = true
           st.thinking = false
           st.step++
           const step = Object.assign({ step: st.step, frame, mode: 'live', t: Date.now(), diff: Math.round(st.diff * 10) / 10 }, move)
@@ -257,7 +259,7 @@ window.HoloDoom = (() => {
           await perform(move)
           return 'busy'
         }
-        move = localMove(stalled)
+        move = localMove(stalled, /timeout|Timeout/.test(e.message) ? 'timeout' : e.message)
         move.error = e.message
         if (++st.errors >= 6) { setMode('recorded', 'Holo unreachable: ' + e.message); st.thinking = false; return 'capped' }
       }
@@ -338,7 +340,7 @@ window.HoloDoom = (() => {
         try {
           if (st.human) { await sleep(250); continue }
           if (st.mode === 'live' && !st.gameReady) { await sleep(200); continue }
-          if (st.mode === 'live') await stepLive()
+          if (st.mode === 'live') { await stepLive(); if (st.mode === 'live' && !st.human) await sleep(o.pace) }
           else if (st.mode === 'recorded') await stepRecorded()
           else await sleep(200)
         } catch (e) {
