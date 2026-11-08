@@ -11,8 +11,10 @@ H Agents API, Devin, Gladia, Linkup and Stripe.
 **https://establishment-era-zen-guides.trycloudflare.com/** — no install, no login.
 
 - **TESTER MODE · `/arcade/`** — H Company's Holo plays Doom live in your browser: it looks at the
-  pixels, says what it sees, presses the keys. A 13 s *tester briefing* walks the known route to the
-  first door, then Holo is on its own. **INSERT COIN** hands you the controls; give them back any time.
+  pixels, says what it sees, presses the keys. A short scripted *tester briefing* (labelled as such in
+  the move log) walks the known route to the first door, then Holo is on its own. Every page says LIVE
+  or RECORDED: when the shared H API budget is spent or no key is set, the page replays a recorded
+  Holo run and says so. **INSERT COIN** hands you the controls; give them back any time.
 - **KID MODE · `/kid/`** — you play, Pixel (Holo eyes, ElevenLabs voice, Gladia ears) watches the
   screen and talks with you.
 - **`/pricing/`** — KID €5 and PRO €49 subscriptions through real Stripe Checkout (test mode, card
