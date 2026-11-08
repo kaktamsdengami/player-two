@@ -60,9 +60,15 @@ def _env() -> None:
         pass
 
 
-KID_VOICE = "cgSgspJ2msm6clMCkdW9"  # ElevenLabs premade "Jessica": playful, bright, warm
-VOICE_SETTINGS = {"stability": 0.35, "similarity_boost": 0.8, "use_speaker_boost": True}
-CHAT = 12  # lines of the conversation the buddy remembers
+KID_VOICE = "XrExE9yKIg1WjnnlVkGX"  # ElevenLabs premade "Matilda": warm, calm
+# high stability = an even, everyday tone (low = theatrical)
+VOICE_SETTINGS = {
+    "stability": 0.65,
+    "similarity_boost": 0.75,
+    "style": 0.0,
+    "use_speaker_boost": True,
+}
+CHAT = 60  # lines of the conversation the buddy remembers (+ the first 6: names, hellos)
 HELLO = "Hey, I'm Pixel! Ready to play Doom together?"
 BYE = "That was so much fun! See you next time, buddy!"
 
@@ -70,6 +76,20 @@ BYE = "That was so much fun! See you next time, buddy!"
 def kid_voice() -> str:
     _env()  # a voice set only in .env counts too
     return os.environ.get("P2_KID_VOICE") or KID_VOICE  # blank = default
+
+
+BOT = re.compile(
+    r"let'?s (keep going|explore)|\bdive\b|adventure|\bzap|awesome|super excited|watch out for"
+    r"|you'?re doing great|nice shot|ready to|what'?s next",
+    re.I,
+)  # sounds like a bot: never said
+
+
+def memory(chat: list[str]) -> list[str]:
+    """The start of the talk (names) plus the last CHAT lines."""
+    if len(chat) <= CHAT + 6:
+        return chat
+    return [*chat[:6], "...", *chat[-CHAT:]]
 
 
 def prompt(
@@ -88,7 +108,7 @@ def prompt(
         .replace("{language}", language)
         .replace("{recent}", lines)
         .replace("{question}", f'"{question}"' if question else "(nothing)")
-        .replace("{chat}", "\n".join((chat or [])[-CHAT:]) or "(nothing yet)")
+        .replace("{chat}", "\n".join(memory(chat or [])) or "(nothing yet)")
     )
 
 
@@ -303,6 +323,7 @@ def run(
     recent: list[str] | None = None,
     child_speaking: Callable[[], bool] = lambda: False,
     chat: list[str] | None = None,
+    closed: Callable[[], bool] = lambda: False,
 ) -> list[dict[str, Any]]:
     """`heard`: what the child said (filled by the voice listener), answered before the gap.
     `recent`: the lines spoken so far (shared with the listener to ignore its own echo).
@@ -323,6 +344,9 @@ def run(
     try:
         while clock() - start < seconds:
             t0 = clock()
+            if closed():
+                print("game window closed: stopping", file=sys.stderr)
+                break
             q = heard[-1] if heard else ""
             if speaker.busy() or (not q and (t0 - last < MIN_GAP_S or child_speaking())):
                 sleep(0.1 if q else 0.5)
@@ -352,7 +376,9 @@ def run(
                                    "vision_s": round(t_text - t_shot, 2)}  # fmt: skip
             if q:
                 row["heard"] = q
-            elif text and any(similar(text, r) >= SAME for r in recent[-RECENT:]):
+            elif text and (
+                BOT.search(text) or any(similar(text, r) >= SAME for r in recent[-RECENT:])
+            ):
                 row["text"], row["repeat"], text = "", text, ""  # said that already: stay quiet
             if text:
                 if say:
@@ -440,7 +466,16 @@ def listen(
 
     code = {"english": "en", "french": "fr"}.get(language.lower())
     listener = Listener(key, lambda intent: None, on_transcript, languages=[code] if code else None)
-    threading.Thread(target=listener.run, args=(mic_chunks(talking),), daemon=True).start()
+
+    def keep_listening() -> None:  # a live STT session ends after a while: open a new one
+        while True:
+            try:
+                listener.run(mic_chunks(talking))
+            except Exception as e:  # noqa: BLE001  network, Gladia, mic: retry
+                print(f"voice: listener stopped ({e}), reconnecting", file=sys.stderr)
+            time.sleep(1.0)
+
+    threading.Thread(target=keep_listening, daemon=True).start()
     return lambda: time.monotonic() - voice_at[0] < 2.0
 
 
@@ -455,6 +490,7 @@ def greet(line: str, say: Any, speaker: Any, path: Path, recent: list[str]) -> N
         audio = say(line, path)
         speaker(getattr(audio, "path", audio))
         recent.append(line)
+        print(json.dumps({"greeting": line}), flush=True)
         end = time.monotonic() + 10
         while speaker.busy() and time.monotonic() < end:
             time.sleep(0.1)
@@ -479,14 +515,19 @@ def main(argv: list[str] | None = None) -> int:
 
     gone: list[float] = []  # when the window was last seen missing (minimised looks the same)
 
+    def closed() -> bool:  # checked every loop turn, not only when a frame is taken
+        if find_window(a.window) is not None:
+            gone.clear()
+            return False
+        gone[:] = gone or [time.monotonic()]
+        return time.monotonic() - gone[0] > GONE_S
+
     def grab(path: Path) -> Path | None:
+        if closed():
+            raise GameClosed(a.window)
         win = find_window(a.window)
         if win is None:
-            gone[:] = gone or [time.monotonic()]
-            if time.monotonic() - gone[0] > GONE_S:
-                raise GameClosed(a.window)
             return None
-        gone.clear()
         # the capture is a screen rectangle: only send it when the game is on top
         return grab_window(win, path) if win and on_top(win.handle) else None
 
@@ -512,7 +553,7 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     greet(HELLO, say, speaker, out / "hello.mp3", recent)
     rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard, recent=recent,
-               child_speaking=child_speaking, chat=chat)  # fmt: skip
+               child_speaking=child_speaking, chat=chat, closed=closed)  # fmt: skip
     greet(BYE, say, speaker, out / "bye.mp3", recent)
     s = summary(rows)
     (out / "summary.json").write_text(json.dumps(s, indent=2))

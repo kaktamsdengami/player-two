@@ -33,7 +33,7 @@ def test_lines_are_rate_limited_logged_and_spoken(tmp_path):
         clock.t += 0.2
         return p
 
-    answers = iter(["Look, a green armour!", "", "Nice shot!", "Keep going!"] * 5)
+    answers = iter(["Look, a green armour!", "", "Oh, a door over there.", "Keep going!"] * 5)
 
     def ask(shot, recent):
         clock.t += 1.0
@@ -46,7 +46,7 @@ def test_lines_are_rate_limited_logged_and_spoken(tmp_path):
 
     rows = c.run(grab, tmp_path, 30, ask, say, speaker, clock, clock.sleep)
     spoken = [r for r in rows if r["text"]]
-    assert said[:2] == ["Look, a green armour!", "Nice shot!"]
+    assert said[:2] == ["Look, a green armour!", "Oh, a door over there."]
     assert all(b["t"] - a["t"] >= c.MIN_GAP_S for a, b in zip(spoken, spoken[1:], strict=False))
     assert spoken[0]["latency_s"] == 1.7 and len(speaker.played) == len(said)
     assert (tmp_path / "comments.jsonl").read_text().count("\n") == len(rows)
@@ -253,7 +253,7 @@ def test_the_buddy_does_not_repeat_itself_or_talk_over_the_child(tmp_path):
         c.similar("Walk up to that door and press Space!", "walk up to the door, press space")
         >= c.SAME
     )
-    assert c.similar("Nice shot!", "Grab that medikit on the left") < c.SAME
+    assert c.similar("Oh, a door over there.", "Grab that medikit on the left") < c.SAME
     assert c.similar("Grab that medikit on the left!", "Grab that medikit on the right!") < c.SAME
     clock, quiet = Clock(), Quiet()
 
@@ -349,3 +349,11 @@ def test_a_blank_kid_voice_means_the_default(monkeypatch):
     assert c.kid_voice() == c.KID_VOICE
     monkeypatch.setenv("P2_KID_VOICE", "abc")
     assert c.kid_voice() == "abc"
+
+
+def test_bot_phrases_are_never_said_and_names_are_remembered():
+    assert c.BOT.search("Awesome! Let's keep going!")
+    assert not c.BOT.search("hmm, I think the door is on the left")
+    chat = [f"line {i}" for i in range(100)]
+    kept = c.memory(chat)
+    assert kept[:6] == chat[:6] and kept[-1] == "line 99" and len(kept) == c.CHAT + 7
