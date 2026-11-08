@@ -6,6 +6,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 
 const VOICE = 'EXAVITQu4vr4xnSDxMaL' // Sarah, same as s1..s8
 const SETTINGS = { stability: 0.45, similarity_boost: 0.8, style: 0.15, use_speaker_boost: true }
+// story v2 (n*): Brian, a warmer, less synthetic narrator
+const NARRATOR = 'nPczCjzI2devNBz1zQrb'
+const NARRATOR_SETTINGS = { stability: 0.4, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true }
 
 export const LINES = {
   p1: 'Doom is over thirty years old. This sky bug has been in its code since 1993, and it is still in Chocolate Doom and Crispy Doom today. Tonight, an AI tester found it, and Devin fixed it.',
@@ -46,6 +49,19 @@ export const LINES = {
   b8: "The game is rebuilt, the scenario is replayed, and now the sky turns grey. Found, proven and fixed, six and a half minutes after 'fix it'.",
   b9: "That was one bug, in one night. Now imagine it on a studio's game, as big as GTA 6: hundreds of AI testers playing every build overnight, and every bug arriving with a video, a proof, and a fix ready to review.",
   b10: "PLAYER TWO. Your game's toughest tester.",
+  // story cut v2 (Story.tsx): market -> problem -> idea -> live test -> bug -> found/proven/fixed -> kid mode -> potential
+  n1: 'Games are the biggest entertainment business on Earth. About two hundred billion dollars a year. Three and a half billion players.',
+  n2: 'And every one of those games ships with bugs. Studios spend a big part of every budget on testing: rooms of people, replaying the same levels for months. And bugs still reach the players.',
+  n3: 'So we built PLAYER TWO: an AI that tests your game the way a player would. It plays, it hunts for bugs, it proves each one, and it gets it fixed.',
+  n4: 'To show it, we gave it a real game: Doom. Open source, thirty years old. The AI gets no code and no game data. Only the screen, and a keyboard.',
+  n5: 'This is it playing, live, on our laptop. The player is H, a computer-use agent. Monsters attack it. It fights back, and keeps testing.',
+  n6: 'And here is what it caught. Invulnerability should turn the whole screen grey. But look at the sky. It stays red. A tiny bug that has survived thirty years of players.',
+  n7: 'It writes a bug report, with the steps. Then our verifier replays its exact moves, and the game engine itself confirms the bug.',
+  n8: 'The developer says one sentence: yes, fix it. Devin, an AI software engineer, finds the cause, writes the fix, and opens a pull request.',
+  n9: "The game is rebuilt, the scenario is replayed, and now the sky turns grey. Found, proven and fixed, six and a half minutes after 'fix it'.",
+  n10: 'And the same eyes can play with you. In kid mode, PLAYER TWO becomes Pixel, a game buddy for children. It sees the screen, hears your voice, and answers. Listen.',
+  n11: "That was one bug, on one laptop, in one night. Now point it at a two-hundred-billion-dollar industry. Hundreds of AI testers on every build of a game as big as GTA 6, every night. Every bug arriving with a video, a proof, and a fix ready to review. And for every player, a buddy inside the game.",
+  n12: "PLAYER TWO. Your game's toughest tester, and its best friend.",
   k7: 'The same eyes power Pixel, a game buddy. H sees the screen, Gladia hears you, ElevenLabs talks back.',
 }
 
@@ -60,10 +76,11 @@ if (!key) throw new Error('ELEVENLABS_API_KEY missing')
 mkdirSync('public/vo', { recursive: true })
 for (const id of process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(LINES)) {
   const text = LINES[id]
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE}/with-timestamps?output_format=mp3_44100_128`, {
+  const story2 = /^n\d+$/.test(id)
+  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${story2 ? NARRATOR : VOICE}/with-timestamps?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'xi-api-key': key, 'content-type': 'application/json' },
-    body: JSON.stringify({ text, model_id: 'eleven_multilingual_v2', voice_settings: SETTINGS }),
+    body: JSON.stringify({ text, model_id: 'eleven_multilingual_v2', voice_settings: story2 ? NARRATOR_SETTINGS : SETTINGS }),
   })
   if (!r.ok) throw new Error(`${id}: ${r.status} ${await r.text()}`)
   const j = await r.json()
