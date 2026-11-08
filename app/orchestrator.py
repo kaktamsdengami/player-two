@@ -662,6 +662,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         fixed = not replay.still_there
         a = a.model_copy(update={"result": FixResult.fixed if fixed else FixResult.not_fixed,
                                  "finished_at": _now()})  # fmt: skip
+        a = add_comparison(a, bug)
         if fixed:
             cfg.exe = exe  # the next round plays the fixed build
         return a
