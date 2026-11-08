@@ -341,3 +341,11 @@ def test_hello_and_goodbye_are_spoken_and_remembered(tmp_path):
     assert said == [tmp_path / "hello.mp3"] and recent == [c.HELLO]
     c.greet(c.BYE, None, Quiet(), tmp_path / "bye.mp3", recent)  # --no-voice: silent
     assert recent == [c.HELLO]
+
+
+def test_a_blank_kid_voice_means_the_default(monkeypatch):
+    monkeypatch.setattr(c, "_env", lambda: None)
+    monkeypatch.setenv("P2_KID_VOICE", "")
+    assert c.kid_voice() == c.KID_VOICE
+    monkeypatch.setenv("P2_KID_VOICE", "abc")
+    assert c.kid_voice() == "abc"

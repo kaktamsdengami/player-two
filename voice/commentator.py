@@ -66,7 +66,8 @@ BYE = "That was so much fun! See you next time, buddy!"
 
 
 def kid_voice() -> str:
-    return os.environ.get("P2_KID_VOICE", KID_VOICE)
+    _env()  # a voice set only in .env counts too
+    return os.environ.get("P2_KID_VOICE") or KID_VOICE  # blank = default
 
 
 def prompt(
