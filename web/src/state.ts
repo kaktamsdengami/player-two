@@ -25,6 +25,7 @@ export type Action =
   | { type: 'event'; event: SseEvent }
   | { type: 'error'; message: string }
   | { type: 'intent'; intent: VoiceIntent }
+  | { type: 'dismiss' }
 
 function upsert<T>(list: T[], item: T, key: (t: T) => string): T[] {
   const k = key(item)
@@ -41,6 +42,8 @@ export function reducer(state: State, action: Action): State {
       return { ...state, snap: normalize(action.snap), error: null }
     case 'error':
       return { ...state, error: action.message }
+    case 'dismiss':
+      return { ...state, error: null }
     case 'intent':
       return { ...state, voice: { ...state.voice, intent: action.intent, at: Date.now() } }
     case 'event':
@@ -49,6 +52,7 @@ export function reducer(state: State, action: Action): State {
 }
 
 // SSE payloads may omit fields that have defaults in app/contracts.py; fill them here.
+type Raw = Record<string, unknown>
 const asFinding = (d: Record<string, unknown>): Finding => {
   const f = d as unknown as Finding
   const ev = (f.evidence ?? {}) as Partial<Finding['evidence']>
@@ -71,17 +75,23 @@ const asSpot = (d: Record<string, unknown>): PlacementSpot => {
   const p = d as unknown as PlacementSpot
   return { ...p, brand_candidates: p.brand_candidates ?? [] }
 }
+// /api/debrief is null until the run's debrief is ready
+export const asDebrief = (d: Partial<DebriefReport> | null | undefined, session_id = ''): DebriefReport => ({
+  session_id, game: '', duration_s: 0, generated_at: '', ...(d ?? {}),
+  maps: d?.maps ?? [], heatmap: d?.heatmap ?? [], notes: (d?.notes ?? []).map((n) => asNote(n as unknown as Raw)),
+  suggestions: d?.suggestions ?? [], references: d?.references ?? [],
+})
 const asPlan = (d: Record<string, unknown>): Plan => {
   const p = d as unknown as Plan
   return { ...p, features: p.features ?? [] }
 }
-type Raw = Record<string, unknown>
 export const normalize = (s: Snapshot): Snapshot => ({
   ...s,
   actions: s.actions.map((a) => asAction(a as unknown as Raw)),
   notes: s.notes.map((n) => asNote(n as unknown as Raw)),
   findings: s.findings.map((f) => asFinding(f as unknown as Raw)),
-  placement: s.placement.map((p) => asSpot(p as unknown as Raw)),
+  debrief: asDebrief(s.debrief, s.session.id),
+  placement: (s.placement ?? []).map((p) => asSpot(p as unknown as Raw)),
   plans: s.plans.map((p) => asPlan(p as unknown as Raw)),
 })
 
@@ -96,9 +106,9 @@ export function applyEvent(state: State, e: SseEvent): State {
         // a new session starts clean; updates to the same session only patch what they carry
         if (next.id && next.id !== snap.session.id) {
           const base = { state: 'idle', speed: 'frame-step', live: false, steps: 0, findings: 0 }
-          const debrief = { ...snap.debrief, session_id: next.id, heatmap: [], notes: [], suggestions: [], references: [] }
+          const debrief = asDebrief(null, next.id)
           const fresh = { actions: [], notes: [], findings: [], fixes: [], narrations: [], placement: [], debrief }
-          return { ...state, snap: { ...snap, ...fresh, session: { ...base, ...next } as SessionInfo } }
+          return { ...state, error: null, snap: { ...snap, ...fresh, session: { ...base, ...next } as SessionInfo } }
         }
         return { ...state, snap: { ...snap, session: { ...snap.session, ...next } as SessionInfo } }
       }
@@ -115,7 +125,7 @@ export function applyEvent(state: State, e: SseEvent): State {
     case 'agent.note':
       return { ...state, snap: { ...snap, notes: upsert(snap.notes, asNote(d), (n) => n.ts) } }
     case 'debrief.ready':
-      return { ...state, snap: { ...snap, debrief: { ...snap.debrief, ...(d as unknown as DebriefReport) } } }
+      return { ...state, snap: { ...snap, debrief: asDebrief({ ...snap.debrief, ...(d as Partial<DebriefReport>) }, snap.session.id) } }
     case 'placement.ready':
       return {
         ...state,
@@ -133,7 +143,7 @@ export function applyEvent(state: State, e: SseEvent): State {
     case 'voice.narration':
       return { ...state, voice: { ...state.voice, speaking: d as unknown as Narration, at: Date.now() } }
     case 'error':
-      return { ...state, error: String(d.message ?? 'error') }
+      return { ...state, error: `Run error: ${String(d.message ?? 'unknown')}` }
     default:
       return state
   }

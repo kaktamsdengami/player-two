@@ -9,7 +9,7 @@ body { margin: 0; }
 a { color: var(--info); }
 button {
   font: inherit; font-size: 0.9rem; color: var(--text); background: #1f2533; border: 1px solid var(--line);
-  border-radius: 8px; padding: 0.45rem 0.9rem; cursor: pointer; text-transform: capitalize;
+  border-radius: 8px; padding: 0.45rem 0.9rem; cursor: pointer;
 }
 button:hover { border-color: var(--dim); }
 button.primary { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
@@ -32,7 +32,7 @@ nav { display: flex; gap: 0.4rem; }
 nav button.on { background: var(--text); color: var(--bg); }
 main { padding: 1.2rem 1.5rem; }
 .loading, .empty { color: var(--dim); text-align: center; padding: 4rem; }
-.error { background: #3a1414; color: #ffb4ab; padding: 0.5rem 1.5rem; }
+.error { background: #3a1414; color: #ffb4ab; padding: 0.5rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 1rem 1.2rem; }
 h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); margin: 0.4rem 0 0.7rem; }
 h3 { margin: 0.2rem 0; }
@@ -99,7 +99,7 @@ pre { font-size: 0.75rem; background: #0b0d12; padding: 0.5rem; border-radius: 6
 @media (max-width: 1100px) { .live-grid, .debrief-grid, .card-body, .plans { grid-template-columns: 1fr; } .live-grid { height: auto; } }
 
 .speaking::before,
-.narration::before {
+.narration.on::before {
   content: 'SPEAKING ';
   font-size: 0.7em;
   font-weight: 700;
@@ -111,3 +111,13 @@ pre { font-size: 0.75rem; background: #0b0d12; padding: 0.5rem; border-radius: 6
 .new-run summary { cursor: pointer; font-weight: 600; }
 .new-run label { display: block; margin: 0.5rem 0; font-size: 0.9rem; }
 .new-run textarea, .new-run select { display: block; width: 100%; margin-top: 0.25rem; background: #0b0d12; color: inherit; border: 1px solid var(--line); border-radius: 6px; padding: 0.4rem; font: inherit; }
+button.cap { text-transform: capitalize; }
+button.link { background: none; border: 0; color: inherit; padding: 0.2rem 0.4rem; }
+.small { font-size: 0.85rem; }
+.empty .small { margin-top: 0.6rem; }
+.grow { flex: 1; min-width: 0; }
+.row { display: flex; align-items: center; gap: 0.7rem; flex-wrap: wrap; }
+.notice { background: #2a2410; border: 1px solid #5a4a12; color: #ffd27a; border-radius: 8px; padding: 0.5rem 0.9rem; font-size: 0.9rem; }
+.center.notice { max-width: 640px; margin: 1rem auto 0; }
+.narration button { margin-bottom: 0.4rem; font-style: normal; }
+.card-actions { align-items: center; flex-wrap: wrap; }

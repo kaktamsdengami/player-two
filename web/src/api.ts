@@ -62,31 +62,30 @@ export function subscribe(onEvent: (e: SseEvent) => void): () => void {
   return () => clearInterval(timer)
 }
 
-async function post(path: string, body?: unknown): Promise<void> {
-  if (USING_MOCK) return
+/** POST JSON; errors carry the API's `detail` (e.g. "no session") instead of a bare status code. */
+async function post<T = unknown>(path: string, body?: unknown): Promise<T | null> {
+  if (USING_MOCK) return null
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!r.ok) throw new Error(`POST ${path}: HTTP ${r.status}`)
+  const data = (await r.json().catch(() => null)) as { detail?: unknown } | null
+  if (!r.ok) {
+    const detail = typeof data?.detail === 'string' ? data.detail : `HTTP ${r.status}`
+    throw new Error(`${path.replace('/api/', '')}: ${detail}`)
+  }
+  return data as T
 }
 
 export const sendIntent = (intent: VoiceIntent) => post('/api/intent', intent)
 export const stopSession = () => post('/api/stop')
+/** No `mode`: the server runs its configured mode (live on the stage laptop, recorded elsewhere). */
 export const startSession = (plan: string, preset: string) =>
-  post('/api/session/start', { mode: 'live', plan: plan.trim() || null, preset })
+  post<{ started: boolean; live: boolean }>('/api/session/start', { plan: plan.trim() || null, preset })
 
-export async function checkout(plan: string): Promise<string | null> {
-  if (USING_MOCK) return null
-  const r = await fetch(`${API_BASE}/api/billing/checkout`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan }),
-  })
-  if (!r.ok) throw new Error(`checkout: HTTP ${r.status}`)
-  return ((await r.json()) as { url: string }).url
-}
+export const checkout = async (plan: string): Promise<string | null> =>
+  (await post<{ url: string }>('/api/billing/checkout', { plan }))?.url ?? null
 
 /** Media URL, or null in mock mode (mock paths point to files that do not exist). */
 export const media = (path?: string | null) =>
