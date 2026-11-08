@@ -55,7 +55,7 @@ def _env() -> None:
         pass
 
 
-def prompt(age: int, language: str, recent: list[str], level: str = "") -> str:
+def prompt(age: int, language: str, recent: list[str], level: str = "", question: str = "") -> str:
     text = PROMPT.read_text(encoding="utf-8")
     lines = "\n".join(f"- {r}" for r in recent[-RECENT:]) or "(nothing yet)"
     return (
@@ -63,6 +63,7 @@ def prompt(age: int, language: str, recent: list[str], level: str = "") -> str:
         .replace("{map}", level or "unknown, guess it from the screen")
         .replace("{language}", language)
         .replace("{recent}", lines)
+        .replace("{question}", f'"{question}"' if question else "(nothing)")
     )
 
 
@@ -73,6 +74,7 @@ def comment(
     language: str = "English",
     timeout: float = 30,
     level: str = "",
+    question: str = "",
 ) -> str:
     """One line for the child about this screenshot, or "" when the model says SKIP."""
     _env()
@@ -85,7 +87,7 @@ def comment(
         "chat_template_kwargs": {"enable_thinking": False},  # faster when the API honours it
         "messages": [{"role": "user", "content": [
             {"type": "image_url", "image_url": {"url": f"data:image/{mime};base64,{img}"}},
-            {"type": "text", "text": prompt(age, language, recent, level)},
+            {"type": "text", "text": prompt(age, language, recent, level, question)},
         ]}],
     }  # fmt: skip
     headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
@@ -225,7 +227,9 @@ def run(
     speaker: Any,
     clock: Callable[[], float] = time.monotonic,
     sleep: Callable[[float], None] = time.sleep,
+    heard: list[str] | None = None,
 ) -> list[dict[str, Any]]:
+    """`heard`: what the child said (filled by the voice listener); answered before the gap."""
     out.mkdir(parents=True, exist_ok=True)
     path = out / "comments.jsonl"
     n0 = path.read_text(encoding="utf-8").count("\n") if path.exists() else 0  # a reused --out
@@ -236,8 +240,9 @@ def run(
     try:
         while clock() - start < seconds:
             t0 = clock()
-            if speaker.busy() or t0 - last < MIN_GAP_S:
-                sleep(0.5)
+            q = heard[-1] if heard else ""
+            if speaker.busy() or (not q and t0 - last < MIN_GAP_S):
+                sleep(0.1 if q else 0.5)
                 continue
             n = n0 + len(rows)
             shot = grab(out / f"shot_{n:03d}.jpg")
@@ -245,8 +250,10 @@ def run(
                 sleep(EVERY_S)
                 continue
             t_shot = clock()
+            if q:
+                heard.clear()
             try:
-                text = ask(shot, recent)
+                text = ask(shot, recent, q) if q else ask(shot, recent)
             except (httpx.HTTPError, KeyError, ValueError) as e:
                 print(f"comment failed: {e}", file=sys.stderr)
                 sleep(EVERY_S)
@@ -255,6 +262,8 @@ def run(
             row: dict[str, Any] = {"i": n, "t": round(t0 - start, 2), "shot": shot.name,
                                    "text": text, "grab_s": round(t_shot - t0, 2),
                                    "vision_s": round(t_text - t_shot, 2)}  # fmt: skip
+            if q:
+                row["heard"] = q
             if text:
                 if say:
                     try:
@@ -274,7 +283,8 @@ def run(
             log.write(json.dumps(row) + "\n")
             log.flush()
             print(json.dumps(row), flush=True)
-            sleep(max(0.0, EVERY_S - (clock() - t0)))
+            while clock() - t0 < EVERY_S and not heard:  # a question cuts the wait
+                sleep(0.1)
     finally:
         log.close()
     return rows
@@ -294,6 +304,32 @@ def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def listen(heard: list[str], speaker: Any) -> None:
+    """Open mic -> Gladia; every final phrase goes to `heard`. The mic is muted while the buddy
+    speaks, so it does not hear itself."""
+    from voice.listen import Listener, mic_chunks
+
+    _env()
+    key = os.environ.get("GLADIA_API_KEY")
+    if not key:
+        raise SystemExit("--talk needs GLADIA_API_KEY")
+    talking = threading.Event()
+
+    def mute() -> None:
+        while True:
+            talking.clear() if speaker.busy() else talking.set()
+            time.sleep(0.1)
+
+    def on_transcript(text: str, final: bool, lang: str | None) -> None:  # noqa: ARG001
+        if final and len(text.strip()) > 2:
+            heard.append(text.strip())
+            print(json.dumps({"heard": text.strip()}), flush=True)
+
+    listener = Listener(key, lambda intent: None, on_transcript)
+    threading.Thread(target=mute, daemon=True).start()
+    threading.Thread(target=listener.run, args=(mic_chunks(talking),), daemon=True).start()
+
+
 def main(argv: list[str] | None = None) -> int:
     from launcher.window import find_window
 
@@ -302,6 +338,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--minutes", type=float, default=2)
     p.add_argument("--age", type=int, default=8)
     p.add_argument("--language", default="English")
+    p.add_argument("--talk", action="store_true", help="the child can talk to the buddy (mic)")
     p.add_argument("--map", default="", help="the level the child starts on, e.g. E1M1")
     p.add_argument("--no-voice", action="store_true", help="write the lines, do not speak them")
     p.add_argument("--out", type=Path)
@@ -323,10 +360,14 @@ def main(argv: list[str] | None = None) -> int:
 
             say = speak
 
-    def ask(shot: Path, recent: list[str]) -> str:
-        return comment(shot, recent, a.age, a.language, level=a.map)
+    def ask(shot: Path, recent: list[str], question: str = "") -> str:
+        return comment(shot, recent, a.age, a.language, level=a.map, question=question)
 
-    rows = run(grab, out, a.minutes * 60, ask, say, speaker)
+    heard: list[str] = []
+    if a.talk:
+        listen(heard, speaker)
+
+    rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard)
     s = summary(rows)
     (out / "summary.json").write_text(json.dumps(s, indent=2))
     print(json.dumps(s), flush=True)

@@ -192,3 +192,25 @@ def test_stream_voice_pipes_chunks_to_the_player_and_the_file(tmp_path, monkeypa
     assert "/stream" in seen["url"] and not v.busy()
     assert out.read_bytes() == got.read_bytes() == b"ID3" + b"x" * 5000
     assert os.path.getsize(out) == 5003
+
+
+def test_what_the_child_says_is_answered_right_away(tmp_path):
+    clock, quiet, asked = Clock(), Quiet(), []
+    heard = []
+
+    def ask(shot, recent, question=""):
+        asked.append(question)
+        if len(asked) == 1:
+            heard.append("how do I open this door?")  # said just after the first line
+        return "answer" if question else "line"
+
+    def grab(p):
+        p.write_bytes(b"jpg")
+        return p
+
+    rows = c.run(grab, tmp_path, 3, ask, lambda t, p: p, quiet, clock, clock.sleep, heard=heard)
+    assert asked[:2] == ["", "how do I open this door?"]  # no MIN_GAP_S wait for an answer
+    assert rows[1]["heard"] == "how do I open this door?" and not heard
+    assert '"how do I open this door?"' in c.prompt(
+        8, "English", [], question="how do I open this door?"
+    )

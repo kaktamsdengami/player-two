@@ -30,6 +30,9 @@ Rules:
 - Never ask for personal information. Never tell the child to buy anything.
 - Do not repeat what you said recently (below). If nothing new is happening, answer exactly SKIP.
 
+The child just said to you (by voice): {question}
+If the child said something, answer THAT first, using the screenshot (max 20 words, never SKIP).
+
 You said recently:
 {recent}
 
