@@ -34,6 +34,31 @@ def foreground(win: Window) -> None:
         subprocess.run(["xdotool", "windowactivate", "--sync", str(win.handle)], check=False)
 
 
+def refocus(win: Window) -> bool:
+    """Give the game the keyboard back if something else took it (e.g. a click on the dashboard
+    beside the game). True when it had to. Windows only: X11 test desktops have nothing else."""
+    if not IS_WINDOWS:
+        return False
+    import ctypes
+
+    user32, kernel32 = ctypes.windll.user32, ctypes.windll.kernel32
+    fg = user32.GetForegroundWindow()
+    if not fg or fg == win.handle:
+        return False
+    # Windows refuses SetForegroundWindow from a background process unless it shares input
+    # with the current foreground thread.
+    other = user32.GetWindowThreadProcessId(fg, None)
+    me = kernel32.GetCurrentThreadId()
+    user32.AttachThreadInput(me, other, True)
+    try:
+        user32.ShowWindow(win.handle, 9)  # SW_RESTORE
+        user32.SetForegroundWindow(win.handle)
+        user32.BringWindowToTop(win.handle)
+    finally:
+        user32.AttachThreadInput(me, other, False)
+    return True
+
+
 def _find_x11(title_part: str) -> Window | None:
     env = {**os.environ, "DISPLAY": os.environ.get("DISPLAY", ":0")}
     out = subprocess.run(

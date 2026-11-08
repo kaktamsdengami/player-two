@@ -453,6 +453,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     from launcher.build import create_branch, pull_and_rebuild, qa_script
     from launcher.config import IS_WINDOWS, PRESETS, LauncherConfig, Speed
     from launcher.game import Game
+    from launcher.window import refocus
     from voice.narrate import narrate
 
     cfg = LauncherConfig.from_env()
@@ -490,6 +491,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                                      on_note=lambda n: orch.on_note(n))  # fmt: skip
             self.tester: Tester | None = None
             self.rec: Any = None
+            self.win: Any = None
 
         def start(self, task_: str | None) -> tuple[str, str | None]:
             choose_region()  # raises HBusyError("H busy ... retry in ~15 min"): shown as error
@@ -497,6 +499,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             win = game.start(episode, map_, speed, record=game.run_dir / "agent")
             if win is None:
                 raise RuntimeError("game window did not appear")
+            self.win = win
             try:  # for the placement scout; the loop runs without it
                 self.rec = capture.record(win, run_dir / "recording.mp4", cfg.fps)
             except Exception as e:  # noqa: BLE001
@@ -512,6 +515,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             t = threading.Thread(target=self.tester.follow, args=(log, start), daemon=True)
             t.start()
             while t.is_alive() or (self.tester.run and seen < len(self.tester.run.actions)):
+                if t.is_alive() and self.win and refocus(self.win):  # a click beside the game
+                    orch.error("the game lost keyboard focus: gave it back", "focus")
                 acts = self.tester.run.actions if self.tester.run else []
                 for a in acts[seen:]:
                     on_action(a)
@@ -521,7 +526,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         def send(self, message: str) -> None:
             if not game.running:
                 archive()
-                game.start(episode, map_, speed)
+                self.win = game.start(episode, map_, speed)
             self.tester.send(message)
 
         def stop(self) -> None:
