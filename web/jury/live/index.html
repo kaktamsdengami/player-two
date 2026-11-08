@@ -80,10 +80,10 @@
   // nobody streams within 8 s -> this browser runs its own Holo game (the usual engine), still zero clicks
   let bcast = 'off', t0 = Date.now()
   const fallback = () => {
-    if (own || Date.now() - gotFrame < 8000) return
+    if (($('#stream').hidden && own) || Date.now() - gotFrame < 8000) return
     if (bcast === 'running' && Date.now() - t0 < 40000) return // the server is booting the shared game: give it time
     $('#status').textContent = 'no shared stream here: starting your own Holo game'
-    startOwn(false)
+    if (own) { showOwn(true); own.start() } else startOwn(false) // after BACK with the stream gone: resume the private game
   }
   setTimeout(fallback, 8000); setInterval(fallback, 15000)
   function showOwn(on) { $('#stream').hidden = on; $('#game').hidden = !on; $('#over').hidden = on; $('#back').hidden = !on }

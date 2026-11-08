@@ -301,8 +301,10 @@ window.HoloDoom = (() => {
         const wantLive = o.mode === 'live' || (o.mode === 'auto' && status.live)
         if (wantLive) {
           setMode('live')
-          boot()
-          await new Promise((res) => on('ready', res))
+          if (!st.gameReady) { // stop()/start() cycles reuse the booted game
+            boot()
+            await new Promise((res) => on('ready', res))
+          }
           emit('state', snapshot())
         } else {
           setMode('recorded', status.live ? 'forced' : 'Holo is resting (no key or demo cap): recorded run')
