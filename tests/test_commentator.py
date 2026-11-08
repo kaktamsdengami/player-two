@@ -321,7 +321,7 @@ def test_the_buddy_keeps_it_short_and_remembers_the_talk():
         "Hi there! I'm doing super well, thanks for asking! I'm really excited to play Doom"
         " with you. Ready?"
     )
-    assert c.trim(long, 18) == "Hi there! I'm doing super well, thanks for asking!"
+    assert c.trim(long, 12) == "Hi there! I'm doing super well, thanks for asking!"
     assert c.trim("One very long sentence " * 10, 5).startswith("One")
     p = c.prompt(8, "English", [], "E1M1", "What did I ask first?", ["Child: Hi Pixel", "You: Hi!"])
     assert p.index("Child: Hi Pixel") < p.index('"What did I ask first?"')
