@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from voice import commentator as c
@@ -357,3 +358,18 @@ def test_bot_phrases_are_never_said_and_names_are_remembered():
     chat = [f"line {i}" for i in range(100)]
     kept = c.memory(chat)
     assert kept[:6] == chat[:6] and kept[-1] == "line 99" and len(kept) == c.CHAT + 7
+
+
+def test_tts_text_has_no_ad_exclamations_and_openai_engine(monkeypatch):
+    assert c.spoken("Hey Dmitry! Nice to meet you!!") == "Hey Dmitry. Nice to meet you."
+    assert c.spoken("Ready? Go!") == "Ready? Go."
+    monkeypatch.setattr(c, "_env", lambda: None)
+    monkeypatch.setenv("P2_KID_TTS", "openai")
+    monkeypatch.setenv("OPENAI_API_KEY", "k")
+    monkeypatch.delenv("P2_KID_VOICE", raising=False)
+    v = c.StreamVoice()
+    v.exe = "ffplay"
+    req = v.request("hi")
+    body = json.loads(req.content)
+    assert req.url == c.StreamVoice.OPENAI_URL and body["voice"] == "coral"
+    assert body["instructions"] == c.CALM and body["model"] == "gpt-4o-mini-tts"

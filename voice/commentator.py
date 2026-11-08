@@ -22,7 +22,6 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
-from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -171,11 +170,43 @@ def on_top(handle: int) -> bool:
     return ctypes.windll.user32.GetForegroundWindow() == handle
 
 
+OPENAI_VOICE = "coral"  # gpt-4o-mini-tts: the ChatGPT-style voices (coral, sage, nova, shimmer...)
+CALM = (
+    "You are a kind friend sitting next to a child playing a video game. Talk casually and "
+    "quietly, like in a real conversation at home: relaxed, warm, unhurried, natural small pauses. "
+    "Not a narrator, not an announcer, not an ad. No excitement in your voice unless it is real."
+)
+# (engine, voice, label) the team can listen to with --try-voices
+CANDIDATES = [
+    ("openai", "coral", "OpenAI coral (ChatGPT-style)"),
+    ("openai", "sage", "OpenAI sage (ChatGPT-style)"),
+    ("openai", "shimmer", "OpenAI shimmer (ChatGPT-style)"),
+    ("elevenlabs", "cgSgspJ2msm6clMCkdW9", "ElevenLabs Jessica (conversational)"),
+    ("elevenlabs", "iP95p4xoKVk53GoZ742B", "ElevenLabs Chris (casual)"),
+    ("elevenlabs", "cjVigY5qzO86Huf0OWal", "ElevenLabs Eric (friendly)"),
+    ("elevenlabs", "SAz9YHcvj6GT2YYXdXww", "ElevenLabs River (relaxed)"),
+    ("elevenlabs", "FGY2WhTYpPnrIDTdsKH5", "ElevenLabs Laura"),
+    ("elevenlabs", "XrExE9yKIg1WjnnlVkGX", "ElevenLabs Matilda"),
+]
+SAMPLE = "Oh, hey. Hmm, I think that door on the left opens... try walking up and pressing space?"
+
+
+def spoken(text: str) -> str:
+    """'!' makes TTS sound like an ad: say it as a normal sentence."""
+    return re.sub(r"!+", ".", text).replace("..", ".").replace("?.", "?")
+
+
+def engine() -> str:
+    _env()
+    return os.environ.get("P2_KID_TTS", "elevenlabs").lower()
+
+
 class StreamVoice:
     """ElevenLabs streaming TTS piped into ffplay: the voice starts with the first audio chunk
     instead of after the whole mp3. `say()` returns once audio is playing; `busy()` until done."""
 
     URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream"
+    OPENAI_URL = "https://api.openai.com/v1/audio/speech"
 
     def __init__(self) -> None:
         from voice import tts
@@ -194,17 +225,7 @@ class StreamVoice:
         )
 
     def say(self, text: str, out: Path) -> Path:
-        _env()
-        key = os.environ.get("ELEVENLABS_API_KEY")
-        if not key or not self.exe:
-            raise RuntimeError("streaming voice needs ELEVENLABS_API_KEY and ffplay")
-        voice = kid_voice()
-        model = os.environ.get("ELEVENLABS_MODEL", self.tts.DEFAULT_MODEL)
-        req = self.http.build_request(
-            "POST", self.URL.format(voice=voice), headers={"xi-api-key": key},
-            params={"output_format": "mp3_44100_128"},
-            json={"text": text, "model_id": model, "voice_settings": VOICE_SETTINGS},
-        )  # fmt: skip
+        req = self.request(spoken(text))
         r = self.http.send(req, stream=True)
         if r.status_code >= 400:
             r.read()
@@ -238,6 +259,30 @@ class StreamVoice:
         self.feeder.start()
         return out
 
+    def request(self, text: str) -> httpx.Request:
+        _env()
+        if not self.exe:
+            raise RuntimeError("streaming voice needs ffplay")
+        if engine() == "openai":
+            key = os.environ.get("OPENAI_API_KEY")
+            if not key:
+                raise RuntimeError("P2_KID_TTS=openai needs OPENAI_API_KEY")
+            return self.http.build_request(
+                "POST", self.OPENAI_URL, headers={"Authorization": f"Bearer {key}"},
+                json={"model": os.environ.get("P2_KID_OPENAI_MODEL", "gpt-4o-mini-tts"),
+                      "voice": os.environ.get("P2_KID_VOICE") or OPENAI_VOICE, "input": text,
+                      "instructions": CALM, "response_format": "mp3"},
+            )  # fmt: skip
+        key = os.environ.get("ELEVENLABS_API_KEY")
+        if not key:
+            raise RuntimeError("streaming voice needs ELEVENLABS_API_KEY")
+        model = os.environ.get("ELEVENLABS_MODEL", self.tts.DEFAULT_MODEL)
+        return self.http.build_request(
+            "POST", self.URL.format(voice=kid_voice()), headers={"xi-api-key": key},
+            params={"output_format": "mp3_44100_128"},
+            json={"text": text, "model_id": model, "voice_settings": VOICE_SETTINGS},
+        )  # fmt: skip
+
     def __call__(self, path: Path) -> None:  # already playing since say()
         pass
 
@@ -246,6 +291,23 @@ class StreamVoice:
         self.stopped = True
         if self.proc and self.proc.poll() is None:
             self.proc.kill()
+
+
+def try_voices(out: Path) -> None:
+    """Play the same casual line in every candidate voice so the team can pick one by ear."""
+    out.mkdir(parents=True, exist_ok=True)
+    voice = StreamVoice()
+    for i, (eng, vid, label) in enumerate(CANDIDATES, 1):
+        os.environ["P2_KID_TTS"], os.environ["P2_KID_VOICE"] = eng, vid
+        print(f"{i}. {label}: P2_KID_TTS={eng} P2_KID_VOICE={vid}", flush=True)
+        try:
+            voice.say(SAMPLE, out / f"voice_{i}.mp3")
+            while voice.busy():
+                time.sleep(0.1)
+        except (httpx.HTTPError, RuntimeError, OSError) as e:
+            print(f"   skipped: {e}", flush=True)
+        time.sleep(0.8)
+    print("Put the chosen P2_KID_TTS / P2_KID_VOICE lines in .env.")
 
 
 def _chain(first: bytes, rest: Any) -> Any:
@@ -510,8 +572,11 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--map", default="", help="the level the child starts on, e.g. E1M1")
     p.add_argument("--no-voice", action="store_true", help="write the lines, do not speak them")
     p.add_argument("--out", type=Path)
+    p.add_argument("--try-voices", action="store_true", help="play the candidate voices, then exit")
     a = p.parse_args(argv)
     out = a.out or Path("recordings") / f"kid-{datetime.now():%Y%m%d-%H%M%S}"
+    if a.try_voices:
+        return try_voices(out)
 
     gone: list[float] = []  # when the window was last seen missing (minimised looks the same)
 
@@ -539,7 +604,10 @@ def main(argv: list[str] | None = None) -> int:
         else:
             from voice.tts import speak
 
-            say = partial(speak, voice=kid_voice())
+            voice = kid_voice()
+
+            def say(text: str, out: Path) -> Any:
+                return speak(spoken(text), out, voice=voice)
 
     chat: list[str] = []  # the conversation, so the buddy remembers what you talked about
 
