@@ -22,7 +22,7 @@ def client(monkeypatch):
 
 
 def mock_holo(answer: str):
-    def fake(raw: bytes, mime: str, text: str, model: str):
+    def fake(raw: bytes, mime: str, text: str, model: str, prev=None):
         assert mime == "jpeg" and raw[:2] == b"\xff\xd8"
         fake.prompts.append(text)
         return answer, {"total_tokens": 42}

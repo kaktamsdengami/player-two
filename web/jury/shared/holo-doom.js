@@ -66,7 +66,7 @@ window.HoloDoom = (() => {
     film.width = 800; film.height = 600
     const st = {
       mode: 'loading', running: false, human: false, step: 0, recent: [], instruction: '', instructionLeft: 0,
-      lastThumb: null, thumb: null, same: 0, turnStreak: 0, turnDir: 'left', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
+      lastThumb: null, thumb: null, same: 0, prevUrl: '', turnStreak: 0, turnDir: 'left', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
       tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
     }
@@ -156,7 +156,8 @@ window.HoloDoom = (() => {
 
     // ------------------------------------------------------------------ Holo
     async function askHolo(frame, stalled) {
-      const body = { image: frame.url, recent: st.recent.slice(-8), instruction: st.instructionLeft > 0 ? st.instruction : '', step: st.step, stalled }
+      const body = { image: frame.url, prev_image: st.prevUrl || '', recent: st.recent.slice(-8), instruction: st.instructionLeft > 0 ? st.instruction : '', step: st.step, stalled }
+      st.prevUrl = frame.url
       const r = await fetch('/api/holo/act?c=' + CID, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (r.status === 429 || r.status === 503) {
         const j = await r.json().catch(() => ({}))
@@ -282,10 +283,8 @@ window.HoloDoom = (() => {
           st.turnStreak++
         }
       } else if (move.keys.includes('up')) st.turnStreak = 0
-      // the model often names an enemy or a door in its thought without pressing the matching key
+      // the model often names a door in its thought without pressing use
       const says = (re) => re.test(move.thought || '')
-      if (!move.keys.includes('fire') && says(/\b(enem|imp|zombie|demon|monster|soldier|shoot|fir(e|ing)|attack|target)/i) &&
-        !says(/no (enemies|monsters|targets)|dead |defeated|killed|clear|corpse/i)) move.keys.push('fire')
       if (!move.keys.includes('use') && says(/\bdoors?\b|\bopen\b|\bswitch/i) && !says(/no (enemies or )?doors?|door (opened|is open|opens)|opened|no .*door/i)) move.keys.push('use')
       if (move.keys.includes('fire')) move.hold_ms = Math.max(move.hold_ms, 600) // a burst, not a tap
       if (move.status === 'dead' || move.status === 'menu') move.keys = ['use']

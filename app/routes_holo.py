@@ -47,6 +47,7 @@ _http: httpx.Client | None = None
 
 class ActIn(BaseModel):
     image: str = Field(..., description="data:image/jpeg;base64,... of the game canvas")
+    prev_image: str = Field("", description="the view before the last move, same format (optional)")
     recent: list[dict[str, Any]] = Field(default_factory=list, max_length=12)
     instruction: str = Field("", max_length=240)
     step: int = Field(0, ge=0)
@@ -168,6 +169,17 @@ def prompt(recent: list[dict[str, Any]], instruction: str, w: int, h: int, stall
         keys = "+".join(str(k) for k in (r.get("keys") or []))
         thought = str(r.get("thought", ""))[:80]
         lines.append(f"- {keys or '(none)'} {r.get('hold_ms', '')}ms: {thought}")
+    burst = 0
+    for r in reversed(recent):
+        if "fire" not in (r.get("keys") or []):
+            break
+        burst += 1
+    if burst >= 3:
+        lines.append(
+            f"- (you have fired for {burst} moves in a row. Look at the CURRENT view again: "
+            "is a live monster really there? If not, you are shooting a wall or a corpse: "
+            "stop firing and move on)"
+        )
     if stalled:
         lines.append(
             "- (the view has not changed for several moves: you are STUCK against something. "
@@ -221,19 +233,34 @@ def parse_move(text: str, w: int, h: int) -> Move:
     )
 
 
-def ask_holo(raw: bytes, mime: str, text: str, model: str) -> tuple[str, dict[str, Any]]:
+def ask_holo(
+    raw: bytes,
+    mime: str,
+    text: str,
+    model: str,
+    prev: tuple[bytes, str] | None = None,
+) -> tuple[str, dict[str, Any]]:
     """One Models API call; returns the answer text and the usage block."""
-    img = base64.b64encode(raw).decode()
+
+    def image(data: bytes, kind: str) -> dict[str, Any]:
+        b64 = base64.b64encode(data).decode()
+        return {"type": "image_url", "image_url": {"url": f"data:image/{kind};base64,{b64}"}}
+
+    content: list[dict[str, Any]] = []
+    if prev:
+        content += [
+            {"type": "text", "text": "PREVIOUS view (before your last move):"},
+            image(*prev),
+        ]
+        content.append({"type": "text", "text": "CURRENT view (now):"})
+    content += [image(raw, mime), {"type": "text", "text": text}]
     body = {
         "model": model,
         "temperature": 0.4,
         "max_tokens": 300,
         "chat_template_kwargs": {"enable_thinking": False},
-        "messages": [{"role": "user", "content": [
-            {"type": "image_url", "image_url": {"url": f"data:image/{mime};base64,{img}"}},
-            {"type": "text", "text": text},
-        ]}],
-    }  # fmt: skip
+        "messages": [{"role": "user", "content": content}],
+    }
     headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
     r = _client().post(c.MODELS_URL, headers=headers, json=body)
     if r.status_code == 400:
@@ -301,6 +328,7 @@ def create_router() -> APIRouter:
         if not have_key():
             raise HTTPException(503, "no HAI_API_KEY on the server: recorded run")
         raw, mime = decode_image(body.image)
+        prev = decode_image(body.prev_image) if body.prev_image else None
         w, h = jpeg_size(raw) if mime == "jpeg" else (0, 0)
         acts.take(who(req))
         t0 = time.monotonic()
@@ -317,7 +345,7 @@ def create_router() -> APIRouter:
                         headers={"Retry-After": str(round(wait))},
                     )
                 try:
-                    text, usage = ask_holo(raw, mime, ask, model)
+                    text, usage = ask_holo(raw, mime, ask, model, prev)
                     break
                 except RateLimited as e:
                     pool.block(model, e.retry_after)
