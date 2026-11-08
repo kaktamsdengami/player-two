@@ -59,10 +59,11 @@ def _env() -> None:
         pass
 
 
-KID_VOICE = "XrExE9yKIg1WjnnlVkGX"  # ElevenLabs premade "Matilda": warm, calm
-# high stability = an even, everyday tone (low = theatrical)
+KID_VOICE = "cgSgspJ2msm6clMCkdW9"  # ElevenLabs premade "Jessica": young, conversational
+# flash (the narration default) is cheap but reads like an announcer; multilingual_v2 sounds human
+KID_TTS_MODEL = "eleven_multilingual_v2"
 VOICE_SETTINGS = {
-    "stability": 0.65,
+    "stability": 0.5,
     "similarity_boost": 0.75,
     "style": 0.0,
     "use_speaker_boost": True,
@@ -70,6 +71,22 @@ VOICE_SETTINGS = {
 CHAT = 60  # lines of the conversation the buddy remembers (+ the first 6: names, hellos)
 HELLO = "Hey, I'm Pixel! Ready to play Doom together?"
 BYE = "That was so much fun! See you next time, buddy!"
+
+
+def kid_tts_model() -> str:
+    _env()
+    return os.environ.get("P2_KID_TTS_MODEL") or KID_TTS_MODEL
+
+
+def tags() -> bool:
+    """eleven_v3 performs [laughs], [sighs], [whispers]; other models would read them aloud."""
+    return kid_tts_model().startswith("eleven_v3")
+
+
+def voice_settings() -> dict[str, Any]:
+    if tags():  # v3 takes stability 0.0 / 0.5 / 1.0 only
+        return {"stability": 0.5, "similarity_boost": 0.75}
+    return VOICE_SETTINGS
 
 
 def kid_voice() -> str:
@@ -91,6 +108,12 @@ def memory(chat: list[str]) -> list[str]:
     return [*chat[:6], "...", *chat[-CHAT:]]
 
 
+TAGS = (
+    "\n- Your voice can act: now and then (not every line) put ONE tag where it fits: [laughs],"
+    ' [chuckles], [sighs], [whispers], [gasps]. Example: "[laughs] okay, that one got me."'
+)
+
+
 def prompt(
     age: int,
     language: str,
@@ -108,6 +131,7 @@ def prompt(
         .replace("{recent}", lines)
         .replace("{question}", f'"{question}"' if question else "(nothing)")
         .replace("{chat}", "\n".join(memory(chat or [])) or "(nothing yet)")
+        .replace("{tags}", TAGS if tags() else "")
     )
 
 
@@ -170,35 +194,32 @@ def on_top(handle: int) -> bool:
     return ctypes.windll.user32.GetForegroundWindow() == handle
 
 
-OPENAI_VOICE = "coral"  # gpt-4o-mini-tts: the ChatGPT-style voices (coral, sage, nova, shimmer...)
-CALM = (
-    "You are a kind friend sitting next to a child playing a video game. Talk casually and "
-    "quietly, like in a real conversation at home: relaxed, warm, unhurried, natural small pauses. "
-    "Not a narrator, not an announcer, not an ad. No excitement in your voice unless it is real."
-)
-# (engine, voice, label) the team can listen to with --try-voices
+# (voice id, model, label) the team listens to with --try-voices
+J, M2, V3 = "cgSgspJ2msm6clMCkdW9", "eleven_multilingual_v2", "eleven_v3"
 CANDIDATES = [
-    ("openai", "coral", "OpenAI coral (ChatGPT-style)"),
-    ("openai", "sage", "OpenAI sage (ChatGPT-style)"),
-    ("openai", "shimmer", "OpenAI shimmer (ChatGPT-style)"),
-    ("elevenlabs", "cgSgspJ2msm6clMCkdW9", "ElevenLabs Jessica (conversational)"),
-    ("elevenlabs", "iP95p4xoKVk53GoZ742B", "ElevenLabs Chris (casual)"),
-    ("elevenlabs", "cjVigY5qzO86Huf0OWal", "ElevenLabs Eric (friendly)"),
-    ("elevenlabs", "SAz9YHcvj6GT2YYXdXww", "ElevenLabs River (relaxed)"),
-    ("elevenlabs", "FGY2WhTYpPnrIDTdsKH5", "ElevenLabs Laura"),
-    ("elevenlabs", "XrExE9yKIg1WjnnlVkGX", "ElevenLabs Matilda"),
+    (J, M2, "Jessica, young and conversational"),
+    ("EXAVITQu4vr4xnSDxMaL", M2, "Sarah, warm and reassuring (mum)"),
+    ("FGY2WhTYpPnrIDTdsKH5", M2, "Laura, young and lively"),
+    ("pFZP5JQG7iQjIQuC4Bku", M2, "Lily, soft"),
+    ("iP95p4xoKVk53GoZ742B", M2, "Chris, casual guy (friend)"),
+    ("cjVigY5qzO86Huf0OWal", M2, "Eric, friendly guy"),
+    ("SAz9YHcvj6GT2YYXdXww", M2, "River, relaxed"),
+    (J, V3, "Jessica on eleven_v3 (laughs, sighs; slower)"),
+    ("iP95p4xoKVk53GoZ742B", V3, "Chris on eleven_v3 (laughs, sighs; slower)"),
+    (J, "eleven_turbo_v2_5", "Jessica on turbo_v2_5 (faster)"),
+    (J, "eleven_flash_v2_5", "Jessica on flash_v2_5 (the old one, for comparison)"),
 ]
-SAMPLE = "Oh, hey. Hmm, I think that door on the left opens... try walking up and pressing space?"
+SAMPLE = (
+    "Oh, hey... hmm. I think that door on the left opens. Wanna try walking up and pressing space?"
+)
+SAMPLE_V3 = "[laughs] " + SAMPLE
 
 
 def spoken(text: str) -> str:
-    """'!' makes TTS sound like an ad: say it as a normal sentence."""
-    return re.sub(r"!+", ".", text).replace("..", ".").replace("?.", "?")
-
-
-def engine() -> str:
-    _env()
-    return os.environ.get("P2_KID_TTS", "elevenlabs").lower()
+    """'!' makes TTS sound like an ad: say it as a normal sentence. Voice tags only for v3."""
+    if not tags():
+        text = re.sub(r"\s*\[[a-z ]+\]\s*", " ", text).strip()
+    return re.sub(r"(?<!\.)\.\.(?!\.)", ".", re.sub(r"!+", ".", text)).replace("?.", "?")
 
 
 class StreamVoice:
@@ -206,7 +227,6 @@ class StreamVoice:
     instead of after the whole mp3. `say()` returns once audio is playing; `busy()` until done."""
 
     URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream"
-    OPENAI_URL = "https://api.openai.com/v1/audio/speech"
 
     def __init__(self) -> None:
         from voice import tts
@@ -225,6 +245,7 @@ class StreamVoice:
         )
 
     def say(self, text: str, out: Path) -> Path:
+        t0 = time.monotonic()
         req = self.request(spoken(text))
         r = self.http.send(req, stream=True)
         if r.status_code >= 400:
@@ -233,6 +254,7 @@ class StreamVoice:
             r.raise_for_status()
         chunks = r.iter_bytes()
         first = next(chunks, b"")
+        self.first_audio_s = round(time.monotonic() - t0, 2)
         cmd = [self.exe, "-nodisp", "-autoexit", "-loglevel", "quiet", "-probesize", "32",
                "-analyzeduration", "0", "-fflags", "nobuffer", "-i", "-"]  # fmt: skip
         self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
@@ -263,24 +285,14 @@ class StreamVoice:
         _env()
         if not self.exe:
             raise RuntimeError("streaming voice needs ffplay")
-        if engine() == "openai":
-            key = os.environ.get("OPENAI_API_KEY")
-            if not key:
-                raise RuntimeError("P2_KID_TTS=openai needs OPENAI_API_KEY")
-            return self.http.build_request(
-                "POST", self.OPENAI_URL, headers={"Authorization": f"Bearer {key}"},
-                json={"model": os.environ.get("P2_KID_OPENAI_MODEL", "gpt-4o-mini-tts"),
-                      "voice": os.environ.get("P2_KID_VOICE") or OPENAI_VOICE, "input": text,
-                      "instructions": CALM, "response_format": "mp3"},
-            )  # fmt: skip
         key = os.environ.get("ELEVENLABS_API_KEY")
         if not key:
             raise RuntimeError("streaming voice needs ELEVENLABS_API_KEY")
-        model = os.environ.get("ELEVENLABS_MODEL", self.tts.DEFAULT_MODEL)
+        model = kid_tts_model()
         return self.http.build_request(
             "POST", self.URL.format(voice=kid_voice()), headers={"xi-api-key": key},
             params={"output_format": "mp3_44100_128"},
-            json={"text": text, "model_id": model, "voice_settings": VOICE_SETTINGS},
+            json={"text": text, "model_id": model, "voice_settings": voice_settings()},
         )  # fmt: skip
 
     def __call__(self, path: Path) -> None:  # already playing since say()
@@ -297,17 +309,18 @@ def try_voices(out: Path) -> None:
     """Play the same casual line in every candidate voice so the team can pick one by ear."""
     out.mkdir(parents=True, exist_ok=True)
     voice = StreamVoice()
-    for i, (eng, vid, label) in enumerate(CANDIDATES, 1):
-        os.environ["P2_KID_TTS"], os.environ["P2_KID_VOICE"] = eng, vid
-        print(f"{i}. {label}: P2_KID_TTS={eng} P2_KID_VOICE={vid}", flush=True)
+    for i, (vid, model, label) in enumerate(CANDIDATES, 1):
+        os.environ["P2_KID_VOICE"], os.environ["P2_KID_TTS_MODEL"] = vid, model
+        print(f"{i}. {label}: P2_KID_VOICE={vid} P2_KID_TTS_MODEL={model}", flush=True)
         try:
-            voice.say(SAMPLE, out / f"voice_{i}.mp3")
+            voice.say(SAMPLE_V3 if tags() else SAMPLE, out / f"voice_{i}.mp3")
+            print(f"   first audio after {voice.first_audio_s} s", flush=True)
             while voice.busy():
                 time.sleep(0.1)
         except (httpx.HTTPError, RuntimeError, OSError) as e:
             print(f"   skipped: {e}", flush=True)
         time.sleep(0.8)
-    print("Put the chosen P2_KID_TTS / P2_KID_VOICE lines in .env.")
+    print("Put the chosen P2_KID_VOICE / P2_KID_TTS_MODEL lines in .env.")
 
 
 def _chain(first: bytes, rest: Any) -> Any:
@@ -607,7 +620,7 @@ def main(argv: list[str] | None = None) -> int:
             voice = kid_voice()
 
             def say(text: str, out: Path) -> Any:
-                return speak(spoken(text), out, voice=voice)
+                return speak(spoken(text), out, voice=voice, model=kid_tts_model())
 
     chat: list[str] = []  # the conversation, so the buddy remembers what you talked about
 
