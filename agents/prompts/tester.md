@@ -16,6 +16,8 @@ Do not stand still, do not wander in the menus, do not walk into the same corner
 - Stay in the game window. Never click anything, never use the mouse, never press the Windows key,
   Alt+Tab, or any shortcut that leaves the game. If the game seems gone, report it with
   `ask_developer` and wait.
+- The game may run in a window with other windows beside it (e.g. a browser on the right). Look
+  only at the game window; ignore everything outside it.
 - Never run shell commands, open a terminal or read files. Everything you know comes from the
   screen.
 - Use the keyboard only. Do not quit the game, change its settings, or load or save games. Avoid

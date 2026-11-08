@@ -108,6 +108,15 @@ PRESETS = {
 }
 
 
+def _window(value: str) -> tuple[int, int]:
+    """P2_WINDOW=WxH (windowed mode, top-left corner); default 1066x800."""
+    try:
+        w, h = (int(x) for x in value.lower().split("x"))
+    except ValueError:
+        raise ValueError(f"P2_WINDOW={value!r}: expected WIDTHxHEIGHT, e.g. 960x720") from None
+    return w, h
+
+
 def _preset(name: str) -> str:
     if name and name not in PRESETS:
         raise ValueError(f"unknown preset {name!r}: {', '.join(PRESETS)}")
@@ -137,6 +146,7 @@ class LauncherConfig:
     @classmethod
     def from_env(cls) -> LauncherConfig:
         fork = _env_path("P2_GAME_DIR", Path.home() / "cd-fork")
+        width, height = _window(os.environ.get("P2_WINDOW", "1066x800"))
         return cls(
             fork_dir=fork,
             exe=_env_path("P2_GAME_EXE", _default_exe(fork)),
@@ -145,6 +155,8 @@ class LauncherConfig:
             ),
             runs_dir=_env_path("P2_RUNS_DIR", Path("recordings")),
             fullscreen=os.environ.get("P2_FULLSCREEN", "0") == "1",
+            width=width,
+            height=height,
             start=_start_mode(os.environ.get("P2_GOD", "tough")),
             preset=_preset(os.environ.get("P2_PRESET", "")),
         )

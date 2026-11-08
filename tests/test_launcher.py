@@ -235,3 +235,11 @@ def test_preset_adds_start_lines(tmp_path):
     assert path.read_text() == "1 health 999\n1 spawn 2022 -100 -224\n"
     cfg.start = "off"
     assert Game(cfg, tmp_path / "run2").start_script().read_text() == "1 spawn 2022 -100 -224\n"
+
+
+def test_window_size_from_env(monkeypatch):
+    from launcher.config import LauncherConfig
+
+    monkeypatch.setenv("P2_WINDOW", "960x720")
+    c = LauncherConfig.from_env()
+    assert (c.width, c.height) == (960, 720) and "window_width 960" in c.extraconfig()
