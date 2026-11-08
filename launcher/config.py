@@ -75,6 +75,8 @@ class Preset:
     lines: tuple[str, ...]
     plan: str = ""
     goal: str = ""  # QA-log event type the tester must cause before it may finish (e.g. powerup)
+    start: str = ""  # START_MODES override: the same start every round, whatever P2_START says
+    again: str = ""  # told to the tester when a later round restarts the level
 
 
 PRESETS = {
@@ -112,6 +114,11 @@ PRESETS = {
         "sky. Compare the sky with the walls: if the sky keeps its normal colour, report it. "
         "Do not give your final answer before you have picked up the sphere and looked at the sky.",
         goal="powerup",
+        # stage round 2 @3bfc1d1: imps wore 999 health down to a death and a pistol restart
+        start="god",
+        again="You are back at the start of the canyon, in god mode. The glowing green sphere is "
+        "straight ahead along the canyon, the same way as in your first round: turn to face it "
+        "and walk straight over it first, then look at the sky.",
     ),
 }
 

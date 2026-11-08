@@ -587,6 +587,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             if not game.running:
                 archive()
                 self.win = game.start(episode, map_, speed)
+                if cfg.preset and PRESETS[cfg.preset].again:  # where the goal is, after a restart
+                    message = f"{message} {PRESETS[cfg.preset].again}"
             self.tester.send(message)
 
         def stop(self) -> None:

@@ -173,3 +173,8 @@ def test_init_config_defaults_to_english_without_code_switching(monkeypatch):
     monkeypatch.setenv("P2_VOICE_LANGS", "en, fr")
     assert init_config()["language_config"] == {"languages": ["en", "fr"], "code_switching": True}
     assert init_config(["fr"])["language_config"] == {"languages": ["fr"], "code_switching": False}
+
+
+@pytest.mark.parametrize("text", ["Thank you.", "merci beaucoup", "good job", "thanks!"])
+def test_small_talk_is_not_steering(text):
+    assert parse_intent(text, language="en") is None

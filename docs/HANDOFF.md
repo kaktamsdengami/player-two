@@ -18,6 +18,7 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - **Stage presets** (open run settings, recorded in `tester_run.json`): `stage-kb3` (sphere near the
   start) and `stage-play` (shotgun, armour, stimpack, zombie, imps, then the sphere at the end of
   the first canyon). Fork player-two-qa 5ad5e7f6 (`spawn` QA command).
+- **Live loop @3bfc1d1 (stage, 02:26-02:50 UTC): FIXED end to end by voice** (#42 comment 6716381625): H found KB3 at step 62, verified, "Yes, fix it." -> `fix` (voice), Devin fork PR kaktamsdengami/chocolate-doom#5 in 2 min, merged, rebuilt, re-verified **fixed** 6.5 min after "fix it". Round 2 failed: H wandered in the canyon and imps wore 999 health down to a death. Now `stage-play` always starts in god mode (`Preset.start`), and after a restart the round message says where the sphere is (`Preset.again`). "Thank you"-style small talk is no longer a `steer` intent (`_SMALL_TALK`).
 - **Live loop status:** stage-play run 4 verified KB3. The first full live loop (#42 comment
   6714953320) went H -> verified KB3 -> narration -> Devin fork PR chocolate-doom#3, then stopped:
   the fix step needed a local `cd-fork` and `make`. Since t14 @137a7e8:
