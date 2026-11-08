@@ -95,7 +95,6 @@ def create_app() -> FastAPI:
 
     @app.post("/api/kid/line")
     def line(body: LineIn, req: Request) -> dict:
-        lines.take(who(req))
         head, _, data = body.image.partition(",")
         if not head.startswith("data:image/") or len(data) > MAX_IMAGE:
             raise HTTPException(400, "send a small JPEG data URL")
@@ -106,6 +105,7 @@ def create_app() -> FastAPI:
         suffix = next((s for magic, s in IMAGE_MAGIC if raw.startswith(magic)), None)
         if not suffix:
             raise HTTPException(400, "send a JPEG or PNG")
+        lines.take(who(req))
         with tempfile.TemporaryDirectory() as d:
             shot = Path(d) / f"shot{suffix}"
             shot.write_bytes(raw)
