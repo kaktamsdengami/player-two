@@ -72,6 +72,15 @@ def comment(
     return "" if not text or text.upper().startswith("SKIP") else text
 
 
+def on_top(handle: int) -> bool:
+    """Is this window the foreground one? Linux test desktops (Xvfb) have nothing else."""
+    if not sys.platform.startswith("win"):
+        return True
+    import ctypes
+
+    return ctypes.windll.user32.GetForegroundWindow() == handle
+
+
 class Speaker:
     """Plays mp3 files with ffplay in the background; `busy()` while one is playing."""
 
@@ -101,7 +110,9 @@ def run(
     sleep: Callable[[float], None] = time.sleep,
 ) -> list[dict[str, Any]]:
     out.mkdir(parents=True, exist_ok=True)
-    log = (out / "comments.jsonl").open("a", encoding="utf-8")
+    path = out / "comments.jsonl"
+    n0 = path.read_text(encoding="utf-8").count("\n") if path.exists() else 0  # a reused --out
+    log = path.open("a", encoding="utf-8")
     rows: list[dict[str, Any]] = []
     recent: list[str] = []
     start, last = clock(), -MIN_GAP_S
@@ -111,8 +122,9 @@ def run(
             if speaker.busy() or t0 - last < MIN_GAP_S:
                 sleep(0.5)
                 continue
-            shot = grab(out / f"shot_{len(rows):03d}.png")
-            if shot is None:  # window gone (minimised or closed)
+            n = n0 + len(rows)
+            shot = grab(out / f"shot_{n:03d}.png")
+            if shot is None:  # window gone, minimised or covered
                 sleep(EVERY_S)
                 continue
             try:
@@ -122,14 +134,18 @@ def run(
                 sleep(EVERY_S)
                 continue
             t_text = clock()
-            row: dict[str, Any] = {"i": len(rows), "t": round(t0 - start, 2), "shot": shot.name,
+            row: dict[str, Any] = {"i": n, "t": round(t0 - start, 2), "shot": shot.name,
                                    "text": text, "vision_s": round(t_text - t0, 2)}  # fmt: skip
             if text:
                 if say:
-                    audio = say(text, out / f"say_{len(rows):03d}.mp3")
-                    row["tts_s"] = round(clock() - t_text, 2)
-                    speaker(getattr(audio, "path", audio))
-                row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice starts
+                    try:
+                        audio = say(text, out / f"say_{n:03d}.mp3")
+                        row["tts_s"] = round(clock() - t_text, 2)
+                        speaker(getattr(audio, "path", audio))
+                        row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice starts
+                    except (httpx.HTTPError, RuntimeError, OSError) as e:
+                        row["error"] = f"speech failed: {e}"
+                        print(row["error"], file=sys.stderr)
                 recent.append(text)
                 last = clock()
             rows.append(row)
@@ -144,9 +160,12 @@ def run(
 
 def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     lat = [r["latency_s"] for r in rows if "latency_s" in r]
+    vis = [r["vision_s"] for r in rows]
     return {
         "screens": len(rows),
+        "lines": sum(1 for r in rows if r["text"]),
         "spoken": len(lat),
+        "vision_median_s": round(statistics.median(vis), 2) if vis else None,
         "skipped": sum(1 for r in rows if not r["text"]),
         "latency_median_s": round(statistics.median(lat), 2) if lat else None,
         "latency_max_s": max(lat, default=None),
@@ -169,7 +188,8 @@ def main(argv: list[str] | None = None) -> int:
 
     def grab(path: Path) -> Path | None:
         win = find_window(a.window)
-        return screenshot(win, path) if win else None
+        # the capture is a screen rectangle: only send it when the game is on top
+        return screenshot(win, path) if win and on_top(win.handle) else None
 
     say = None
     if not a.no_voice:
