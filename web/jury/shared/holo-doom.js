@@ -197,6 +197,8 @@ window.HoloDoom = (() => {
       aim.style.top = (100 * move.aim.y / frame.h) + '%'
     }
 
+    // 1 sample of silence, 8 kHz mono PCM WAV
+    const SILENT_WAV = 'data:audio/wav;base64,UklGRiYAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQIAAACAgA=='
     let voice = null // one <audio>, unlocked inside the SOUND tap: iOS only plays elements that a gesture touched
     async function speak(text) {
       if (!o.speak || !st.audio || st.speaking || st.muted || !text) return
@@ -351,7 +353,10 @@ window.HoloDoom = (() => {
       },
       async unmute() { // one tap: the browser lets audio play
         st.audio = true
-        if (!voice) { voice = new Audio(); voice.play().catch(() => {}) } // touched by the gesture: later src changes may play
+        if (!voice) { // played inside the gesture with a real (silent) source: iOS then lets later src changes play
+          voice = new Audio(SILENT_WAV)
+          voice.play().catch(() => {})
+        }
         for (const c of contexts.list) { try { await c.resume() } catch (e) { /* ignore */ } }
         emit('state', snapshot())
       },
