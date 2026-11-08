@@ -166,11 +166,14 @@ const ACK = /^(okay|ok|yeah|yes|no|yep|nope|sure)[.!?\s]*$/i // real when Pixel 
 function heard(text, final, confidence) {
   text = text.trim()
   const words = text.split(/\s+/).length
-  const short = words < 2 && !(final && text.length > 2)
+  const asked = /\?/.test(state.recent[state.recent.length - 1] || '') // Pixel's last line held a question
+  const ack = ACK.test(text)
   if (PHANTOM.test(text)) return // the shotgun and the arrow keys do not say thank you
-  if (ACK.test(text) && !/\?\s*$/.test(state.recent[state.recent.length - 1] || '')) return // 'Okay.' out of the blue is clatter
+  if (ack && !asked) return // 'Okay.' out of the blue is clatter
   if (final && words <= 3 && confidence != null && confidence < 0.7) return // too unsure for so few words
-  if (short || state.recent.slice(-2).some((r) => similar(text, r) >= 0.6)) return // noise or echo
+  const short = !ack && words < 2 && !(final && text.length > 2)
+  const echo = !ack && state.recent.slice(-2).some((r) => similar(text, r) >= 0.6) // "Okay." answers "Are you okay?", it is no echo
+  if (short || echo) return // noise or echo
   voiceAt = Date.now()
   if (state.speaking) stopVoice()
   $('heard').textContent = final ? '“' + text + '”' : text + '…'
