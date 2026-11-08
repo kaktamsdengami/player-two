@@ -42,6 +42,20 @@ FOLLOW_UP = (
     "Keep testing the same level. Try what you have not tried yet: other power-ups, other walls, "
     "other doors. Report every new bug with report_finding."
 )
+
+
+def follow_up(fixed: list[Finding]) -> str:
+    """The next round's message: re-test what was just fixed (in the tester's own words) first."""
+    if not fixed:
+        return FOLLOW_UP
+    bugs = "; ".join(f'"{f.title}" (you saw it by: {" / ".join(f.steps)})' for f in fixed)
+    return (
+        f"The developer installed a new build that should fix: {bugs}. Check it yourself first: "
+        "do the same again and look closely. If it still happens, report it with report_finding; "
+        "if it is fixed, say so with note. " + FOLLOW_UP
+    )
+
+
 DECIDE = {Intent.fix, Intent.yes, Intent.skip, Intent.no, Intent.stop}
 
 
@@ -160,6 +174,7 @@ class Orchestrator:
         self.store = Store()
         self.intents: queue.Queue[VoiceIntent] = queue.Queue()
         self.pending: queue.Queue[Finding] = queue.Queue()
+        self.fixed: list[Finding] = []  # since the last round: the next round re-tests them
         self._stop = threading.Event()
         self._thread: threading.Thread | None = None
         self.info = SessionInfo(
@@ -249,7 +264,8 @@ class Orchestrator:
             for r in range(self.rounds):
                 self._check()
                 if r:
-                    self.deps.explorer.send(FOLLOW_UP)
+                    self.deps.explorer.send(follow_up(self.fixed))
+                    self.fixed = []
                     self.set_state(SessionState.exploring)
                 self.deps.explorer.follow(self.on_action)
                 self._check()
@@ -343,6 +359,8 @@ class Orchestrator:
         self.publish(SseType.fix_updated, a)
         status = FindingStatus.fixed if a.result == FixResult.fixed else FindingStatus.presented
         self.publish(SseType.finding_updated, f.model_copy(update={"status": status}))
+        if status == FindingStatus.fixed:
+            self.fixed.append(f)
         self._check()
 
     def _drain_intents(self, keep: Callable[[VoiceIntent], bool] = lambda i: False) -> None:
@@ -587,6 +605,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         )
         a, replay = loop.run(f)
         attach_clip(f, replay)
+        if a.result == FixResult.fixed:
+            cfg.exe = fix_cfg.exe  # the next round plays the fixed build: the agent re-tests it
         return add_comparison(a, bug)
 
     try:  # T16 / T17: optional until merged

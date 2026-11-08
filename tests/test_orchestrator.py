@@ -18,7 +18,7 @@ from app.contracts import (
     VoiceIntent,
 )
 from app.main import Runtime, create_app
-from app.orchestrator import Deps, Orchestrator, Recorded, sse_format
+from app.orchestrator import FOLLOW_UP, Deps, Orchestrator, Recorded, sse_format
 
 NOW = datetime(2026, 11, 7, tzinfo=UTC)
 
@@ -99,6 +99,25 @@ def test_full_loop_publishes_every_state(tmp_path):
     assert o.store.narrations[0].text == "Look at the sky."
     assert o.deps.explorer.sent  # follow-up to the same H session, no new session
     assert (tmp_path / "events.jsonl").read_text().count("\n") == len(o.bus.events)
+
+
+def test_next_round_retests_the_fixed_bug(tmp_path):
+    o = _orch(tmp_path)
+    o.start()
+    _wait(lambda: o.info.state == SessionState.awaiting_approval)
+    o.intent(VoiceIntent(intent=Intent.fix, source="button"))
+    o._thread.join(5)
+    msg = o.deps.explorer.sent[0]
+    assert "Sky stays red under invulnerability" in msg and "idkfa / iddqd" in msg
+
+
+def test_next_round_without_a_fix_just_keeps_testing(tmp_path):
+    o = _orch(tmp_path)
+    o.start()
+    _wait(lambda: o.info.state == SessionState.awaiting_approval)
+    o.intent(VoiceIntent(intent=Intent.skip, source="button"))
+    o._thread.join(5)
+    assert o.deps.explorer.sent == [FOLLOW_UP]
 
 
 def test_skip_does_not_fix_and_unverified_is_not_presented(tmp_path):
