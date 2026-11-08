@@ -137,3 +137,13 @@ button.link { background: none; border: 0; color: inherit; padding: 0.2rem 0.4re
 .devin-steps li.on { color: var(--text); }
 .devin-steps li.on::before { content: '● '; color: var(--ok); }
 .devin-says { font-style: italic; margin: 0.5rem 0; color: var(--text); }
+
+.screen-wrap { position: relative; flex: 1; min-height: 0; display: flex; margin-bottom: 8px; }
+.screen-wrap .game-screen { margin-bottom: 0; }
+.key-overlay { position: absolute; top: 12px; right: 12px; padding: 8px 14px; border-radius: 10px; background: rgba(0, 0, 0, 0.75); color: #ffd84d; font: 700 1.6rem/1 system-ui, sans-serif; border: 2px solid #ffd84d; animation: key-pop 0.35s ease-out; }
+@keyframes key-pop { from { transform: scale(1.6); opacity: 0.2; } to { transform: scale(1); opacity: 1; } }
+.filmstrip { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 8px; }
+.filmstrip figure { margin: 0; flex: 0 0 132px; }
+.filmstrip img { width: 132px; height: 82px; object-fit: cover; border-radius: 6px; background: #000; flex: none; }
+.filmstrip figcaption { font-size: 0.75rem; color: var(--dim, #999); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.filmstrip figcaption b { color: #ffd84d; }

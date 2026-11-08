@@ -1,7 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
 import { API_BASE, USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
-import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
+import type { AgentAction, Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
 type Tab = 'live' | 'bugs' | 'debrief' | 'plans' | 'parent'
 const TABS: [Tab, string][] = [
@@ -111,6 +111,22 @@ function SessionBar({ snap }: { snap: Snapshot }) {
 
 // ---------------------------------------------------------------- live
 
+const KEY_NAMES: Record<string, string> = {
+  up: '↑', arrowup: '↑', down: '↓', arrowdown: '↓', left: '←', arrowleft: '←', right: '→', arrowright: '→',
+  ctrl: 'FIRE', control: 'FIRE', space: 'USE', alt: 'STRAFE', shift: 'RUN', enter: 'ENTER', return: 'ENTER', escape: 'ESC',
+}
+
+/** What H pressed, as a player would read it: "STRAFE + ←", "↑ hold 1.2 s", "REPORT BUG". */
+function keyLabel(a: AgentAction): string {
+  if (a.kind === 'tool_call') {
+    const tool = a.description.split(' ')[0]
+    return tool === 'report_finding' ? 'REPORT BUG' : tool === 'note' ? 'NOTE' : tool.toUpperCase()
+  }
+  const keys = a.keys.flatMap((k) => k.split('+')).map((k) => KEY_NAMES[k.trim().toLowerCase()] ?? k.toUpperCase())
+  const hold = a.kind === 'key_hold' && a.duration_ms ? ` hold ${(a.duration_ms / 1000).toFixed(1)} s` : ''
+  return (keys.join(' + ') || a.kind.replace('_', ' ').toUpperCase()) + hold
+}
+
 function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onIntent: (i: Intent) => void }) {
   const s = snap.session
   const last = snap.actions[snap.actions.length - 1]
@@ -135,12 +151,14 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
     <div className="live-grid">
       <section className="panel agent">
         <h2>Agent view</h2>
-        {screen && (
-          <img className="game-screen" src={screen} alt="the game window right now" />
+        {(screen || shot) && (
+          <div className="screen-wrap">
+            <img className="game-screen" src={screen ?? shot!} alt="the game window right now" onError={() => !screen && shot && setBadShot(shot)} />
+            {last && <div key={last.step} className="key-overlay">H: {keyLabel(last)}</div>}
+          </div>
         )}
-        {screen ? null : shot ? (
-          <img src={shot} alt="latest agent screenshot" onError={() => setBadShot(shot)} />
-        ) : (
+        <Filmstrip actions={snap.actions} />
+        {screen || shot ? null : (
           <div className="placeholder">
             <div>H desktop live view</div>
             <div className="dim">
@@ -173,7 +191,7 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
           {[...snap.actions].reverse().map((a) => (
             <li key={a.step}>
               <span className="t">{fmtS(a.t_session_s)}</span>
-              <span className="k">{a.keys.join('+') || a.kind}</span>
+              <span className="k">{keyLabel(a)}</span>
               <span>{a.description}</span>
             </li>
           ))}
@@ -196,6 +214,22 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
           ))}
         </ul>
       </section>
+    </div>
+  )
+}
+
+/** H's last steps as pictures: what each key press did in the game. */
+function Filmstrip({ actions }: { actions: AgentAction[] }) {
+  const steps = actions.filter((a) => media(a.screenshot)).slice(-8)
+  if (!steps.length) return null
+  return (
+    <div className="filmstrip">
+      {steps.map((a) => (
+        <figure key={a.step}>
+          <img src={media(a.screenshot)!} alt={`step ${a.step}`} loading="lazy" />
+          <figcaption><b>{keyLabel(a)}</b> · step {a.step}</figcaption>
+        </figure>
+      ))}
     </div>
   )
 }

@@ -321,3 +321,17 @@ def test_cached_fix_needs_bug_exe_and_pr(tmp_path, monkeypatch):
     exe.write_bytes(b"MZ")
     assert cached_fix("KB3") == (exe, pr, None)
     assert cached_fix("KB4") is None
+
+
+def test_each_action_carries_a_frame_of_the_game(tmp_path):
+    o = _orch(tmp_path)
+
+    def grab(out):
+        out.write_bytes(b"\xff\xd8jpg")
+        return out
+
+    o.deps.screen, o.deps.run_dir = grab, tmp_path
+    o.on_action(AgentAction(session_id="h1", step=3, ts=NOW, t_session_s=1.0,
+                            kind="key_press", keys=["left"]))  # fmt: skip
+    shot = [e.data for e in o.bus.events if e.type == SseType.agent_action][-1]["screenshot"]
+    assert shot == str(tmp_path / "steps" / "0003.jpg")
