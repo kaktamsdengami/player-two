@@ -13,8 +13,19 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - **Stage presets** (open run settings, recorded in `tester_run.json`): `stage-kb3` (sphere near the
   start) and `stage-play` (shotgun, armour, stimpack, zombie, imps, then the sphere at the end of
   the first canyon). Fork player-two-qa 5ad5e7f6 (`spawn` QA command).
-- **Waiting for:** stage-laptop runs (3x `stage-play`, 2x `stage-kb3`) and then one full live loop
-  (`python -m app.main --mode live --start` + dashboard + voice).
+- **Live loop status:** stage-play run 4 verified KB3. The first full live loop (#42 comment
+  6714953320) went H -> verified KB3 -> narration -> Devin fork PR chocolate-doom#3, then stopped:
+  the fix step needed a local `cd-fork` and `make`. Since t14 @137a7e8:
+  - the fix step needs no clone: it creates `qa-run/<session>` with `gh api`, downloads the QA
+    script from GitHub, and unpacks the fork CI's Windows build of the PR head (`pull/N/head`) to
+    `<run>/fix/build`, so the buggy build stays for the next demo;
+  - the fork CI (player-two-qa @9c8ddd0c) builds `qa-run/**` branches;
+  - a voice "fix it" counts only after the narration;
+  - `voice.listen --mic` is push-to-talk by default;
+  - the narration says the played map and the verified bug's title.
+
+  **Waiting for:** a stage rerun through merge -> CI build -> reverify -> FIXED. Do not claim the
+  full loop as done before that.
 - **H notes:** real H runs only on the stage laptop (US region, `HAI_REGIONS=https://agp.hcompany.ai`).
   The team cancelled the "H showcase" list (#42): no new features, main loop first.
 - **Judging:** round 1 is online (demo video + a live link the jury clicks); stage only for the top 8.
