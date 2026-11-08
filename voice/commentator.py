@@ -218,6 +218,10 @@ class Speaker:
         self.proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL)
 
 
+class GameClosed(Exception):
+    """The game window is gone: the run ends and the summary is written."""
+
+
 def run(
     grab: Callable[[Path], Path | None],
     out: Path,
@@ -245,7 +249,11 @@ def run(
                 sleep(0.1 if q else 0.5)
                 continue
             n = n0 + len(rows)
-            shot = grab(out / f"shot_{n:03d}.jpg")
+            try:
+                shot = grab(out / f"shot_{n:03d}.jpg")
+            except GameClosed:
+                print("game window closed: stopping", file=sys.stderr)
+                break
             if shot is None:  # window gone, minimised or covered
                 sleep(EVERY_S)
                 continue
@@ -285,6 +293,8 @@ def run(
             print(json.dumps(row), flush=True)
             while clock() - t0 < EVERY_S and not heard:  # a question cuts the wait
                 sleep(0.1)
+    except KeyboardInterrupt:  # Ctrl+C still writes summary.json
+        print("stopped", file=sys.stderr)
     finally:
         log.close()
     return rows
@@ -347,6 +357,8 @@ def main(argv: list[str] | None = None) -> int:
 
     def grab(path: Path) -> Path | None:
         win = find_window(a.window)
+        if win is None:
+            raise GameClosed(a.window)
         # the capture is a screen rectangle: only send it when the game is on top
         return grab_window(win, path) if win and on_top(win.handle) else None
 

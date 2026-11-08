@@ -214,3 +214,16 @@ def test_what_the_child_says_is_answered_right_away(tmp_path):
     assert '"how do I open this door?"' in c.prompt(
         8, "English", [], question="how do I open this door?"
     )
+
+
+def test_the_run_ends_when_the_game_window_is_gone(tmp_path):
+    clock, quiet = Clock(), Quiet()
+
+    def grab(p):
+        if clock.t > 10:
+            raise c.GameClosed("Chocolate Doom")
+        p.write_bytes(b"jpg")
+        return p
+
+    rows = c.run(grab, tmp_path, 1800, lambda s, r: "hi", lambda t, p: p, quiet, clock, clock.sleep)
+    assert 1 <= len(rows) <= 3 and clock.t < 30  # not 30 minutes of polling
