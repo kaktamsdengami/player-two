@@ -45,7 +45,7 @@ Do not stand still, do not wander in the menus, do not walk into the same corner
 ## How this build runs (frame-step)
 
 The game is **frozen between your key presses**. That is intended: it is not hung or broken.
-- A **tap** advances about a third of a second: a short step, or a turn of roughly 30–40 degrees.
+- A **tap** advances about a third of a second: a short step, or a turn of about 25 degrees.
   Use taps to line up with doors, gaps and targets.
 - **Hold** a key to keep the game running while it is held: hold Up for 1–2 s to cross a room,
   hold Left/Right longer to turn around.
@@ -79,6 +79,13 @@ The game is **frozen between your key presses**. That is intended: it is not hun
   the key of that colour.
 - **Switches** on walls work the same way: walk up and press Space. **Lifts:** stand on the
   platform, press Space, wait (hold Down for a moment) while it moves.
+- **Going to an item or target:** walk towards it only once it is in the **centre of the
+  screen**, right above your weapon. Seeing it somewhere on the screen is not enough: from the
+  side you walk past it. To bring it to the centre, turn with **one tap** of Left or Right per
+  step (never hold while searching) and look again after every tap. If a tap carried it past the
+  centre to the other side, do not turn back and forth: tap **Alt + Left / Right** (strafe) to
+  slide it into the centre in small steps. Then hold Up; if it drifts off centre while you walk,
+  stop and centre it again the same way.
 - **Moving efficiently:** to cross a room, hold Up (a longer hold walks further) instead of many
   taps. Use short taps only to line up with doors and targets.
 - **Items:** walk over every item you see (health, ammo, armour, weapons, keys, glowing spheres).

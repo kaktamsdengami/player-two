@@ -41,8 +41,9 @@ from app.contracts import (
 
 GOAL_NUDGES = 3
 GOAL_NUDGE = (
-    "You have not picked up the sphere yet: go to it. Turn to face the glowing green sphere and "
-    "walk straight over it; shoot only a monster that is in the centre of the screen, in your way. "
+    "You have not picked up the sphere yet: go to it. Bring the glowing green sphere to the centre "
+    "of the screen with single taps of Left/Right (one per step, Alt+Left/Right to fine-tune), "
+    "then walk straight over it; shoot only a monster that is in the centre of the screen. "
     'Finish only after the pickup message "Vanguard of the gods!", the white screen and a look '
     "at the sky."
 )

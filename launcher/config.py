@@ -103,9 +103,12 @@ PRESETS = {
             "1 spawn 2022 -600 60",
         ),
         plan="Your only goal until you have it: the power-up, a glowing green sphere further "
-        "along the canyon. 1) Turn to face the sphere and walk straight to it, over it. "
-        "2) Shoot a monster only if it is already in the centre of the screen: then hold Ctrl in "
-        "that same step without moving, and walk on after. Never turn away "
+        "along the canyon. 1) Find it with single taps of Left/Right, one tap per step, "
+        "looking after each tap. Walk forward only when the sphere is in the centre of the "
+        "screen, right above your weapon, not just somewhere in view. If a tap carries it past "
+        "the centre, tap Alt+Left/Right (strafe) to slide it into the centre, then walk straight "
+        "over it. 2) Shoot a monster only if it is already in the centre of the screen: then hold "
+        "Ctrl in that same step without moving, and walk on after. Never turn away "
         "from the sphere to chase or aim at monsters. 3) Judge the sky only after the pickup "
         "message "
         '"Vanguard of the gods!" appears at the top left and the screen turns white; a red '
@@ -117,8 +120,9 @@ PRESETS = {
         # stage round 2 @3bfc1d1: imps wore 999 health down to a death and a pistol restart
         start="god",
         again="You are back at the start of the canyon, in god mode. The glowing green sphere is "
-        "straight ahead along the canyon, the same way as in your first round: turn to face it "
-        "and walk straight over it first, then look at the sky.",
+        "straight ahead along the canyon, the same way as in your first round: bring it to the "
+        "centre of the screen with single taps (Alt+Left/Right to fine-tune), walk straight over "
+        "it first, then look at the sky.",
     ),
 }
 
