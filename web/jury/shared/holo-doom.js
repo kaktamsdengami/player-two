@@ -253,6 +253,7 @@ window.HoloDoom = (() => {
       st.step++
       st.recent.push({ keys: move.keys, hold_ms: move.hold_ms, thought: move.thought })
       emit('step', Object.assign({ step: st.step, frame, mode: 'live', t: Date.now(), diff: 0 }, move))
+      if (o.record) st.tape.push({ step: st.step, thought: move.thought, keys: move.keys, hold_ms: move.hold_ms, aim: null, status: move.status, latency_ms: 0, image: frame.url })
       await perform(move)
       st.lastThumb = null // the stall detector starts fresh where the briefing left the marine
       return true
@@ -407,7 +408,7 @@ window.HoloDoom = (() => {
         const wantLive = o.mode === 'live' || (o.mode === 'auto' && status.live)
         if (wantLive) {
           setMode('live')
-          if (st.step === 0 && o.briefing) st.briefing = BRIEFING.slice()
+          if (st.step === 0 && o.briefing && o.warp.join(' ') === '1 1') st.briefing = BRIEFING.slice() // the route is E1M1's
           if (!st.gameReady) { // stop()/start() cycles reuse the booted game
             boot()
             await new Promise((res) => on('ready', res))
