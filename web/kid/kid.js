@@ -36,12 +36,15 @@ function stopVoice() {
   $('face').classList.remove('talking')
 }
 
+// one id per tab: many jurors share one venue IP, the server's per-client limits use both
+const CID = Math.random().toString(36).slice(2, 10)
+
 let blobOnly = false // after one refused stream, fetch every line whole: one synthesis per line
 
 function say(text, t = {}) {
   return new Promise((resolve) => {
     stopVoice()
-    const url = 'api/kid/say?text=' + encodeURIComponent(text)
+    const url = 'api/kid/say?c=' + CID + '&text=' + encodeURIComponent(text)
     const t0 = performance.now()
     const a = new Audio()
     state.audio = a
@@ -92,7 +95,7 @@ async function turn(question = '') {
     const t0 = performance.now()
     const image = shot()
     const t = { grab_ms: Math.round(performance.now() - t0) }
-    const r = await fetch('api/kid/line', {
+    const r = await fetch('api/kid/line?c=' + CID, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image, recent: state.recent.slice(-8), chat: memory(), question, level: 'E1M1' }),
     })
@@ -195,7 +198,7 @@ async function micStream(rate) {
 
 async function openEars(tries = 0) {
   try {
-    const r = await fetch('api/kid/listen', { method: 'POST' })
+    const r = await fetch('api/kid/listen?c=' + CID, { method: 'POST' })
     if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'no ears')
     const { url, sample_rate } = await r.json()
     await micStream(sample_rate)
@@ -248,7 +251,7 @@ $('go').addEventListener('click', async () => {
       callMain(['-iwad', 'doom1.wad', '-window', '-nogui', '-nomusic', '-config', 'default.cfg', '-skill', '2', '-warp', '1', '1'])
       state.started = true
       canvas.focus()
-      fetch('api/kid/hello').then((r) => r.json()).then(({ hello }) => {
+      fetch('api/kid/hello?c=' + CID).then((r) => r.json()).then(({ hello }) => {
         addChat('Pixel', hello)
         state.recent.push(hello)
         state.chat.push('You: ' + hello)
