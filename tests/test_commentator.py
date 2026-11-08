@@ -291,6 +291,9 @@ def test_the_child_cuts_the_buddy_off_but_its_own_echo_does_not():
     assert not speaker.on and at[0] > 0  # cut off on the first words, before the final
     on("wait how do I open it", True, "en")
     assert heard == ["wait how do I open it"]
+    on("Help", False, "en")  # one partial word: maybe noise
+    on("Help!", True, "en")
+    assert heard[-1] == "Help!"
 
 
 def test_stream_voice_stop_kills_the_player(tmp_path, monkeypatch):

@@ -366,7 +366,8 @@ def ears(
 
     def on_transcript(text: str, final: bool, lang: str | None) -> None:  # noqa: ARG001
         text = text.strip()
-        if len(text.split()) < 2 or any(similar(text, r) >= SAME for r in recent[-2:]):
+        short = len(text.split()) < 2 and not (final and len(text) > 2)  # "Help!" is a request
+        if short or any(similar(text, r) >= SAME for r in recent[-2:]):
             return  # noise, or the buddy hearing itself through the speakers
         voice_at[0] = time.monotonic()
         if speaker.busy() and hasattr(speaker, "stop"):
