@@ -78,8 +78,7 @@ All from stage-laptop runs; run records in [eval/runs/](eval/runs/), details in
   scene. That session was started from the orchestrator's Devin session on the Devin VM, not by
   `app.main` on the laptop.
 - **Not measured yet:** the same loop end to end via `app.main` live on the stage laptop, with
-  merge + rebuild. The fix loop did run end to end once on a scripted KB1 finding (not from the H
-  tester).
+  merge + rebuild.
 - Demo content is marked **LIVE** (a real run happening now) or **RECORDED** (a saved run replayed
   from its `events.jsonl`) in the dashboard.
 
