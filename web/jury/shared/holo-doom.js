@@ -67,7 +67,7 @@ window.HoloDoom = (() => {
     film.width = 800; film.height = 600
     const st = {
       mode: 'loading', running: false, human: false, step: 0, recent: [], instruction: '', instructionLeft: 0,
-      lastThumb: null, thumb: null, same: 0, prevUrl: '', turnStreak: 0, turnDir: 'left', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
+      lastThumb: null, thumb: null, same: 0, prevUrl: '', turnStreak: 0, turnMs: 0, turnDir: 'left', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
       tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
     }
@@ -270,17 +270,19 @@ window.HoloDoom = (() => {
       if (stalled && walksOn) {
         const fire = move.keys.includes('fire') ? ['fire'] : [] // keep shooting at whatever is in front
         if (st.same === 1) { move.keys = ['use', 'up', ...fire]; move.hold_ms = 300; move.thought = 'Blocked. A door? Use.' } // doors look like walls
-        else { move.keys = ['left', ...fire]; move.hold_ms = 900; move.thought = 'Still blocked: turning around.' }
+        else { move.keys = ['left', ...fire]; move.hold_ms = 1100; move.thought = 'Still blocked: turning away from the wall.' }
+        st.turnStreak = 0 // a recovery turn must not be cut short into a step back into the wall
       }
       if (!stalled && move.status === 'stuck') move.status = 'ok' // the view moved, whatever the model believes
       // turning on the spot: the model swings left-right-left for a minute, so consecutive turns keep one
       // direction and the third one becomes a step forward
-      if (turns.length && !move.keys.includes('up') && !move.keys.includes('fire')) {
-        if (st.turnStreak >= 2) { move.keys = ['up']; move.hold_ms = 700; move.thought = 'Turned enough, walking.'; st.turnStreak = 0 }
+      if (turns.length && !move.keys.includes('up') && !move.keys.includes('fire') && !stalled) {
+        if (st.turnStreak >= 2 && st.turnMs >= 800) { move.keys = ['up']; move.hold_ms = 700; move.thought = 'Turned enough, walking.'; st.turnStreak = 0 }
         else {
           if (st.turnStreak) move.keys = move.keys.map((k) => (k === 'left' || k === 'right' ? st.turnDir : k))
           st.turnDir = move.keys.find((k) => k === 'left' || k === 'right')
           st.turnStreak++
+          st.turnMs = (st.turnStreak === 1 ? 0 : st.turnMs) + move.hold_ms
         }
       } else if (move.keys.includes('up')) st.turnStreak = 0
       // the model often names a door in its thought without pressing use

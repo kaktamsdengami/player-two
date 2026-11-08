@@ -37,9 +37,6 @@
       <div class="controls">
         <button id="over" class="coin"><span class="slot"></span>INSERT COIN<small>take over · arrows · Ctrl · Space</small></button>
         <button id="back" class="coin back" hidden>HOLO, YOUR TURN<small>give the controls back</small></button>
-        <div class="tell-row">
-          <input id="tell" maxlength="120" placeholder="type an order for Holo and press Enter: “find the exit”, “shoot the imp”" />
-        </div>
         <button id="sound" class="sound" data-on="SOUND ON">SOUND OFF · tap for audio</button>
       </div>
     </div>
@@ -56,7 +53,7 @@
 <script src="/jury/shared/jury.js"></script>
 <script>
   const hd = Jury.boot({ container: '#game', feed: '#feed', thought: '#thought', status: '#status', latency: '#latency',
-    over: '#over', back: '#back', tell: '#tell', sound: '#sound',
+    over: '#over', back: '#back', sound: '#sound',
     onState: (s) => { document.getElementById('led').dataset.mode = s.mode } })
 </script>
 </body>
