@@ -180,8 +180,8 @@ def run(
                     try:
                         audio = say(text, out / f"say_{n:03d}.mp3")
                         row["tts_s"] = round(clock() - t_text, 2)
-                        if clock() - t0 > MAX_AGE_S:  # the screen has moved on
-                            row["error"] = f"dropped: frame {clock() - t0:.1f} s old"
+                        if clock() - t_shot > MAX_AGE_S:  # the screen has moved on
+                            row["error"] = f"dropped: frame {clock() - t_shot:.1f} s old"
                         else:
                             speaker(getattr(audio, "path", audio))
                             row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice
