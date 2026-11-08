@@ -251,7 +251,7 @@ $('go').addEventListener('click', async () => {
       Module.FS.createPreloadedFile('', 'default.cfg', 'default.cfg', true, true)
     },
     onRuntimeInitialized: () => {
-      callMain(['-iwad', 'doom1.wad', '-window', '-nogui', '-nomusic', '-config', 'default.cfg', '-skill', '2', '-warp', '1', '1'])
+      callMain(['-iwad', 'doom1.wad', '-window', '-nogui', '-nosound', '-nomusic', '-config', 'default.cfg', '-skill', '2', '-warp', '1', '1']) // -nosound: Gladia must hear the kid, not the shotgun
       state.started = true
       canvas.focus()
       fetch('api/kid/hello?c=' + CID).then((r) => r.json()).then(({ hello }) => {
