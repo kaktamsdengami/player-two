@@ -264,3 +264,18 @@ def test_stale_fix_intent_does_not_approve_a_later_finding(tmp_path):
     o.intent(VoiceIntent(intent=Intent.skip, source="button"))
     o._thread.join(5)
     assert "fixing" not in _states(o) and not o.store.fixes
+
+
+def test_skip_during_narration_is_kept(tmp_path):
+    o = _orch(tmp_path)
+    narrate = o.deps.narrate
+
+    def slow_narrate(f, out):
+        o.intent(VoiceIntent(intent=Intent.skip, source="button"))
+        return narrate(f, out)
+
+    o.deps.narrate = slow_narrate
+    o.start()
+    o._thread.join(5)
+    assert "fixing" not in _states(o) and not o.store.fixes
+    assert not o._thread.is_alive()

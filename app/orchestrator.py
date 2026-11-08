@@ -312,7 +312,10 @@ class Orchestrator:
             self.publish(SseType.narration, self.deps.narrate(f, self.out_dir / "voice"))
         except Exception as e:  # noqa: BLE001 - the clip still plays without a voice
             self.error(f"narration failed: {e}", "narrate")
-        self._drain_intents()  # only a "fix it" said after the narration approves this finding
+        # a voice "fix it" heard during the narration does not count; Skip and button presses do
+        self._drain_intents(
+            keep=lambda i: i.source == "button" or i.intent in (Intent.skip, Intent.no)
+        )
         f = f.model_copy(update={"status": FindingStatus.presented})
         self.publish(SseType.finding_updated, f)
         self.set_state(SessionState.awaiting_approval)
@@ -342,12 +345,17 @@ class Orchestrator:
         self.publish(SseType.finding_updated, f.model_copy(update={"status": status}))
         self._check()
 
-    def _drain_intents(self) -> None:
+    def _drain_intents(self, keep: Callable[[VoiceIntent], bool] = lambda i: False) -> None:
+        kept = []
         while True:
             try:
-                self.intents.get_nowait()
+                i = self.intents.get_nowait()
             except queue.Empty:
-                return
+                break
+            if keep(i):
+                kept.append(i)
+        for i in kept:
+            self.intents.put(i)
 
     def wait_for_fix(self) -> bool:
         end = time.monotonic() + self.approval_timeout_s
