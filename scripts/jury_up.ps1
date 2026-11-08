@@ -5,8 +5,8 @@ $ErrorActionPreference = "Stop"
 Set-Location (Join-Path $PSScriptRoot "..")
 if (-not (Test-Path ".venv")) { uv sync }
 if (-not (Test-Path "data\freedoom1.wad")) { Write-Host "data\freedoom1.wad missing: download Freedoom 0.13 (freedoom1.wad) into data\ first"; exit 1 }
-Push-Location web; npm install --silent; npm run build | Out-Null; Pop-Location
-.\.venv\bin\python -c "import playwright" 2>$null; if ($LASTEXITCODE -ne 0) { .\.venv\Scripts\pip install playwright; .\.venv\Scripts\playwright install chromium }
+Push-Location web; npm install --silent; $env:VITE_API_BASE = "same-origin"; npm run build | Out-Null; Pop-Location
+.\.venv\Scripts\python -c "import playwright" 2>$null; if ($LASTEXITCODE -ne 0) { uv pip install playwright; .\.venv\Scripts\playwright install chromium }
 $env:P2_LIVE_BROADCAST = "1"
 $server = Start-Process -PassThru -NoNewWindow .\.venv\Scripts\python -ArgumentList "-m","uvicorn","app.main:create_app","--factory","--host","0.0.0.0","--port","8000"
 Start-Sleep -Seconds 3
