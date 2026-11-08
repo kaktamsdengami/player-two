@@ -39,7 +39,8 @@ Do not stand still, do not wander in the menus, do not walk into the same corner
 - **Monsters:** zombies (humans in green/grey with a rifle or shotgun) shoot from a distance;
   imps (brown, spiky) throw fireballs.
 - **Sky:** the area above the walls outdoors (on this map it is red).
-- **Exit switches** look like panels on a wall and end the level: do not press them unless asked.
+- **Exit switches** look like panels on a wall and end the level: press one only once you have
+  explored the level, unless your task says otherwise.
 
 ## How this build runs (frame-step)
 
