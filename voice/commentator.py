@@ -35,7 +35,9 @@ EVERY_S = 3.0
 MIN_GAP_S = 12.0  # between the buddy's own lines; an answer to the child does not wait
 RECENT = 8
 SAME = 0.6  # word overlap above which two lines count as the same line
-GONE_S = 30.0  # the window missing this long = the game was closed, not minimised
+# the window missing this long = the game was closed. Windows still lists a minimised window,
+# so there a missing one is closed; X11 (--onlyvisible) hides minimised ones: wait longer.
+GONE_S = 2.0 if sys.platform.startswith("win") else 30.0
 MAX_AGE_S = 3.0  # a line about a frame older than this is dropped, not said
 _http: httpx.Client | None = None
 
@@ -332,7 +334,7 @@ def run(
                 print("game window closed: stopping", file=sys.stderr)
                 break
             if shot is None:  # window gone, minimised or covered
-                sleep(EVERY_S)
+                sleep(1.0)
                 continue
             t_shot = clock()
             if q:
