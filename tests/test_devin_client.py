@@ -160,6 +160,14 @@ def test_feedback_round_once():
         dc.send_feedback(attempt, "again")
 
 
+def test_refresh_shows_devins_latest_message():
+    fake = FakeDevin([_session()])
+    dc = DevinClient("k", ORG, client=httpx.Client(transport=httpx.MockTransport(fake)))
+    assert dc.refresh(dc.create_fix_session(_finding())).devin_says is None
+    dc.show_messages = True
+    assert dc.refresh(dc.create_fix_session(_finding())).devin_says == "hi"
+
+
 def test_messages_and_http_error():
     dc = _client(FakeDevin([_session()]))
     assert dc.messages("devin-abc")[0]["message"] == "hi"

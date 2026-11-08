@@ -124,3 +124,15 @@ button.link { background: none; border: 0; color: inherit; padding: 0.2rem 0.4re
 .center.notice { max-width: 640px; margin: 1rem auto 0; }
 .narration button { margin-bottom: 0.4rem; font-style: normal; }
 .card-actions { align-items: center; flex-wrap: wrap; }
+
+.built-by-devin { display: flex; gap: 1rem; align-items: baseline; flex-wrap: wrap; padding: 0.45rem 1.5rem; border-bottom: 1px solid var(--line); background: #10141d; font-size: 0.85rem; }
+.built-by-devin > b { background: var(--info); color: #000; padding: 0.1rem 0.5rem; border-radius: 4px; font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; }
+.devin-live { border: 2px solid var(--info); border-radius: 8px; padding: 0.8rem; margin-bottom: 1rem; background: #0f1826; }
+.devin-live.ok { border-color: var(--ok); }
+.devin-live.bad { border-color: var(--accent); }
+.devin-steps { list-style: none; padding: 0; margin: 0.6rem 0; display: grid; gap: 0.25rem; }
+.devin-steps li { color: var(--dim); }
+.devin-steps li::before { content: '○ '; }
+.devin-steps li.on { color: var(--text); }
+.devin-steps li.on::before { content: '● '; color: var(--ok); }
+.devin-says { font-style: italic; margin: 0.5rem 0; color: var(--text); }

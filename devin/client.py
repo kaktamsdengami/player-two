@@ -110,12 +110,14 @@ class DevinClient:
         base_branch: str = DEFAULT_BRANCH,
         max_acu_limit: int | None = 10,
         tags: tuple[str, ...] = ("player-two",),
+        show_messages: bool = False,
     ):
         self.org_id = org_id
         self.repo = repo
         self.base_branch = base_branch
         self.max_acu_limit = max_acu_limit
         self.tags = list(tags)
+        self.show_messages = show_messages  # also read Devin's latest message on every refresh
         self.http = client or httpx.Client(timeout=30)
         self.base = f"{base_url.rstrip('/')}/v3/organizations/{org_id}/sessions"
         self.headers = {"Authorization": f"Bearer {api_key}"}
@@ -134,6 +136,7 @@ class DevinClient:
         missing = [k for k in ("DEVIN_API_KEY", "DEVIN_ORG_ID") if not os.environ.get(k)]
         if missing:
             raise DevinError(f"missing env: {', '.join(missing)}")
+        kw.setdefault("show_messages", True)
         return cls(os.environ["DEVIN_API_KEY"], os.environ["DEVIN_ORG_ID"], **kw)
 
     def _req(self, method: str, path: str = "", **kw) -> dict:
@@ -201,7 +204,19 @@ class DevinClient:
         return attempt.model_copy(update=update)
 
     def refresh(self, attempt: FixAttempt) -> FixAttempt:
-        return self._apply(attempt, self.get_session(attempt.devin_session_id))
+        attempt = self._apply(attempt, self.get_session(attempt.devin_session_id))
+        says = self.latest_message(attempt.devin_session_id) if self.show_messages else None
+        return attempt.model_copy(update={"devin_says": says}) if says else attempt
+
+    def latest_message(self, devin_id: str) -> str | None:
+        """Devin's last message, shortened, for the dashboard (best effort)."""
+        try:
+            items = self.messages(devin_id)
+        except (DevinError, httpx.HTTPError, ValueError):
+            return None
+        said = [m.get("message") or "" for m in items if m.get("source", "devin") == "devin"]
+        text = " ".join(said[-1].split()) if said else ""
+        return (text[:277] + "...") if len(text) > 280 else text or None
 
     def follow(
         self,

@@ -217,6 +217,7 @@ class FixAttempt(Model):
     started_at: datetime
     finished_at: datetime | None = None
     acus: float | None = Field(None, ge=0, description="cost if the Devin API exposes it")
+    devin_says: str | None = Field(None, description="Devin's latest message, for the dashboard")
     upstream_fix_ref: str | None = None
     comparison: FixComparison | None = None
 

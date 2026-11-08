@@ -67,6 +67,7 @@ export default function App() {
           ))}
         </nav>
       </header>
+      <BuiltByDevin />
       {state.error && (
         <div className="error" role="alert">
           <span>{state.error}</span>
@@ -144,6 +145,7 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         )}
       </section>
       <section className="panel side">
+        {snap.fixes.length > 0 && <DevinLive fix={snap.fixes.at(-1)!} live={s.live && !USING_MOCK} />}
         <NewRun running={active(s.state)} />
         <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />
         <h2>Action timeline</h2>
@@ -469,6 +471,7 @@ function DevinPanel({ fix }: { fix: FixAttempt }) {
         )}
         {fix.acus != null && <span className="dim">{fix.acus} ACU</span>}
       </div>
+      {fix.devin_says && <div className="devin-says">“{fix.devin_says}”</div>}
       {c && (
         <div className="compare">
           <div>
@@ -484,6 +487,76 @@ function DevinPanel({ fix }: { fix: FixAttempt }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+/** Verified with `gh pr list` on 2026-11-08; update when the numbers change. */
+const DEVIN_BUILD = { prs: 18, lines: '21.7k', runtimePrs: 5, runtimeMerged: 3 }
+
+function BuiltByDevin() {
+  const d = DEVIN_BUILD
+  return (
+    <div className="built-by-devin">
+      <b>Devin</b>
+      <span>
+        <b>at runtime:</b> every verified bug becomes a Devin API session that fixes the game&apos;s C code, then H
+        replays the bug on the rebuilt game ({d.runtimePrs} fix PRs to the game so far, {d.runtimeMerged} merged)
+      </span>
+      <span className="dim">
+        <b>built by Devin:</b> all {d.prs} PRs of this product, +{d.lines} lines
+      </span>
+    </div>
+  )
+}
+
+const DEVIN_STEPS: [string, string[]][] = [
+  ['Devin session started', ['queued', 'working', 'pr_open', 'merged', 'fixed', 'not_fixed']],
+  ['Pull request opened', ['pr_open', 'merged', 'fixed', 'not_fixed']],
+  ['Merged → game rebuilt', ['merged', 'fixed', 'not_fixed']],
+  ['H replays the bug', ['fixed', 'not_fixed']],
+]
+
+/** The fix in progress, on the live view: Devin's steps, its latest message, session and PR links. */
+function DevinLive({ fix, live }: { fix: FixAttempt; live: boolean }) {
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    if (!live || fix.finished_at) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [live, fix.finished_at])
+  const end = fix.finished_at ? Date.parse(fix.finished_at) : live ? now : NaN
+  const elapsed = (end - Date.parse(fix.started_at)) / 1000
+  const done = fix.result === 'fixed'
+  const failed = fix.result === 'not_fixed' || fix.result === 'failed'
+  return (
+    <div className={`devin-live ${done ? 'ok' : failed ? 'bad' : ''}`}>
+      <div className="devin-head">
+        <b>{done ? 'Devin fixed the game' : failed ? 'Devin fix: not verified yet' : 'Devin is fixing the game'}</b>
+        <span className={`fix r-${fix.result}`}>{fix.result.replace('_', ' ')}</span>
+        {elapsed >= 0 && <span className="dim">{fmtS(elapsed)}</span>}
+      </div>
+      <ol className="devin-steps">
+        {DEVIN_STEPS.map(([label, states]) => (
+          <li key={label} className={states.includes(fix.result) ? 'on' : ''}>
+            {label === 'H replays the bug' && done ? 'H replayed the bug: fixed' : label}
+          </li>
+        ))}
+      </ol>
+      {fix.devin_says && <div className="devin-says">Devin: “{fix.devin_says}”</div>}
+      <div className="devin-head">
+        {fix.devin_session_url && (
+          <a href={fix.devin_session_url} target="_blank" rel="noreferrer">
+            Devin session
+          </a>
+        )}
+        {fix.pr_url && (
+          <a href={fix.pr_url} target="_blank" rel="noreferrer">
+            pull request
+          </a>
+        )}
+        {fix.round > 1 && <span className="dim">feedback round</span>}
+      </div>
     </div>
   )
 }
