@@ -4,6 +4,9 @@ body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 syst
 header { padding: 0.8rem 1.5rem; border-bottom: 1px solid var(--line); display: flex; gap: 1.5rem; align-items: baseline; flex-wrap: wrap; }
 .brand { font-weight: 900; font-size: 1.4rem; letter-spacing: 0.05em; }
 .brand span { color: var(--accent); }
+header .modes { display: flex; gap: 0.5rem; margin-left: auto; }
+header .modes a { border: 1px solid var(--line); border-radius: 8px; padding: 0.35rem 0.7rem; font-size: 0.9rem; color: inherit; text-decoration: none; }
+header .modes a:hover { border-color: var(--accent); }
 .dim { color: var(--dim); }
 .small { font-size: 0.8rem; }
 a { color: var(--info); }

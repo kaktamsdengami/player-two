@@ -22,6 +22,9 @@ h1 span { color: var(--acc); }
 .thought { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 14px 12px; background: linear-gradient(0deg, rgba(0,0,0,.9), transparent); font-size: 16px; font-weight: 600; }
 h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14px; }
 .looks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 34px; }
+.look.mode { min-height: 150px; border-color: var(--acc); background: linear-gradient(160deg, #141420, #0c0c12); }
+.look.mode b { font-size: 24px; }
 .look { display: block; border-radius: 12px; padding: 18px 16px 16px; min-height: 190px; border: 1px solid #22222c; transition: transform .2s, border-color .2s; position: relative; overflow: hidden; }
 .look:hover { transform: translateY(-4px); border-color: var(--acc); }
 .look b { display: block; font-size: 20px; margin-bottom: 6px; }
@@ -36,7 +39,7 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
 .row a { border: 1px solid #2a2a36; border-radius: 8px; padding: 8px 12px; }
 .credits { margin-top: 36px; color: var(--dim); font-size: 13px; line-height: 1.6; text-align: center; }
 .credits a { color: var(--acc); }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } h1 { font-size: 34px; } .looks { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } h1 { font-size: 34px; } .looks { grid-template-columns: 1fr 1fr; } .modes { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -49,6 +52,12 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
     </div>
     <a class="preview" href="/arcade/"><div id="game"></div><div class="thought" id="thought">Holo is warming up…</div></a>
   </section>
+
+  <h2>TWO WAYS TO PLAY · pick one, switch any time</h2>
+  <nav class="modes">
+    <a class="look mode tester" href="/dashboard/"><span class="path">/dashboard/</span><b>TESTER MODE</b><small>Holo plays Doom as a hostile QA tester: finds bugs from pixels, explains them, sends fixes to Devin. Type instructions in the voice panel. The link back to Kid mode is in the header.</small></a>
+    <a class="look mode kid" href="/kid/"><span class="path">/kid/</span><b>KID MODE · COUCH BUDDY</b><small>You play, Pixel watches and talks with you (Holo eyes, ElevenLabs voice, Gladia ears). Tester mode is one tap away in the header.</small></a>
+  </nav>
 
   <h2>PICK A LOOK · same AI, five experiences</h2>
   <nav class="looks">

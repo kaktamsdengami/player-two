@@ -59,6 +59,10 @@ export default function App() {
           PLAYER <span>TWO</span>
         </div>
         {snap && <SessionBar snap={snap} />}
+        <nav className="modes">
+          <a href="/">← home</a>
+          <a href="/kid/">kid mode →</a>
+        </nav>
         <nav>
           {TABS.map(([id, label]) => (
             <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
