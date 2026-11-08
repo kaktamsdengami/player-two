@@ -85,26 +85,32 @@ const Stamp: React.FC<{ label: string; delay: number }> = ({ label, delay }) => 
 // ---------- captions from ElevenLabs alignment ----------
 type VO = { text: string; chars: string[]; start: number[]; end: number[] }
 type Phrase = { text: string; start: number; end: number }
-const phrases = (vo: VO): Phrase[] => {
+// phrases of the voice-over between `from` and `to` (seconds in the mp3), times relative to `from`
+const phrases = (vo: VO, from = 0, to = Infinity): Phrase[] => {
+  const idx = vo.chars.map((_, i) => i).filter((i) => vo.start[i] >= from && vo.start[i] < to)
   const out: Phrase[] = []; let buf = ''; let st = -1
-  vo.chars.forEach((ch, i) => {
-    if (st < 0 && ch.trim()) st = vo.start[i]
+  idx.forEach((i, n) => {
+    const ch = vo.chars[i]
+    if (st < 0 && ch.trim()) st = vo.start[i] - from
     buf += ch
     const words = buf.trim().split(/\s+/).length
-    const brk = /[.?!:]/.test(ch) || (ch === ',' && words >= 5) || (ch === ' ' && words >= 11)
-    if (brk || i === vo.chars.length - 1) {
-      if (buf.trim()) out.push({ text: buf.trim(), start: st, end: vo.end[i] })
+    // words left in this sentence: never leave one or two words alone on the next caption
+    const rest = idx.slice(n + 1).map((j) => vo.chars[j]).join('').split(/[.?!:]/)[0].trim().split(/\s+/).filter(Boolean).length
+    const brk = /[.?!:]/.test(ch) || (ch === ',' && words >= 5) || (ch === ' ' && words >= 11 && rest >= 3)
+    if (brk || n === idx.length - 1) {
+      if (buf.trim()) out.push({ text: buf.trim(), start: st, end: vo.end[i] - from })
       buf = ''; st = -1
     }
   })
   return out
 }
-const Voice: React.FC<{ file: string; vo: VO; at: number }> = ({ file, vo, at }) => {
-  const ph = phrases(vo)
-  const len = s(vo.end[vo.end.length - 1] + 0.6)
+// plays [from, to) of a voice-over file at frame `at`, with its captions
+const Voice: React.FC<{ file: string; vo: VO; at: number; from?: number; to?: number }> = ({ file, vo, at, from = 0, to }) => {
+  const end = Math.min(to ?? Infinity, vo.end[vo.end.length - 1] + 0.3)
+  const ph = phrases(vo, from, end)
   return (
-    <Sequence from={at} durationInFrames={len}>
-      <Audio src={staticFile(`vo/${file}.mp3`)} />
+    <Sequence from={at} durationInFrames={s(end - from + 0.6)}>
+      <Audio src={staticFile(`vo/${file}.mp3`)} startFrom={s(from)} endAt={s(end)} />
       <Caption ph={ph} />
     </Sequence>
   )
@@ -211,7 +217,7 @@ const HLines: React.FC<{ lines: string[][]; every: number; first?: number }> = (
 
 const RUN_SEGS: [number, number][] = [[0, 6], [7, 14], [44, 53], [76, 83]]
 const SceneRun: React.FC = () => {
-  const W = 1170, H = Math.round(W * 800 / 1066)
+  const W = 1080, H = Math.round(W * 800 / 1066)
   let at = 0
   return (
     <AbsoluteFill style={{ padding: '70px 64px', flexDirection: 'row', gap: 44 }}>
@@ -227,7 +233,7 @@ const SceneRun: React.FC = () => {
       </div>
       <div style={{ width: 560, paddingTop: 8 }}>
         <FadeIn><Title size={40}>H plays from pixels only</Title></FadeIn>
-        <FadeIn delay={8}><Mono style={{ margin: '10px 0 30px' }}>desktop agent · holo4-35b-a3b<br />keyboard only · no game state · no logs</Mono></FadeIn>
+        <FadeIn delay={8}><Mono style={{ margin: '10px 0 30px' }}>desktop agent · holo4-35b-a3b<br />keyboard only · no game state · no logs<br />given the developer's test plan, not the bug list</Mono></FadeIn>
         <HLines lines={H_LINES_RUN} every={s(6)} first={s(2)} />
       </div>
     </AbsoluteFill>
@@ -256,7 +262,7 @@ const ScenePickup: React.FC = () => {
       <div>
         <Frame w={W} h={H}>
           <Sequence durationInFrames={play} layout="none"><RunClip from={83.5} to={90.4} w={W} h={H} /></Sequence>
-          <Sequence from={play} layout="none"><Freeze frame={play - 1}><RunClip from={83.5} to={90.4} w={W} h={H} badges={false} /></Freeze></Sequence>
+          <Sequence from={play} layout="none"><Img src={staticFile('pickup_end.png')} style={{ width: W, height: H }} /></Sequence>
         </Frame>
         <FadeIn delay={play}><Mono color={C.text} size={22} style={{ marginTop: 16 }}>“Vanguard of the gods!” · the world inverts · the sky stays red</Mono></FadeIn>
       </div>
@@ -287,15 +293,15 @@ const SceneVerify: React.FC = () => {
       <div style={{ position: 'relative' }}>
         <Frame w={W} h={H}>
           <Sequence durationInFrames={clip} layout="none"><OffthreadVideo src={staticFile('bug_clip.mp4')} muted style={{ width: W, height: H }} /></Sequence>
-          <Sequence from={clip} layout="none"><Freeze frame={clip - 1}><OffthreadVideo src={staticFile('bug_clip.mp4')} muted style={{ width: W, height: H }} /></Freeze></Sequence>
+          <Sequence from={clip} layout="none"><Img src={staticFile('bug_end.png')} style={{ width: W, height: H }} /></Sequence>
         </Frame>
-        <div style={{ position: 'absolute', right: 26, top: 26 }}><Stamp label="VERIFIED" delay={s(7.8)} /></div>
+        <div style={{ position: 'absolute', right: 40, top: H - 300 }}><Stamp label="VERIFIED" delay={s(7.8)} /></div>
         <Pill style={{ marginTop: 16 }}>verifier replay of H's own inputs · clip cut by the product</Pill>
       </div>
       <div style={{ width: 620, paddingTop: 6, display: 'flex', flexDirection: 'column', gap: 26 }}>
         <FadeIn><Title size={40}>We don't take its word for it</Title></FadeIn>
         <FadeIn delay={s(1.2)}><Mono color={C.text}>replayed H's exact inputs<br />tic for tic (agent.lmp)</Mono></FadeIn>
-        <FadeIn delay={s(2.6)}><Mono color={C.text}>replay sync: 31 / 31 player<br />positions identical</Mono></FadeIn>
+        <FadeIn delay={s(2.6)}><Mono color={C.text}>replay sync: 31 / 31 player<br />positions identical <span style={{ color: C.sub }}>(stage run 4)</span></Mono></FadeIn>
         <FadeIn delay={s(4)}><Mono color={C.text}>hidden engine log, never shown to H:<br /><span style={{ color: C.key }}>powerup power=0</span><br /><span style={{ color: C.key }}>render sky_ignores_colormap fixedcolormap=32</span></Mono></FadeIn>
         <FadeIn delay={s(7.8)}><Mono color={C.ok}>verdict: verified · known bug KB3</Mono></FadeIn>
       </div>
@@ -318,11 +324,14 @@ const DIFF: [string, string][] = [
   ['+', '        dc_colormap = colormaps;'],
   ['+', '        QA_SkyDrawn(viewplayer->fixedcolormap);'],
   ['+', '    }'],
+  [' ', '    dc_texturemid = skytexturemid;'],
+  ['-', '    QA_SkyDrawn(viewplayer->fixedcolormap);'],
 ]
 const SceneDevin: React.FC = () => {
   const f = useCurrentFrame()
-  const A = s(6), B = s(14), Cc = s(20), D = s(28.5)
-  const zoom = interpolate(f, [Cc, D], [1, 1.05], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
+  // voice card -> session (VO part 1) -> diff (part 2) -> PR (part 3) -> merged (part 4), see DEVIN_VO
+  const A = s(5), B = s(11.5), Cc = s(20), D = s(26.5)
+  const zoom = interpolate(f, [B, Cc], [1, 1.05], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
   return (
     <AbsoluteFill style={{ padding: '80px 120px', alignItems: 'center', justifyContent: 'center' }}>
       <Sequence durationInFrames={A + XF} layout="none">
@@ -346,12 +355,6 @@ const SceneDevin: React.FC = () => {
       </Sequence>
       <Sequence from={B} durationInFrames={Cc - B + XF} layout="none">
         <SubFade dur={Cc - B + XF}>
-          <Frame w={960} h={798} style={{ background: '#fff' }}><Img src={staticFile('pr_header.jpg')} style={{ width: 960, height: 798 }} /></Frame>
-          <Mono style={{ marginTop: 14 }}>github.com/kaktamsdengami/chocolate-doom/pull/5 · opened and merged by devin-ai-integration</Mono>
-        </SubFade>
-      </Sequence>
-      <Sequence from={Cc} durationInFrames={D - Cc + XF} layout="none">
-        <SubFade dur={D - Cc + XF}>
           <div style={{ transform: `scale(${zoom})` }}>
             <Mono color={C.text} size={24} style={{ marginBottom: 14 }}>src/doom/r_plane.c · R_DrawPlanes() · <span style={{ color: C.ok }}>+9</span> <span style={{ color: C.red }}>−5</span></Mono>
             <div style={{ width: 1180, background: C.card, border: `1.5px solid ${C.line}`, borderRadius: 16, padding: '22px 0' }}>
@@ -361,6 +364,12 @@ const SceneDevin: React.FC = () => {
             </div>
             <Mono style={{ marginTop: 14 }}>the 1993 comment says it: “Because of this hack, sky is not affected by INVUL inverse mapping.”</Mono>
           </div>
+        </SubFade>
+      </Sequence>
+      <Sequence from={Cc} durationInFrames={D - Cc + XF} layout="none">
+        <SubFade dur={D - Cc + XF}>
+          <Frame w={960} h={798} style={{ background: '#fff' }}><Img src={staticFile('pr_header.jpg')} style={{ width: 960, height: 798 }} /></Frame>
+          <Mono style={{ marginTop: 14 }}>github.com/kaktamsdengami/chocolate-doom/pull/5 · opened and merged by devin-ai-integration</Mono>
         </SubFade>
       </Sequence>
       <Sequence from={D} layout="none">
@@ -379,18 +388,18 @@ const SubFade: React.FC<{ dur: number; children: React.ReactNode }> = ({ dur, ch
 }
 
 const SceneFixed: React.FC = () => {
-  const W = 1180, H = Math.round(W * 800 / 1066)
-  const clip = s(7.76)
+  const W = 1040, H = Math.round(W * 800 / 1066)
+  const clip = s(6.9) // 0.3-7.2 s: after 7.2 s the capture shows the desktop, not the game
   return (
     <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
       <Sequence durationInFrames={clip + s(1.5)} layout="none">
         <SubFade dur={clip + s(1.5)}>
           <div style={{ position: 'relative' }}>
             <Frame w={W} h={H}>
-              <Sequence durationInFrames={clip} layout="none"><OffthreadVideo src={staticFile('after_fix.mp4')} muted style={{ width: W, height: H }} /></Sequence>
-              <Sequence from={clip} layout="none"><Freeze frame={clip - 1}><OffthreadVideo src={staticFile('after_fix.mp4')} muted style={{ width: W, height: H }} /></Freeze></Sequence>
+              <Sequence durationInFrames={clip} layout="none"><OffthreadVideo src={staticFile('after_fix.mp4')} startFrom={s(0.3)} endAt={s(7.2)} muted style={{ width: W, height: H }} /></Sequence>
+              <Sequence from={clip} layout="none"><Img src={staticFile('fix_end.png')} style={{ width: W, height: H }} /></Sequence>
             </Frame>
-            <div style={{ position: 'absolute', right: 26, top: 26 }}><Stamp label="FIXED" delay={s(3)} /></div>
+            <div style={{ position: 'absolute', right: 26, top: 26 }}><Stamp label="FIXED" delay={s(5.4)} /></div>
           </div>
           <Mono style={{ marginTop: 16 }}>proof replay on the rebuilt game · same power-up · 0 sky_ignores_colormap events</Mono>
         </SubFade>
@@ -416,7 +425,7 @@ const SceneKid: React.FC = () => (
     <div style={{ width: 640 }}>
       <FadeIn delay={8}><Title size={48}>Pixel</Title></FadeIn>
       <FadeIn delay={16}><Sub style={{ marginTop: 8 }}>a game buddy that watches the screen with H's eyes and talks back</Sub></FadeIn>
-      <FadeIn delay={30}><Mono style={{ marginTop: 26 }}>Doom in the browser<br />H vision · ElevenLabs voice · Gladia ears</Mono></FadeIn>
+      <FadeIn delay={30}><Mono style={{ marginTop: 26 }}>Chocolate Doom on our laptop<br />H vision · ElevenLabs voice · Gladia ears</Mono></FadeIn>
     </div>
   </AbsoluteFill>
 )
@@ -436,10 +445,14 @@ const SceneEnd: React.FC = () => (
       <Stat v="7 min 18 s" l="from “fix” to the proof replay" delay={20} />
       <Stat v="19 / 19" l="pull requests written by Devin" delay={26} />
     </div>
+    <FadeIn delay={28}><Mono size={16} style={{ marginTop: 18, textAlign: 'center' }}>times: stage run 00:37 UTC, chocolate-doom#4 · eval/runs/2026-11-08-stage-live-loop-fixed.json · PRs: kaktamsdengami/player-two</Mono></FadeIn>
     <FadeIn delay={34}><Mono style={{ marginTop: 46, textAlign: 'center' }}>H · Devin · ElevenLabs · Gladia · Linkup · Stripe</Mono></FadeIn>
     <FadeIn delay={40}><Mono color={C.text} style={{ marginTop: 10 }}>player-two-doom.lovable.app</Mono></FadeIn>
   </AbsoluteFill>
 )
+
+// s5 is cut at its sentence pauses so each part plays over its own card: [at (s into the scene), from, to (s in the mp3)]
+const DEVIN_VO: [number, number, number | undefined][] = [[5.4, 0, 3.6], [12, 3.7, 7.1], [20.4, 7.1, 10.0], [26.9, 10.0, undefined]]
 
 export const PlayerTwo: React.FC = () => (
   <AbsoluteFill style={{ background: C.bg }}>
@@ -456,7 +469,7 @@ export const PlayerTwo: React.FC = () => (
     <Voice file="s2" vo={vo2 as VO} at={SC.run[0] + s(0.8)} />
     <Voice file="s3" vo={vo3 as VO} at={SC.pickup[0] + s(1.5)} />
     <Voice file="s4" vo={vo4 as VO} at={SC.verify[0] + s(0.8)} />
-    <Voice file="s5" vo={vo5 as VO} at={SC.devin[0] + s(0.8)} />
+    {DEVIN_VO.map(([at, from, to]) => <Voice key={at} file="s5" vo={vo5 as VO} at={SC.devin[0] + s(at)} from={from} to={to} />)}
     <Voice file="s6" vo={vo6 as VO} at={SC.fixed[0] + s(1.5)} />
     <Voice file="s7" vo={vo7 as VO} at={SC.kid[0] + s(0.8)} />
     <Voice file="s8" vo={vo8 as VO} at={SC.end[0] + s(0.6)} />
