@@ -1,9 +1,13 @@
 import mock from '../../docs/api-mock.json'
 import type { SseEvent, Snapshot, VoiceIntent } from './types'
 
-/** Set VITE_API_BASE (e.g. http://localhost:8000) to switch from docs/api-mock.json to the live API. */
-export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
-export const USING_MOCK = API_BASE === ''
+/** Set VITE_API_BASE (e.g. http://localhost:8000) to switch from docs/api-mock.json to the live API;
+ * `same-origin` when app.main serves the built dashboard itself (the public watch link). */
+const RAW_BASE = import.meta.env.VITE_API_BASE ?? ''
+export const API_BASE = RAW_BASE === 'same-origin' ? '' : RAW_BASE.replace(/\/$/, '')
+export const USING_MOCK = RAW_BASE === ''
+/** Opened from anywhere but the laptop itself (the tunnel link): watch only, no controls. */
+export const VIEW_ONLY = !USING_MOCK && !['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const MOCK = mock as unknown as Record<string, unknown>
 

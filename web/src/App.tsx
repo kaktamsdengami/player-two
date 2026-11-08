@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { USING_MOCK, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
+import { USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
@@ -97,6 +97,7 @@ function SessionBar({ snap }: { snap: Snapshot }) {
   return (
     <div className="session">
       <span className={`badge ${mode === 'LIVE' ? 'live' : 'rec'}`}>{mode}</span>
+      {VIEW_ONLY && <span className="badge rec" title="This public link can watch the run, not start, steer or approve it">VIEW ONLY</span>}
       <span>{s.game}</span>
       <span className="dim">{s.map}</span>
       <span className={`state st-${s.state}`}>{s.state.replace('_', ' ')}</span>
@@ -121,7 +122,10 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
       <section className="panel agent">
         <h2>Agent view</h2>
         {s.share_url && !USING_MOCK ? (
-          <iframe title="H live view" src={s.share_url} />
+          <>
+            <iframe title="H live view" src={s.share_url} />
+            <a className="small" href={s.share_url} target="_blank" rel="noreferrer">Open the H live view in a new tab</a>
+          </>
         ) : shot ? (
           <img src={shot} alt="latest agent screenshot" onError={() => setBadShot(shot)} />
         ) : (
@@ -146,8 +150,8 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
       </section>
       <section className="panel side">
         {snap.fixes.length > 0 && <DevinLive fix={snap.fixes.at(-1)!} live={s.live && !USING_MOCK} />}
-        <NewRun running={active(s.state)} />
-        <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />
+        {!VIEW_ONLY && <NewRun running={active(s.state)} />}
+        {!VIEW_ONLY && <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />}
         <h2>Action timeline</h2>
         {!snap.actions.length && <div className="dim small">The agent's key presses appear here.</div>}
         <ol className="timeline">
@@ -425,7 +429,7 @@ function BugCard({
         </div>
       </div>
       <div className="card-actions">
-        {!fix && (
+        {!VIEW_ONLY && !fix && (
           <>
             {(f.status === 'verified' || f.status === 'presented') && (
               <button className="primary" onClick={() => act('fix', 'fix it')} title="Ask Devin to fix this bug">
@@ -436,7 +440,7 @@ function BugCard({
             <button onClick={() => act('skip', 'skip')}>Skip</button>
           </>
         )}
-        {fix?.result === 'pr_open' && (
+        {!VIEW_ONLY && fix?.result === 'pr_open' && (
           <>
             <button className="primary" onClick={() => act('yes', 'merge')} title="Merge Devin's pull request, then replay the bug">
               Merge PR

@@ -80,3 +80,16 @@ def test_ptt_goes_off_when_the_run_ends(tmp_path):
     rt.current.info.state = "stopped"
     assert c.get("/api/ptt").json() == {"on": False}
     assert c.post("/api/ptt", json={"on": True}).json() == {"on": False}
+
+
+def test_public_tunnel_link_is_view_only():
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    client = TestClient(create_app())
+    hdr = {"cf-connecting-ip": "203.0.113.7"}
+    r = client.post("/api/intent", json={"intent": "fix", "source": "button"}, headers=hdr)
+    assert r.status_code == 403
+    assert client.post("/api/stop", json={}, headers=hdr).status_code == 403
+    assert client.get("/api/session", headers=hdr).status_code == 200

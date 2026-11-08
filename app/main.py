@@ -16,6 +16,7 @@ from typing import Any
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from app.contracts import SessionInfo, SseType, TranscriptPayload, VoiceIntent
@@ -24,6 +25,7 @@ from app.routes_billing import router as billing_router
 
 ROOT = Path(__file__).resolve().parent.parent
 MOCK = ROOT / "docs" / "api-mock.json"
+DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
 MEDIA_SUFFIXES = {
     ".mp4",
     ".webm",
@@ -45,6 +47,8 @@ def control(request: Request) -> None:
     JSON only, so a cross-site form post needs a CORS preflight; and when `P2_CONTROL_TOKEN` is
     set (any deployment reachable from outside the laptop), the `X-P2-Token` header must match.
     """
+    if request.headers.get("cf-connecting-ip"):  # came through the public Cloudflare tunnel
+        raise HTTPException(403, "view only: the public link cannot start, steer or approve")
     if "application/json" not in request.headers.get("content-type", ""):
         raise HTTPException(415, "send JSON")
     token = os.environ.get("P2_CONTROL_TOKEN")
@@ -251,6 +255,8 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             raise HTTPException(404, "not found")
         return FileResponse(p)
 
+    if (DIST / "index.html").is_file():  # built with VITE_API_BASE=same-origin: one link for all
+        app.mount("/", StaticFiles(directory=DIST, html=True), name="dashboard")
     return app
 
 
