@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
+import { USING_MOCK, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
@@ -236,7 +236,9 @@ function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: 
     else if (voice.transcript?.startsWith('[push-to-talk OFF')) setTalking(false)
   }, [voice.transcript, voice.at])
   useEffect(() => {
-    if (!enabled) setTalking(false)
+    // The backend holds the state: re-read it on mount so a live mic never shows as muted.
+    if (!enabled || USING_MOCK) return setTalking(false)
+    getPtt().then((r) => setTalking(!!r?.on), () => setTalking(false))
   }, [enabled])
   const talk = () =>
     setPtt(!talking).then(
