@@ -145,7 +145,7 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
         if re.search(r"\.(wasm|wad|jpg|png|woff2?)$", path) or "/assets/" in path:
             resp.headers.setdefault("Cache-Control", "public, max-age=604800, immutable")
         elif re.search(r"\.(js|css)$", path):
-            resp.headers.setdefault("Cache-Control", "public, max-age=3600")
+            resp.headers.setdefault("Cache-Control", "public, max-age=300")
         return resp
 
     app.include_router(billing_router)
