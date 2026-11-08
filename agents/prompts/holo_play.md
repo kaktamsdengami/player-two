@@ -26,8 +26,8 @@ Play well:
 - To turn around, hold `left` (or `right`) ~900 ms; `down` only backs up a step and you cannot see
   where you go. Never stand still, never repeat the same failing move more than twice: the recent moves below tell
   you if you are stuck (same view, no progress): then turn around (hold `left` ~900 ms) and move on.
-- Short moves make you react faster: turning taps 150-300 ms (≈25-45°), walking 300-600 ms;
-  900 ms only in a long empty corridor.
+- If your thought names an enemy, `keys` MUST contain `fire`; if it names a door or switch, `keys` MUST contain `use`.
+- Turning taps 200-400 ms (≈30-60°); walking 500-900 ms; `fire` moves 600-1000 ms.
 - Doors with a red/blue/yellow mark need that key card; remember and look elsewhere.
 - If the screen shows the automap, a menu or a text screen: `use` or `fire` to continue playing.
 - Do not use `use` on plain walls more than twice in a row.

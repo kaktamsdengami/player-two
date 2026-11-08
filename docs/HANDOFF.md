@@ -35,6 +35,7 @@ get `busy` and switch to RECORDED silently, badge says so.
 
 **Known issues / deviations:**
 - Fixed after Dmitry's phone test: voice was never on (`speak` defaulted to false; now the SOUND tap unlocks one <audio> element, iOS-friendly); Holo now keeps firing while it thinks after a shot, tries `use` before turning when blocked (doors look like walls), shorter walks, and the TELL instruction lasts 6 moves and is shown as `[you: ...]` in the thought line.
+- Second phone round ("still walks into walls, shoots late"): the browser is now authoritative over the model's reflexes in `web/jury/shared/holo-doom.js`: stall = brightness-normalised grey-thumbnail difference < 3.5 after ONE unchanged move (dark rooms no longer hide a wall); when stalled, a plain `up` becomes `use+up`, then `left` 900 ms; consecutive turn-only moves keep one direction and the third becomes a step forward (the model used to swing left-right-left on the spot for a minute, calling itself `stuck` while the view moved); a thought that names an enemy adds `fire`, one that names a door adds `use`; fire holds are at least 600 ms. Pace is ~1 move/s (walk 500-900 ms + think ~600 ms); Dmitry said slower decisions are fine.
 - `Module.pauseMainLoop/resumeMainLoop` corrupts this Asyncify WASM build (every later frame throws
   "memory access out of bounds"), as does a non-empty `Module.print`. So the game is NOT paused
   while Holo thinks: no key is held, the marine stands still (~0.5-0.8 s). Documented in

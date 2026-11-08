@@ -66,7 +66,7 @@ window.HoloDoom = (() => {
     film.width = 800; film.height = 600
     const st = {
       mode: 'loading', running: false, human: false, step: 0, recent: [], instruction: '', instructionLeft: 0,
-      lastThumb: null, thumb: null, same: 0, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
+      lastThumb: null, thumb: null, same: 0, turnStreak: 0, turnDir: 'left', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
       tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
     }
@@ -143,12 +143,14 @@ window.HoloDoom = (() => {
     const thumbCanvas = document.createElement('canvas')
     thumbCanvas.width = 32; thumbCanvas.height = 24
     const thumbCtx = thumbCanvas.getContext('2d', { willReadFrequently: true })
-    const STILL = 2.5 // mean grey difference per pixel; a real move scores 7-35
+    const STILL = 3.5 // mean grey difference per pixel at normal brightness; a real move scores 7-35, a wall 0.2-0.9
     function moved(a, b) {
       if (!a || !b) return true
-      let s = 0
-      for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i])
-      return s / a.length >= STILL
+      let s = 0, bright = 0
+      for (let i = 0; i < a.length; i++) { s += Math.abs(a[i] - b[i]); bright += b[i] }
+      // dark rooms move fewer grey levels: scale the difference to a reference brightness of 64
+      st.diff = (s / a.length) * 64 / Math.max(bright / a.length, 8)
+      return st.diff >= STILL
     }
 
     // ------------------------------------------------------------------ Holo
@@ -226,7 +228,7 @@ window.HoloDoom = (() => {
     async function stepLive() {
       if (o.pauseWhileThinking) { pause(); await frames(1) }
       const frame = shot()
-      const stalled = moved(st.thumb, st.lastThumb) ? (st.same = 0, false) : ++st.same >= 2
+      const stalled = moved(st.thumb, st.lastThumb) ? (st.same = 0, false) : ++st.same >= 1
       st.lastThumb = st.thumb
       const keepFire = st.lastKeys.includes('fire') && !stalled // a monster was in the sights: keep shooting while Holo thinks
       if (keepFire) down('fire', { ctrl: true })
@@ -248,7 +250,7 @@ window.HoloDoom = (() => {
           move = localMove(stalled); move.error = e.message; move.busy = true
           st.thinking = false
           st.step++
-          const step = Object.assign({ step: st.step, frame, mode: 'live', t: Date.now() }, move)
+          const step = Object.assign({ step: st.step, frame, mode: 'live', t: Date.now(), diff: Math.round(st.diff * 10) / 10 }, move)
           emit('step', step)
           await perform(move)
           return 'busy'
@@ -260,14 +262,36 @@ window.HoloDoom = (() => {
       move.latency_ms = move.latency_ms ?? Math.round(performance.now() - t0)
       move.client_ms = Math.round(performance.now() - t0)
       st.thinking = false
-      if (st.same === 3 && !st.lastKeys.includes('use')) { move.keys = ['use', 'up']; move.hold_ms = 300; move.thought = 'Blocked: maybe a door. Use.' } // local rescue, doors look like walls
-      else if (st.same >= 5) { move.keys = ['left']; move.hold_ms = 900; move.thought = move.thought || 'Turning around.' }
+      // the client is authoritative when the view did not change: walking on is never the answer
+      const turns = move.keys.filter((k) => k === 'left' || k === 'right')
+      const walksOn = move.keys.includes('up') && !move.keys.some((k) => ['use', 'left', 'right', 'strafe_left', 'strafe_right'].includes(k))
+      if (stalled && walksOn) {
+        if (st.same === 1) { move.keys = ['use', 'up']; move.hold_ms = 300; move.thought = 'Blocked. A door? Use.' } // doors look like walls
+        else { move.keys = ['left']; move.hold_ms = 900; move.thought = 'Still blocked: turning around.' }
+      }
+      if (!stalled && move.status === 'stuck') move.status = 'ok' // the view moved, whatever the model believes
+      // turning on the spot: the model swings left-right-left for a minute, so consecutive turns keep one
+      // direction and the third one becomes a step forward
+      if (turns.length && !move.keys.includes('up') && !move.keys.includes('fire')) {
+        if (st.turnStreak >= 2) { move.keys = ['up']; move.hold_ms = 700; move.thought = 'Turned enough, walking.'; st.turnStreak = 0 }
+        else {
+          if (st.turnStreak) move.keys = move.keys.map((k) => (k === 'left' || k === 'right' ? st.turnDir : k))
+          st.turnDir = move.keys.find((k) => k === 'left' || k === 'right')
+          st.turnStreak++
+        }
+      } else if (move.keys.includes('up')) st.turnStreak = 0
+      // the model often names an enemy or a door in its thought without pressing the matching key
+      const says = (re) => re.test(move.thought || '')
+      if (!move.keys.includes('fire') && says(/\b(enem|imp|zombie|demon|monster|soldier|shoot|fir(e|ing)|attack|target)/i) &&
+        !says(/no (enemies|monsters|targets)|dead |defeated|killed|clear|corpse/i)) move.keys.push('fire')
+      if (!move.keys.includes('use') && says(/\bdoors?\b|\bopen\b|\bswitch/i) && !says(/no (enemies or )?doors?|door (opened|is open|opens)|opened|no .*door/i)) move.keys.push('use')
+      if (move.keys.includes('fire')) move.hold_ms = Math.max(move.hold_ms, 600) // a burst, not a tap
       if (move.status === 'dead' || move.status === 'menu') move.keys = ['use']
       st.step++
       st.latencies.push(move.latency_ms)
       st.recent.push({ keys: move.keys, hold_ms: move.hold_ms, thought: move.thought })
       if (st.instructionLeft > 0) st.instructionLeft--
-      const step = Object.assign({ step: st.step, frame, mode: 'live', t: Date.now() }, move)
+      const step = Object.assign({ step: st.step, frame, mode: 'live', t: Date.now(), diff: Math.round(st.diff * 10) / 10 }, move)
       showAim(move, frame)
       emit('step', step)
       if (o.record) st.tape.push({ step: st.step, thought: move.thought, keys: move.keys, hold_ms: move.hold_ms, aim: move.aim, status: move.status, latency_ms: move.latency_ms, image: frame.url })
