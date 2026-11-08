@@ -151,7 +151,7 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
       <section className="panel side">
         {snap.fixes.length > 0 && <DevinLive fix={snap.fixes.at(-1)!} live={s.live && !USING_MOCK} />}
         {!VIEW_ONLY && <NewRun running={active(s.state)} />}
-        {!VIEW_ONLY && <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />}
+        <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />
         <h2>Action timeline</h2>
         {!snap.actions.length && <div className="dim small">The agent's key presses appear here.</div>}
         <ol className="timeline">
@@ -267,6 +267,8 @@ function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: 
           </div>
         )}
       </div>
+      {!VIEW_ONLY && (
+        <>
       <button
         className={`talk ${talking ? 'on' : ''}`}
         onClick={talk}
@@ -289,6 +291,8 @@ function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: 
           </button>
         ))}
       </div>
+        </>
+      )}
     </div>
   )
 }
