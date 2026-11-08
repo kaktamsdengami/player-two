@@ -172,7 +172,10 @@ def prompt(recent: list[dict[str, Any]], instruction: str, w: int, h: int, stall
         lines.append("- (the view has not changed for several moves: you are STUCK, turn around)")
     ask = ""
     if instruction.strip():
-        ask = f"The audience asks you to: **{instruction.strip()}**. Follow it when it is possible."
+        ask = (
+            f"THE AUDIENCE ASKS YOU TO: **{instruction.strip()}**. Do it now, make it your "
+            "priority, and say in your thought how you follow it."
+        )
     return (
         PROMPT.read_text(encoding="utf-8")
         .replace("{instruction}", ask)

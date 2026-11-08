@@ -68,13 +68,13 @@ window.HoloDoom = (() => {
       mode: 'loading', running: false, human: false, step: 0, recent: [], instruction: '', instructionLeft: 0,
       lastHash: null, same: 0, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
-      tape: [], busyUntil: 0, busyCount: 0, loopRunning: false,
+      tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
     }
     const listeners = {}
     const emit = (ev, data) => { (listeners[ev] || []).forEach((f) => f(data)); if (ev === 'step') o.onStep(data); if (ev === 'state') o.onState(data) }
     const on = (ev, f) => { (listeners[ev] = listeners[ev] || []).push(f); return api }
     const setMode = (m, why) => { st.mode = m; ['live', 'recorded', 'human'].forEach((c) => el.classList.toggle(c, c === m)); badge.textContent = m === 'live' ? 'LIVE · Holo' : m === 'recorded' ? 'RECORDED' : m === 'human' ? 'YOU' : m; badge.dataset.mode = m; emit('state', Object.assign({ why }, snapshot())) }
-    const snapshot = () => ({ mode: st.mode, step: st.step, human: st.human, thinking: st.thinking, gameReady: st.gameReady, audio: st.audio, latencies: st.latencies.slice(-60), instruction: st.instruction })
+    const snapshot = () => ({ mode: st.mode, step: st.step, human: st.human, thinking: st.thinking, gameReady: st.gameReady, audio: st.audio, latencies: st.latencies.slice(-60), instruction: st.instruction, instructionLeft: st.instructionLeft })
 
     // ------------------------------------------------------------------ the game
     function target() { return window }
@@ -153,6 +153,7 @@ window.HoloDoom = (() => {
     }
 
     function localMove(stalled) { // Holo is unreachable for a moment: keep moving sensibly
+      if (stalled && st.lastKeys.includes('up') && !st.lastKeys.includes('use')) return { thought: 'Blocked: maybe a door. Use.', keys: ['use', 'up'], hold_ms: 300, aim: null, status: 'stuck', local: true }
       return stalled
         ? { thought: 'Nothing changed, I will turn around.', keys: ['left'], hold_ms: 900, aim: null, status: 'stuck', local: true }
         : { thought: 'Moving on while I think.', keys: ['up'], hold_ms: 500, aim: null, status: 'ok', local: true }
@@ -183,16 +184,20 @@ window.HoloDoom = (() => {
       aim.style.top = (100 * move.aim.y / frame.h) + '%'
     }
 
+    let voice = null // one <audio>, unlocked inside the SOUND tap: iOS only plays elements that a gesture touched
     async function speak(text) {
       if (!o.speak || !st.audio || st.speaking || st.muted || !text) return
       st.speaking = true
       try {
-        const a = new Audio('/api/holo/say?c=' + CID + '&text=' + encodeURIComponent(text))
+        const a = voice || (voice = new Audio())
+        a.src = '/api/holo/say?c=' + CID + '&text=' + encodeURIComponent(text)
         await new Promise((res) => { a.onended = res; a.onerror = res; a.play().catch(res) })
       } finally { st.speaking = false }
     }
 
     async function perform(move) { // keys down -> game runs hold_ms -> keys up
+      if (st.held.has('fire') && !move.keys.includes('fire')) up('fire', { ctrl: true })
+      st.lastKeys = move.keys
       const mods = { alt: move.keys.some((k) => k.startsWith('strafe')), shift: move.keys.includes('run'), ctrl: move.keys.includes('fire') }
       resume()
       if (mods.alt) down('alt')
@@ -208,6 +213,8 @@ window.HoloDoom = (() => {
       const frame = shot()
       const stalled = frame.hash === st.lastHash ? ++st.same >= 2 : (st.same = 0, false)
       st.lastHash = frame.hash
+      const keepFire = st.lastKeys.includes('fire') && !stalled // a monster was in the sights: keep shooting while Holo thinks
+      if (keepFire) down('fire', { ctrl: true })
       st.thinking = true
       emit('thinking', { frame })
       const t0 = performance.now()
@@ -237,7 +244,8 @@ window.HoloDoom = (() => {
       move.latency_ms = move.latency_ms ?? Math.round(performance.now() - t0)
       move.client_ms = Math.round(performance.now() - t0)
       st.thinking = false
-      if (st.same >= 5) { move.keys = ['left']; move.hold_ms = 900; move.thought = move.thought || 'Turning around.' } // local rescue
+      if (st.same === 3 && !st.lastKeys.includes('use')) { move.keys = ['use', 'up']; move.hold_ms = 300; move.thought = 'Blocked: maybe a door. Use.' } // local rescue, doors look like walls
+      else if (st.same >= 5) { move.keys = ['left']; move.hold_ms = 900; move.thought = move.thought || 'Turning around.' }
       if (move.status === 'dead' || move.status === 'menu') move.keys = ['use']
       st.step++
       st.latencies.push(move.latency_ms)
@@ -314,7 +322,7 @@ window.HoloDoom = (() => {
         return st.mode
       },
       stop() { st.running = false; releaseAll() },
-      tell(text) { st.instruction = (text || '').slice(0, 240); st.instructionLeft = st.instruction ? 4 : 0; emit('state', snapshot()) },
+      tell(text) { st.instruction = (text || '').slice(0, 240); st.instructionLeft = st.instruction ? 6 : 0; emit('state', snapshot()) },
       async takeOver() { // INSERT COIN: the human plays
         st.human = true
         releaseAll()
@@ -330,6 +338,7 @@ window.HoloDoom = (() => {
       },
       async unmute() { // one tap: the browser lets audio play
         st.audio = true
+        if (!voice) { voice = new Audio(); voice.play().catch(() => {}) } // touched by the gesture: later src changes may play
         for (const c of contexts.list) { try { await c.resume() } catch (e) { /* ignore */ } }
         emit('state', snapshot())
       },

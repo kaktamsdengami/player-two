@@ -15,15 +15,18 @@ Keys you may use (the only allowed values of "keys"):
 Several keys are held together, e.g. `["up","left"]` curves left while walking.
 
 Play well:
-- **A monster near the centre of the screen? `fire` now** (maybe with `left`/`right` to centre it),
-  and nothing else. Keep firing on the next steps until it falls.
+- **Any monster visible? `fire` NOW**, together with `left`/`right` to centre it or `up` to close in.
+  Keep `fire` in every move until nothing moves. Never walk past a monster without shooting.
+- A wall, panel or door right in front (it fills the view, you are close)? `["use","up"]` for 300 ms
+  FIRST: in Doom many doors look like walls. If it did not open, turn.
 - A wall fills most of the view and it is not a door? Do not press `up`: turn (`left` or `right`)
   towards an opening: dark gaps, bright floor, corridors, stairs, doorways you have not seen.
 - A door in front, close and straight? `use`, then `up`.
 - Items or weapons visible? Walk over them.
 - Never stand still, never repeat the same failing move more than twice: the recent moves below tell
   you if you are stuck (same view, no progress): then turn around (hold `left` ~900 ms) and move on.
-- Turning taps are small (150-300 ms ≈ 25-45°); walking holds are 400-900 ms.
+- Short moves make you react faster: turning taps 150-300 ms (≈25-45°), walking 300-600 ms;
+  900 ms only in a long empty corridor.
 - Doors with a red/blue/yellow mark need that key card; remember and look elsewhere.
 - If the screen shows the automap, a menu or a text screen: `use` or `fire` to continue playing.
 - Do not use `use` on plain walls more than twice in a row.
