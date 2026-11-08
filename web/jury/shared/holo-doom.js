@@ -148,8 +148,9 @@ window.HoloDoom = (() => {
       if (!a || !b) return true
       let s = 0, bright = 0
       for (let i = 0; i < a.length; i++) { s += Math.abs(a[i] - b[i]); bright += b[i] }
-      // dark rooms move fewer grey levels: scale the difference to a reference brightness of 64
-      st.diff = (s / a.length) * 64 / Math.max(bright / a.length, 8)
+      // dark rooms move fewer grey levels: amplify the difference below a reference brightness of 64,
+      // never attenuate it (a bright room must not turn a real move into a stall)
+      st.diff = (s / a.length) * Math.max(1, 64 / Math.max(bright / a.length, 8))
       return st.diff >= STILL
     }
 
