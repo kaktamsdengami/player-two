@@ -21,7 +21,8 @@ async def record(url: str, steps: int, out: Path, headless: bool) -> dict:
     from playwright.async_api import async_playwright
 
     async with async_playwright() as p:
-        b = await p.chromium.launch(headless=headless, args=["--autoplay-policy=no-user-gesture-required"])
+        args = ["--autoplay-policy=no-user-gesture-required"]
+        b = await p.chromium.launch(headless=headless, args=args)
         pg = await b.new_page(viewport={"width": 1100, "height": 800})
         await pg.goto(f"{url}/jury/dev.html?record=1&mode=live")
         t0 = time.time()
@@ -39,10 +40,11 @@ async def record(url: str, steps: int, out: Path, headless: bool) -> dict:
     for i, s in enumerate(tape):
         name = f"f{i:03d}.jpg"
         (out / name).write_bytes(base64.b64decode(s["image"].split(",", 1)[1]))
-        rows.append({k: s[k] for k in ("step", "thought", "keys", "hold_ms", "aim", "status", "latency_ms")} | {"frame": name})
+        keep = ("step", "thought", "keys", "hold_ms", "aim", "status", "latency_ms")
+        rows.append({k: s[k] for k in keep} | {"frame": name})
     run = {
         "label": "RECORDED",
-        "note": "Holo (holo4-35b-a3b) playing Freedoom E1M1 in the browser build, recorded by scripts/record_holo_run.py",
+        "note": "Holo playing Freedoom E1M1 in the browser build; scripts/record_holo_run.py",
         "recorded_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "steps": rows,
     }
