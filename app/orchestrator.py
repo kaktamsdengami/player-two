@@ -512,7 +512,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     from launcher.build import create_branch, pull_and_rebuild, qa_script
     from launcher.config import IS_WINDOWS, PRESETS, LauncherConfig, Speed
     from launcher.game import Game
-    from launcher.window import refocus
+    from launcher.window import find_window, refocus
     from voice.narrate import narrate
 
     cfg = LauncherConfig.from_env()
@@ -733,7 +733,9 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     explorer = TesterExplorer()
 
     def screen(out: Path) -> Path | None:
-        return capture.screenshot(explorer.win, out) if game.running and explorer.win else None
+        """Whichever game window is up: the tester's, a verifier replay or a fix replay."""
+        win = find_window(cfg.window_title)
+        return capture.screenshot(win, out) if win else None
 
     deps = Deps(explorer, verify, narrate_verified, fix, map=f"E{episode}M{map_}",
                 run_dir=run_dir, debrief=debrief, placement=placement, screen=screen,
