@@ -159,9 +159,15 @@ function similar(a, b) { // share of the shorter line's words found in the other
 }
 function childSpeaking() { return Date.now() - voiceAt < 2000 }
 
-function heard(text, final) {
+// what speech-to-text "hears" in keyboard clatter and silence: short stock phrases with no speech behind them
+const PHANTOM = /^(thank you|thanks|thank you very much|thanks for watching|okay|ok|bye|bye bye|goodbye|you|yeah|yes|no|hmm|uh|um|so|oh|the end|subtitles by .*|see you)[.!?\s]*$/i
+
+function heard(text, final, confidence) {
   text = text.trim()
-  const short = text.split(/\s+/).length < 2 && !(final && text.length > 2)
+  const words = text.split(/\s+/).length
+  const short = words < 2 && !(final && text.length > 2)
+  if (PHANTOM.test(text)) return // the shotgun and the arrow keys do not say thank you
+  if (final && words <= 3 && confidence != null && confidence < 0.7) return // too unsure for so few words
   if (short || state.recent.slice(-2).some((r) => similar(text, r) >= 0.6)) return // noise or echo
   voiceAt = Date.now()
   if (state.speaking) stopVoice()
@@ -213,7 +219,7 @@ async function openEars(tries = 0) {
       try { msg = JSON.parse(m.data) } catch { return }
       if (msg.type !== 'transcript') return
       const text = ((msg.data || {}).utterance || {}).text || ''
-      if (text.trim()) heard(text, !!msg.data.is_final)
+      if (text.trim()) heard(text, !!msg.data.is_final, (msg.data.utterance || {}).confidence)
     }
     sock.onclose = () => { if (ws === sock) { ws = null; setTimeout(() => openEars(tries + 1), 2500) } }
   } catch (e) {
