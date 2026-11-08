@@ -33,6 +33,7 @@ PROMPT = Path(__file__).resolve().parent.parent / "agents" / "prompts" / "kid.md
 EVERY_S = 3.0
 MIN_GAP_S = 6.0
 RECENT = 4
+GONE_S = 30.0  # the window missing this long = the game was closed, not minimised
 MAX_AGE_S = 3.0  # a line about a frame older than this is dropped, not said
 _http: httpx.Client | None = None
 
@@ -368,10 +369,16 @@ def main(argv: list[str] | None = None) -> int:
     a = p.parse_args(argv)
     out = a.out or Path("recordings") / f"kid-{datetime.now():%Y%m%d-%H%M%S}"
 
+    gone: list[float] = []  # when the window was last seen missing (minimised looks the same)
+
     def grab(path: Path) -> Path | None:
         win = find_window(a.window)
         if win is None:
-            raise GameClosed(a.window)
+            gone[:] = gone or [time.monotonic()]
+            if time.monotonic() - gone[0] > GONE_S:
+                raise GameClosed(a.window)
+            return None
+        gone.clear()
         # the capture is a screen rectangle: only send it when the game is on top
         return grab_window(win, path) if win and on_top(win.handle) else None
 
