@@ -54,3 +54,5 @@ pre { margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; lin
 .credits { text-align: center; color: var(--dim); font-size: 13px; padding: 10px 24px 30px; line-height: 1.5; }
 @media (max-width: 1100px) { .grid { grid-template-columns: 1fr 1fr; grid-template-areas: "game game" "eye brain" "feed prompt" "desk desk"; } }
 @media (max-width: 700px) { .grid { grid-template-columns: 1fr; grid-template-areas: "game" "eye" "brain" "feed" "prompt" "desk"; padding: 10px; } .top { grid-template-columns: 1fr; gap: 6px; position: static; } .pool { text-align: left; } }
+
+.hub { color: var(--acc); font-weight: 600; }

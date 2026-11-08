@@ -47,6 +47,7 @@ window.HoloDoom = (() => {
       warp: (q.get('warp') || '1 1').split(/[ ,]/), skill: q.get('skill') || '3', god: !q.has('nogod'),
       recordedUrl: '/jury/recorded/run.json', speak: false, pushUrl: null, onStep: () => {}, onState: () => {},
       onFrame: () => {}, record: q.has('record'), busyLimit: Number(q.get('busy')) || 40,
+      briefing: q.get('briefing') !== '0', // the scripted walk to the first door before Holo's first move
       pace: Number(q.get('pace')) || 1200, // ms of plain play between moves: Holo gets time to think, the API budget stretches
     }, opts)
     const el = o.container
@@ -70,6 +71,7 @@ window.HoloDoom = (() => {
       lastThumb: null, thumb: null, same: 0, prevUrl: '', turnStreak: 0, turnMs: 0, turnDir: 'left', sameThought: 0, lastThought: '', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
       tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
+      briefing: [],
     }
     const listeners = {}
     const emit = (ev, data) => { (listeners[ev] || []).forEach((f) => f(data)); if (ev === 'step') o.onStep(data); if (ev === 'state') o.onState(data) }
@@ -229,6 +231,39 @@ window.HoloDoom = (() => {
       await frames(2) // SDL reads the key-up on the next loop turn
     }
 
+    // The tester's briefing: a QA tester knows the first corridor of E1M1 by heart, so the first
+    // ~15 s follow a fixed route (measured in the engine: start hall -> lift -> north-east passage
+    // -> the first door) with the keys shown honestly as BRIEFING, then Holo plays on its own.
+    const BRIEFING = [
+      { thought: 'Briefing 1/5: known ground. East through the entry hall and down the lift.', keys: ['up'], hold_ms: 4200 },
+      { thought: 'Briefing 2/5: turning towards the north-east passage.', keys: ['left'], hold_ms: 300 },
+      { thought: 'Briefing 3/5: up the passage to the first door, covering fire straight ahead.', keys: ['up', 'fire'], hold_ms: 4500 },
+      { thought: 'Briefing 4/5: at the door. Facing it.', keys: ['left'], hold_ms: 250 },
+      { thought: 'Briefing 4/5: USE opens it.', keys: ['use'], hold_ms: 300 },
+      { thought: 'Briefing 5/5: through the first door. Holo, your turn.', keys: ['up'], hold_ms: 2800 },
+    ]
+    async function stepBriefing() {
+      if (!st.briefing.length) return false
+      if (st.step === 0) { // SDL has resized the canvas, but the first frames are still black: keys pressed now are lost
+        for (let i = 0; i < 40 && !lit(shot()); i++) await sleep(250)
+        await sleep(500)
+      }
+      const move = Object.assign({ aim: null, status: 'briefing', local: true, latency_ms: 0 }, st.briefing.shift())
+      const frame = shot()
+      st.step++
+      st.recent.push({ keys: move.keys, hold_ms: move.hold_ms, thought: move.thought })
+      emit('step', Object.assign({ step: st.step, frame, mode: 'live', t: Date.now(), diff: 0 }, move))
+      await perform(move)
+      st.lastThumb = null // the stall detector starts fresh where the briefing left the marine
+      return true
+    }
+    function lit(frame) { // a rendered frame, not the black warm-up canvas
+      if (!st.thumb || !frame) return false
+      let sum = 0
+      for (const v of st.thumb) sum += v
+      return sum / st.thumb.length > 10
+    }
+
     async function stepLive() {
       if (o.pauseWhileThinking) { pause(); await frames(1) }
       const frame = shot()
@@ -351,7 +386,7 @@ window.HoloDoom = (() => {
         try {
           if (st.human) { await sleep(250); continue }
           if (st.mode === 'live' && !st.gameReady) { await sleep(200); continue }
-          if (st.mode === 'live') { await stepLive(); if (st.mode === 'live' && !st.human) await sleep(o.pace) }
+          if (st.mode === 'live') { if (await stepBriefing()) continue; await stepLive(); if (st.mode === 'live' && !st.human) await sleep(o.pace) }
           else if (st.mode === 'recorded') await stepRecorded()
           else await sleep(200)
         } catch (e) {
@@ -372,6 +407,7 @@ window.HoloDoom = (() => {
         const wantLive = o.mode === 'live' || (o.mode === 'auto' && status.live)
         if (wantLive) {
           setMode('live')
+          if (st.step === 0 && o.briefing) st.briefing = BRIEFING.slice()
           if (!st.gameReady) { // stop()/start() cycles reuse the booted game
             boot()
             await new Promise((res) => on('ready', res))
@@ -388,6 +424,7 @@ window.HoloDoom = (() => {
       tell(text) { st.instruction = (text || '').slice(0, 240); st.instructionLeft = st.instruction ? 6 : 0; emit('state', snapshot()) },
       async takeOver() { // INSERT COIN: the human plays
         st.human = true
+        st.briefing = []
         releaseAll()
         if (!st.gameReady) { boot(); await new Promise((res) => on('ready', res)) }
         resume()

@@ -47,3 +47,5 @@ html[data-mode="human"] .stage::before { content: 'YOU'; position: absolute; z-i
 .step .say { display: block; }
 .credits { text-align: center; color: var(--dim); font-size: 12.5px; line-height: 1.6; padding: 24px 0 10px; }
 @media (max-width: 800px) { h1 { font-size: 46px; letter-spacing: 4px; } .line { font-size: 20px; } .subtitle { font-size: 20px; bottom: 16%; } .chapters { grid-template-columns: 1fr 1fr; } .act { grid-template-columns: 1fr; } .feed { columns: 1; } .film { padding: 0 10px 20px; } }
+
+.over .hub { color: inherit; text-decoration: underline; }

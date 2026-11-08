@@ -25,6 +25,8 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 34px; }
 .look.mode { min-height: 150px; border-color: var(--acc); background: linear-gradient(160deg, #141420, #0c0c12); }
 .look.mode b { font-size: 24px; }
+.look.mode.tester { border-color: #ff3cac; box-shadow: 0 0 28px rgba(255,60,172,.25); }
+.look .start { display: inline-block; background: #ff3cac; color: #000; font-weight: 800; font-size: 12px; letter-spacing: 2px; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px; }
 .look { display: block; border-radius: 12px; padding: 18px 16px 16px; min-height: 190px; border: 1px solid #22222c; transition: transform .2s, border-color .2s; position: relative; overflow: hidden; }
 .look:hover { transform: translateY(-4px); border-color: var(--acc); }
 .look b { display: block; font-size: 20px; margin-bottom: 6px; }
@@ -53,9 +55,9 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
     <a class="preview" href="/arcade/"><div id="game"></div><div class="thought" id="thought">Holo is warming up…</div></a>
   </section>
 
-  <h2>TWO WAYS TO PLAY · pick one, switch any time</h2>
+  <h2>TWO WAYS TO PLAY · start with TESTER MODE (the arcade), switch any time · every page has ← home</h2>
   <nav class="modes">
-    <a class="look mode tester" href="/arcade/"><span class="path">/arcade/</span><b>TESTER MODE</b><small>Holo plays Doom by itself, live: looks at the pixels, says what it sees, presses the keys. Press INSERT COIN to take the sticks, hand them back any time. Kid mode is one tap away in the header.</small></a>
+    <a class="look mode tester" href="/arcade/"><span class="path">/arcade/</span><span class="start">START HERE</span><b>TESTER MODE · ARCADE</b><small>Holo plays Doom by itself, live: looks at the pixels, says what it sees, presses the keys. Press INSERT COIN to take the sticks, hand them back any time. Kid mode is one tap away in the header.</small></a>
     <a class="look mode kid" href="/kid/"><span class="path">/kid/</span><b>KID MODE · COUCH BUDDY</b><small>You play, Pixel watches and talks with you (Holo eyes, ElevenLabs voice, Gladia ears). Tester mode is one tap away in the header.</small></a>
   </nav>
 
