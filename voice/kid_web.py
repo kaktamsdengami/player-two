@@ -36,8 +36,8 @@ IMAGE_MAGIC = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"))
 class Budget:
     """Per-client minimum gap and a total cap per kind of call (lines, voice, listen)."""
 
-    def __init__(self, total: int, gap_s: float) -> None:
-        self.total, self.gap_s, self.used = total, gap_s, 0
+    def __init__(self, total: int, gap_s: float, name: str = "Pixel") -> None:
+        self.total, self.gap_s, self.used, self.name = total, gap_s, 0, name
         self.last: dict[str, float] = {}
         self.lock = threading.Lock()
 
@@ -45,7 +45,7 @@ class Budget:
         now = time.monotonic()
         with self.lock:
             if self.used >= self.total:
-                raise HTTPException(429, "Pixel is resting: the demo budget is used up")
+                raise HTTPException(429, f"{self.name} is resting: the demo budget is used up")
             if now - self.last.get(who, -1e9) < self.gap_s:
                 raise HTTPException(429, "slow down")
             self.used += 1
