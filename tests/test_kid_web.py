@@ -47,6 +47,7 @@ def test_line_rejects_non_images(client):
 def test_page_is_served(client):
     r = client.get("/")
     assert r.status_code == 200 and "PLAY WITH PIXEL" in r.text
+    assert client.get("/jury/arcade/arcade.css").status_code == 200  # cabinet styles
 
 
 def test_dashboard_serves_kid_mode_at_kid():

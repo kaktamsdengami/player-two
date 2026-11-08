@@ -193,6 +193,9 @@ def create_app() -> FastAPI:
             raise HTTPException(502, str(e)) from e
         return {"url": s["url"], "sample_rate": SAMPLE_RATE}
 
+    jury = PAGE.parent / "jury"
+    if jury.is_dir():  # the page wears the arcade cabinet styles (/jury/arcade/arcade.css)
+        app.mount("/jury", StaticFiles(directory=jury), name="jury-assets")
     app.mount("/", StaticFiles(directory=PAGE, html=True), name="kid")
     return app
 
