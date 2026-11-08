@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PLAYER TWO · THE BUG HUNT · a short film where the AI plays</title>
+<link rel="stylesheet" href="/jury/story/story.css" />
+</head>
+<body>
+<div class="film">
+  <div class="bars top"></div>
+  <header class="title">
+    <div class="over">PLAYER TWO presents</div>
+    <h1>THE BUG HUNT</h1>
+    <div class="line">A model that <em>looks</em> at a game the way a tester does. Starring <b>H Company's Holo</b>. Live, right now, in this frame.</div>
+  </header>
+
+  <section class="stage">
+    <div id="game" class="screen"></div>
+    <div class="subtitle" id="thought">…</div>
+    <div class="chip" id="status">rolling…</div>
+    <div class="chip right" id="latency">—</div>
+  </section>
+
+  <nav class="chapters">
+    <a class="chapter on" data-ch="1"><span>I</span> The tester that sees<small>Holo reads the pixels, names what it sees, presses the keys. No game state, no memory.</small></a>
+    <a class="chapter" data-ch="2"><span>II</span> The hostile player<small>Where a human relaxes, the tester pushes: walls, doors, corners, stalls. Each stall is a lead.</small></a>
+    <a class="chapter" data-ch="3"><span>III</span> The bug, before and after<small>In the full show the native QA build hides seeded bugs (KB1–KB5). Holo finds them from pixels, says it out loud, Devin fixes them, Holo replays the proof.</small></a>
+    <a class="chapter" data-ch="4"><span>IV</span> Your turn<small>Take the keyboard. Then give it back and watch the AI pick up where you left it.</small></a>
+  </nav>
+
+  <section class="act">
+    <div class="act-text" id="act"></div>
+    <div class="cta">
+      <button id="over" class="big">TAKE THE KEYBOARD</button>
+      <button id="back" class="big alt" hidden>HOLO, YOUR TURN</button>
+      <div class="tellbox"><input id="tell" maxlength="120" placeholder="whisper a direction to Holo…" /><button id="send">SEND</button></div>
+      <button id="sound" class="ghost" data-on="SOUND ON">SOUND OFF</button>
+    </div>
+  </section>
+
+  <section class="reel">
+    <h3>SCRIPT · the model's own words</h3>
+    <ol id="feed" class="feed"></ol>
+  </section>
+
+  <footer class="credits" data-credits="· the native run with H's desktop agent lives in the <a href='/dashboard/'>dashboard</a>"></footer>
+  <div class="bars bottom"></div>
+</div>
+<script src="/jury/shared/holo-doom.js"></script>
+<script src="/jury/shared/jury.js"></script>
+<script>
+  const ACT = {
+    1: 'Every second the frame is photographed and shown to Holo, a vision model. It answers in words and keys. What you read under the picture is exactly what it said.',
+    2: 'Testers are paid to be awkward. The loop notices when two pictures in a row are identical: the model is told it is stuck and turns around, like a QA tester poking at a corner.',
+    3: 'The full PLAYER TWO pipeline runs on a desktop with H\'s Agents API: it plays the real Chocolate Doom QA build, finds seeded bugs from pixels, explains them by voice, hands them to Devin, and replays the fix. Those sessions run on the stage laptop and are shown in the dashboard; this page is the browser-sized version of the same idea.',
+    4: 'Press TAKE THE KEYBOARD (or tap the picture). Arrows move, Ctrl fires, Space opens doors, Shift runs. Then hand it back: Holo continues from whatever you left on the screen.',
+  }
+  const show = (n) => { document.querySelectorAll('.chapter').forEach((c) => c.classList.toggle('on', c.dataset.ch === String(n))); document.getElementById('act').textContent = ACT[n] }
+  document.querySelectorAll('.chapter').forEach((c) => (c.onclick = () => show(c.dataset.ch)))
+  show(1)
+  let auto = setInterval(() => { const cur = Number(document.querySelector('.chapter.on').dataset.ch); show(cur % 4 + 1) }, 14000)
+  document.querySelector('.chapters').addEventListener('click', () => clearInterval(auto))
+  Jury.boot({ container: '#game', feed: '#feed', thought: '#thought', status: '#status', latency: '#latency',
+    over: '#over', back: '#back', tell: '#tell', send: '#send', sound: '#sound', feedMax: 24,
+    onState: (s) => { if (s.mode === 'human') { clearInterval(auto); show(4) } } })
+</script>
+</body>
+</html>

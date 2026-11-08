@@ -25,6 +25,7 @@ from app.contracts import SessionInfo, SseType, TranscriptPayload, VoiceIntent
 from app.orchestrator import Orchestrator, Recorded, sse_format
 from app.routes_billing import router as billing_router
 from app.routes_holo import create_router as holo_router
+from app.routes_live import create_router as live_router
 
 ROOT = Path(__file__).resolve().parent.parent
 MOCK = ROOT / "docs" / "api-mock.json"
@@ -132,6 +133,7 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
                        allow_methods=["*"], allow_headers=["*"])  # fmt: skip
     app.include_router(billing_router)
     app.include_router(holo_router())
+    app.include_router(live_router())
 
     def store():
         return rt.current.store if rt.current else None
