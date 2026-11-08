@@ -51,7 +51,7 @@ class FakeExplorer:
         self.stopped.set()
 
 
-def _orch(tmp_path, verified=True, block=False, fix_result=FixResult.fixed):
+def _orch(tmp_path, verified=True, block=False, fix_result=FixResult.fixed, auto_fix=False):
     ref = []
 
     def verify(f, actions):
@@ -69,7 +69,7 @@ def _orch(tmp_path, verified=True, block=False, fix_result=FixResult.fixed):
         return Narration(finding_id=f.id, text="Look at the sky.", audio_path=str(out / "a.mp3"))
 
     o = Orchestrator(Deps(FakeExplorer(ref, block), verify, narrate, fix), tmp_path, rounds=2,
-                     approval_timeout_s=5)  # fmt: skip
+                     approval_timeout_s=5, auto_fix=auto_fix)  # fmt: skip
     ref.append(o)
     return o
 
@@ -298,3 +298,12 @@ def test_skip_during_narration_is_kept(tmp_path):
     o._thread.join(5)
     assert "fixing" not in _states(o) and not o.store.fixes
     assert not o._thread.is_alive()
+
+
+def test_auto_fix_needs_no_approval(tmp_path):
+    o = _orch(tmp_path, auto_fix=True)
+    o.start()
+    o._thread.join(5)
+    assert "awaiting_approval" not in _states(o)
+    assert _states(o)[3:6] == ["presenting", "fixing", "reverifying"]
+    assert o.store.findings["f1"].status == FindingStatus.fixed

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import itertools
 import json
+import os
 import queue
 import threading
 import time
@@ -176,9 +177,11 @@ class Orchestrator:
         rounds: int = 3,
         approval_timeout_s: float = 600,
         task: str | None = None,
+        auto_fix: bool = False,
     ):
         self.deps, self.out_dir, self.rounds, self.task = deps, out_dir, rounds, task
         self.approval_timeout_s = approval_timeout_s
+        self.auto_fix = auto_fix  # P2_AUTO_FIX=1: a verified bug goes to Devin without a "yes"
         out_dir.mkdir(parents=True, exist_ok=True)
         self.bus = Bus(out_dir / "events.jsonl")
         self.store = Store()
@@ -344,8 +347,11 @@ class Orchestrator:
         )
         f = f.model_copy(update={"status": FindingStatus.presented})
         self.publish(SseType.finding_updated, f)
-        self.set_state(SessionState.awaiting_approval)
-        approved = self.wait_for_fix()
+        if self.auto_fix:
+            approved = self._no_skip()
+        else:
+            self.set_state(SessionState.awaiting_approval)
+            approved = self.wait_for_fix()
         self._drain_intents()  # repeated transcripts of the same "fix it" must not carry over
         if not approved:
             return
@@ -384,6 +390,17 @@ class Orchestrator:
                 kept.append(i)
         for i in kept:
             self.intents.put(i)
+
+    def _no_skip(self) -> bool:
+        """Autopilot: fix unless a Skip / "no" came in while the bug was presented."""
+        self._check()
+        skipped = False
+        while True:
+            try:
+                i = self.intents.get_nowait()
+            except queue.Empty:
+                return not skipped
+            skipped = skipped or i.intent in (Intent.skip, Intent.no)
 
     def wait_for_fix(self) -> bool:
         end = time.monotonic() + self.approval_timeout_s
@@ -676,5 +693,6 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                 run_dir=run_dir, debrief=debrief, placement=placement,
                 replay={"speed": speed.spec(), "start": cfg.start, "preset": cfg.preset,
                         "plan": plan})  # fmt: skip
-    orch = Orchestrator(deps, out_dir, rounds=rounds, task=task)
+    auto = os.environ.get("P2_AUTO_FIX", "").lower() in ("1", "true", "yes")
+    orch = Orchestrator(deps, out_dir, rounds=rounds, task=task, auto_fix=auto)
     return orch
