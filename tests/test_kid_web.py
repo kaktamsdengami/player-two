@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from voice import commentator as c
 from voice import kid_web
 
-JPEG = "data:image/jpeg;base64," + base64.b64encode(b"\xff\xd8fake").decode()
+JPEG = "data:image/jpeg;base64," + base64.b64encode(b"\xff\xd8\xfffake").decode()
 
 
 @pytest.fixture
@@ -40,6 +40,8 @@ def test_budget_gap_and_cap(client, monkeypatch):
 
 def test_line_rejects_non_images(client):
     assert client.post("/api/kid/line", json={"image": "hello"}).status_code == 400
+    text = "data:image/jpeg;base64," + base64.b64encode(b"not an image").decode()
+    assert client.post("/api/kid/line", json={"image": text}).status_code == 400
 
 
 def test_page_is_served(client):

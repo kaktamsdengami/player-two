@@ -30,6 +30,7 @@ ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "web" / "kid"
 WAD_CANDIDATES = ("data/freedoom1.wad", "freedoom1.wad")
 MAX_IMAGE = 400_000  # a 480-wide JPEG is ~30 KB
+IMAGE_MAGIC = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"))
 
 
 class Budget:
@@ -98,10 +99,16 @@ def create_app() -> FastAPI:
         head, _, data = body.image.partition(",")
         if not head.startswith("data:image/") or len(data) > MAX_IMAGE:
             raise HTTPException(400, "send a small JPEG data URL")
-        suffix = ".png" if "png" in head else ".jpg"
+        try:
+            raw = base64.b64decode(data, validate=True)
+        except ValueError as e:
+            raise HTTPException(400, "bad base64") from e
+        suffix = next((s for magic, s in IMAGE_MAGIC if raw.startswith(magic)), None)
+        if not suffix:
+            raise HTTPException(400, "send a JPEG or PNG")
         with tempfile.TemporaryDirectory() as d:
             shot = Path(d) / f"shot{suffix}"
-            shot.write_bytes(base64.b64decode(data))
+            shot.write_bytes(raw)
             t0 = time.monotonic()
             try:
                 text = c.comment(shot, body.recent, age=body.age, level=body.level,
