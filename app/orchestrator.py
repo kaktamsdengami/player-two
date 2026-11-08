@@ -559,7 +559,15 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             seen = len(self.tester.run.actions) if self.tester.run else 0
             log = out_dir / "actions.jsonl"
             start = self.tester.run.events if self.tester.run else 0
-            t = threading.Thread(target=self.tester.follow, args=(log, start), daemon=True)
+            failed: list[Exception] = []
+
+            def follow() -> None:
+                try:
+                    self.tester.follow(log, start)
+                except Exception as e:  # noqa: BLE001 - re-raised below, in the run thread
+                    failed.append(e)
+
+            t = threading.Thread(target=follow, daemon=True)
             t.start()
             while t.is_alive() or (self.tester.run and seen < len(self.tester.run.actions)):
                 if (
@@ -572,6 +580,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                     on_action(a)
                 seen = len(acts)
                 time.sleep(0.3)
+            if failed:  # a dead event stream is an error, not a finished round
+                raise failed[0]
 
         def send(self, message: str) -> None:
             if not game.running:
