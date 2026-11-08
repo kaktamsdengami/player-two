@@ -6,6 +6,9 @@ body { background: radial-gradient(ellipse at 50% 0%, #2a0a3a 0%, var(--bg) 60%)
 a { color: var(--neon2); }
 .room { max-width: 1280px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: 1fr 320px; grid-template-areas: "marquee marquee" "cabinet ticker" "credits credits"; gap: 18px; }
 .marquee { grid-area: marquee; text-align: center; padding: 10px 0 0; }
+.marquee .modes { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
+.marquee .modes a { color: #cdbfff; border: 1px solid #4a3a7a; border-radius: 8px; padding: 5px 12px; font-size: 14px; text-decoration: none; }
+.marquee .modes a:hover { border-color: #ff3cac; }
 .neon { font-family: 'Press Start 2P', monospace; font-size: 44px; letter-spacing: 4px; color: #fff; text-shadow: 0 0 6px #fff, 0 0 18px var(--neon), 0 0 40px var(--neon), 0 0 80px var(--neon); animation: flicker 6s infinite; }
 .neon span { color: var(--neon2); text-shadow: 0 0 6px #fff, 0 0 18px var(--neon2), 0 0 40px var(--neon2); }
 @keyframes flicker { 0%, 92%, 100% { opacity: 1 } 93% { opacity: .6 } 95% { opacity: 1 } 97% { opacity: .75 } }
