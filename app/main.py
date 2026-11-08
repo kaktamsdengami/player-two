@@ -198,16 +198,20 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
         rt.current.publish(SseType.transcript, t)
         return {"ok": True}
 
+    def live() -> bool:
+        info = getattr(rt.current, "info", None)
+        return bool(info) and info.state not in ("stopped", "done", "error")
+
     @app.get("/api/ptt")
     def ptt_state() -> Any:
+        rt.ptt = rt.ptt and live()  # the mic goes quiet when the run ends, whatever the button said
         return {"on": rt.ptt}
 
     @app.post("/api/ptt", dependencies=[Depends(control)])
     def ptt(p: PttPayload) -> Any:
-        rt.ptt = p.on
-        info = getattr(rt.current, "info", None)
-        if info and info.state not in ("stopped", "done", "error"):
-            text = "[push-to-talk ON: speak now]" if p.on else "[push-to-talk OFF]"
+        rt.ptt = p.on and live()
+        if live():
+            text = "[push-to-talk ON: speak now]" if rt.ptt else "[push-to-talk OFF]"
             rt.current.publish(SseType.transcript, TranscriptPayload(text=text, final=True))
         return {"on": rt.ptt}
 

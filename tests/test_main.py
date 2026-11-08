@@ -64,3 +64,19 @@ def test_ptt_is_held_by_the_backend_and_echoed_to_the_dashboard(tmp_path):
     assert seen[-1][1].text.startswith("[push-to-talk ON")
     c.post("/api/ptt", json={"on": False})
     assert seen[-1][1].text == "[push-to-talk OFF]"
+
+
+def test_ptt_goes_off_when_the_run_ends(tmp_path):
+    from types import SimpleNamespace
+
+    from fastapi.testclient import TestClient
+
+    from app.main import Runtime, create_app
+
+    rt = Runtime(tmp_path)
+    rt.current = SimpleNamespace(info=SimpleNamespace(state="exploring"), publish=lambda *a: None)
+    c = TestClient(create_app(rt))
+    c.post("/api/ptt", json={"on": True})
+    rt.current.info.state = "stopped"
+    assert c.get("/api/ptt").json() == {"on": False}
+    assert c.post("/api/ptt", json={"on": True}).json() == {"on": False}
