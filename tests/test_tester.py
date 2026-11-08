@@ -119,3 +119,10 @@ def test_follow_reconnects_after_a_stream_timeout(monkeypatch):
     run.run = t.TesterRun("h1", None, "running", None, run.tools)
     run.follow()
     assert run.handle.calls == [0, 1] and run.run.events == 2
+
+
+def test_stage_presets_require_the_sphere_before_finishing():
+    from launcher.config import PRESETS
+
+    assert PRESETS["stage-play"].goal == PRESETS["stage-kb3"].goal == "powerup"
+    assert "final answer" in PRESETS["stage-play"].plan

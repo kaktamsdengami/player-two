@@ -38,6 +38,13 @@ from app.contracts import (
     VoiceIntent,
 )
 
+GOAL_NUDGES = 3
+GOAL_NUDGE = (
+    "You have not picked up the sphere yet: go to it. Turn to face the glowing green sphere and "
+    "walk straight over it; shoot only a monster that is in the centre of the screen, in your way. "
+    'Finish only after the pickup message "Vanguard of the gods!", the white screen and a look '
+    "at the sky."
+)
 FOLLOW_UP = (
     "Keep testing the same level. Try what you have not tried yet: other power-ups, other walls, "
     "other doors. Report every new bug with report_finding."
@@ -506,8 +513,16 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                 f.write(game.log_path.read_text())
             game.log_path.unlink()
 
+    goal = PRESETS[cfg.preset].goal if cfg.preset else ""
+
+    def reached(event_type: str) -> bool:
+        if not event_type or not game.running:
+            return False
+        return any(e.type == event_type for e in game.log.since())
+
     class TesterExplorer:
         def __init__(self) -> None:
+            self.reached = False
             self.tools = TesterTools(on_finding=lambda f: orch.on_finding(f),
                                      on_note=lambda n: orch.on_note(n))  # fmt: skip
             self.tester: Tester | None = None
@@ -530,6 +545,17 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             return run.session_id, run.share_url
 
         def follow(self, on_action: Callable[[AgentAction], None]) -> None:
+            """One round; a preset goal (the sphere) sends H back if it finishes before it."""
+            self.reached = False
+            for nudge in range(GOAL_NUDGES + 1):
+                self._follow(on_action)
+                self.reached = self.reached or reached(goal)
+                if not goal or self.reached or orch._stop.is_set() or nudge == GOAL_NUDGES:
+                    return
+                orch.error("H tried to finish before the power-up: sent it back", "goal")
+                self.send(GOAL_NUDGE)
+
+        def _follow(self, on_action: Callable[[AgentAction], None]) -> None:
             seen = len(self.tester.run.actions) if self.tester.run else 0
             log = out_dir / "actions.jsonl"
             start = self.tester.run.events if self.tester.run else 0
@@ -540,6 +566,7 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                     t.is_alive() and not orch._stop.is_set() and self.win and refocus(self.win)
                 ):  # a click beside the game
                     orch.error("the game lost keyboard focus: gave it back", "focus")
+                self.reached = self.reached or reached(goal)  # the verifier may stop the game
                 acts = self.tester.run.actions if self.tester.run else []
                 for a in acts[seen:]:
                     on_action(a)

@@ -74,6 +74,7 @@ class Preset:
     map: tuple[int, int]
     lines: tuple[str, ...]
     plan: str = ""
+    goal: str = ""  # QA-log event type the tester must cause before it may finish (e.g. powerup)
 
 
 PRESETS = {
@@ -85,6 +86,7 @@ PRESETS = {
         "While invulnerable, the whole screen should be drawn inverted (white/grey), "
         "including the sky. Compare the sky with the walls: if the sky keeps its normal "
         "colour, report it.",
+        goal="powerup",
     ),
     # longer stage run: a shotgun, armour, a stimpack and a zombie on the way to the imps, then
     # the sphere at the far end of the first canyon (scripted walk: shotgun at tic 24, sphere ~200).
@@ -107,7 +109,9 @@ PRESETS = {
         '"Vanguard of the gods!" appears at the top left and the screen turns white; a red '
         "flash is only damage, not the bug. Expected behaviour (from the developer): while "
         "invulnerable the whole screen should be drawn inverted (white/grey), including the "
-        "sky. Compare the sky with the walls: if the sky keeps its normal colour, report it.",
+        "sky. Compare the sky with the walls: if the sky keeps its normal colour, report it. "
+        "Do not give your final answer before you have picked up the sphere and looked at the sky.",
+        goal="powerup",
     ),
 }
 
