@@ -82,6 +82,7 @@ def test_failed_create_cancels_the_orphan_h_session(monkeypatch):
             raise httpx.ReadTimeout("The read operation timed out")
 
     monkeypatch.setattr(t, "quota", lambda: {"available": 3})
+    monkeypatch.setattr(t, "forbid_shell", lambda: None)  # needs a display on CI
     run = t.Tester(client=Client())
     with pytest.raises(httpx.ReadTimeout):
         run.start("play")
@@ -91,7 +92,7 @@ def test_failed_create_cancels_the_orphan_h_session(monkeypatch):
     assert Client.sessions.cancelled == ["orphan", "orphan"]
 
 
-def test_follow_reconnects_after_a_stream_timeout():
+def test_follow_reconnects_after_a_stream_timeout(monkeypatch):
     import httpx
 
     from agents import tester as t
@@ -112,6 +113,7 @@ def test_follow_reconnects_after_a_stream_timeout():
         def wait_for_completion(self):
             return type("R", (), {"status": "completed", "answer": None})()
 
+    monkeypatch.setattr(t, "forbid_shell", lambda: None)
     run = t.Tester(client=object())
     run.handle = Handle()
     run.run = t.TesterRun("h1", None, "running", None, run.tools)
