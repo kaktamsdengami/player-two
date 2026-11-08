@@ -87,12 +87,11 @@ PRESETS = {
         "colour, report it.",
     ),
     # longer stage run: a shotgun, armour, a stimpack and a zombie on the way to the imps, then
-    # the sphere at the far end of the first canyon (scripted walk: shotgun at tic 24, sphere ~200)
+    # the sphere at the far end of the first canyon (scripted walk: shotgun at tic 24, sphere ~200).
+    # No zombies at the start spot: their damage flash read as the power-up on stage.
     "stage-play": Preset(
         map=(3, 1),
         lines=(
-            "1 spawn 3004 -20 -224",
-            "1 spawn 3004 -120 -190",
             "1 spawn 2001 -150 -224",
             "1 spawn 2018 -330 -120",
             "1 spawn 2011 -437 -25",
@@ -100,11 +99,14 @@ PRESETS = {
             "1 spawn 2022 -600 60",
         ),
         plan="Go straight to the power-up: walk forward through the first area, picking up what is "
-        "on your way. Do not hunt monsters; shoot only if one is already in your crosshair, "
-        "otherwise keep moving to the sphere. Expected behaviour (from the developer): "
-        "While invulnerable, the whole screen should be drawn inverted (white/grey), "
-        "including the sky. Compare the sky with the walls: if the sky keeps its normal "
-        "colour, report it.",
+        "on your way. The power-up is a glowing green sphere further along the canyon; walk over "
+        "it to take it. Do not hunt monsters; shoot only if one is already in your crosshair, "
+        "otherwise keep moving to the sphere. A red flash of the screen is only damage, not the "
+        'power-up. Expected behaviour (from the developer): on pickup the message "Vanguard of '
+        'the gods!" appears at the top left, and while invulnerable the whole screen should be '
+        "drawn inverted (white/grey), including the sky. Judge the sky only after that message "
+        "and once the walls have turned white: compare the sky with the walls; if the sky keeps "
+        "its normal colour, report it.",
     ),
 }
 

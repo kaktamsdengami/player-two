@@ -535,7 +535,9 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             t = threading.Thread(target=self.tester.follow, args=(log, start), daemon=True)
             t.start()
             while t.is_alive() or (self.tester.run and seen < len(self.tester.run.actions)):
-                if t.is_alive() and self.win and refocus(self.win):  # a click beside the game
+                if (
+                    t.is_alive() and not orch._stop.is_set() and self.win and refocus(self.win)
+                ):  # a click beside the game
                     orch.error("the game lost keyboard focus: gave it back", "focus")
                 acts = self.tester.run.actions if self.tester.run else []
                 for a in acts[seen:]:
