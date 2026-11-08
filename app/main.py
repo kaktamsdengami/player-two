@@ -257,7 +257,8 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
                 shot["at"] = time.monotonic()
                 out = rt.runs_dir / "screen.jpg"
                 try:
-                    shot["jpg"] = out.read_bytes() if grab(out) else b""
+                    got = grab(out)  # the slow fallback writes a PNG next to it
+                    shot["jpg"] = got.read_bytes() if got else b""
                 except Exception:  # noqa: BLE001 - no frame this second
                     shot["jpg"] = b""
             jpg = shot["jpg"] if grab else b""
