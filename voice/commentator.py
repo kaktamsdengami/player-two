@@ -4,7 +4,10 @@ Every ~3 s: a small JPEG of the window (Pillow) -> the fast H vision model write
 ElevenLabs speaks it. It never talks over itself: a new line waits until the last one has been
 played and `MIN_GAP_S` has passed. Each line is logged with its latency to `<out>/comments.jsonl`.
 
-    python -m voice.commentator --window "Chocolate Doom" --minutes 2 --age 8
+Start Doom without music (sound effects stay): with music the open mic hears the child badly.
+
+    chocolate-doom -iwad freedoom1.wad -fullscreen -nomusic -warp 1 1
+    python -m voice.commentator --window "Chocolate Doom" --minutes 10 --age 8 --map E1M1 --talk
 """
 
 from __future__ import annotations
