@@ -268,7 +268,8 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
 
     @app.get("/media/{path:path}")
     def media(path: str) -> FileResponse:
-        p = Path("/" + path).resolve()
+        drive = len(path) > 1 and path[1] == ":"  # Windows: /media/C:/...
+        p = Path(path if drive else "/" + path).resolve()
         roots = [
             rt.runs_dir.resolve(),
             (ROOT / "recordings").resolve(),
