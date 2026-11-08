@@ -18,6 +18,7 @@ import shutil
 import statistics
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
@@ -42,7 +43,7 @@ def _post(url: str, headers: dict, json: dict, timeout: float) -> httpx.Response
     return _http.post(url, headers=headers, json=json, timeout=timeout)
 
 
-SHOT_W = 320  # the model reads a small frame as well as a full one, and much faster
+SHOT_W = 480  # small enough to be fast, big enough to read the status-bar numbers
 
 
 def _env() -> None:
@@ -54,16 +55,24 @@ def _env() -> None:
         pass
 
 
-def prompt(age: int, language: str, recent: list[str]) -> str:
+def prompt(age: int, language: str, recent: list[str], level: str = "") -> str:
     text = PROMPT.read_text(encoding="utf-8")
     lines = "\n".join(f"- {r}" for r in recent[-RECENT:]) or "(nothing yet)"
     return (
-        text.replace("{age}", str(age)).replace("{language}", language).replace("{recent}", lines)
+        text.replace("{age}", str(age))
+        .replace("{map}", level or "unknown, guess it from the screen")
+        .replace("{language}", language)
+        .replace("{recent}", lines)
     )
 
 
 def comment(
-    shot: Path, recent: list[str], age: int = 8, language: str = "English", timeout: float = 30
+    shot: Path,
+    recent: list[str],
+    age: int = 8,
+    language: str = "English",
+    timeout: float = 30,
+    level: str = "",
 ) -> str:
     """One line for the child about this screenshot, or "" when the model says SKIP."""
     _env()
@@ -76,7 +85,7 @@ def comment(
         "chat_template_kwargs": {"enable_thinking": False},  # faster when the API honours it
         "messages": [{"role": "user", "content": [
             {"type": "image_url", "image_url": {"url": f"data:image/{mime};base64,{img}"}},
-            {"type": "text", "text": prompt(age, language, recent)},
+            {"type": "text", "text": prompt(age, language, recent, level)},
         ]}],
     }  # fmt: skip
     headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
@@ -100,6 +109,77 @@ def on_top(handle: int) -> bool:
     import ctypes
 
     return ctypes.windll.user32.GetForegroundWindow() == handle
+
+
+class StreamVoice:
+    """ElevenLabs streaming TTS piped into ffplay: the voice starts with the first audio chunk
+    instead of after the whole mp3. `say()` returns once audio is playing; `busy()` until done."""
+
+    URL = "https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream"
+
+    def __init__(self) -> None:
+        from voice import tts
+
+        self.tts = tts
+        self.exe = shutil.which("ffplay")
+        self.http = httpx.Client(timeout=30)
+        self.proc: subprocess.Popen | None = None
+        self.feeder: threading.Thread | None = None
+
+    def busy(self) -> bool:
+        return bool(
+            (self.feeder and self.feeder.is_alive()) or (self.proc and self.proc.poll() is None)
+        )
+
+    def say(self, text: str, out: Path) -> Path:
+        _env()
+        key = os.environ.get("ELEVENLABS_API_KEY")
+        if not key or not self.exe:
+            raise RuntimeError("streaming voice needs ELEVENLABS_API_KEY and ffplay")
+        voice = os.environ.get("ELEVENLABS_VOICE_ID", self.tts.DEFAULT_VOICE)
+        model = os.environ.get("ELEVENLABS_MODEL", self.tts.DEFAULT_MODEL)
+        req = self.http.build_request(
+            "POST", self.URL.format(voice=voice), headers={"xi-api-key": key},
+            params={"output_format": "mp3_44100_128"}, json={"text": text, "model_id": model},
+        )  # fmt: skip
+        r = self.http.send(req, stream=True)
+        if r.status_code >= 400:
+            r.read()
+            r.close()
+            r.raise_for_status()
+        chunks = r.iter_bytes()
+        first = next(chunks, b"")
+        cmd = [self.exe, "-nodisp", "-autoexit", "-loglevel", "quiet", "-probesize", "32",
+               "-analyzeduration", "0", "-fflags", "nobuffer", "-i", "-"]  # fmt: skip
+        self.proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+        proc = self.proc
+
+        def feed() -> None:
+            with out.open("wb") as f:
+                try:
+                    for chunk in _chain(first, chunks):
+                        f.write(chunk)
+                        proc.stdin.write(chunk)
+                except (OSError, httpx.HTTPError) as e:
+                    print(f"voice stream broke: {e}", file=sys.stderr)
+                finally:
+                    r.close()
+                    try:
+                        proc.stdin.close()
+                    except OSError:
+                        pass
+
+        self.feeder = threading.Thread(target=feed, daemon=True)
+        self.feeder.start()
+        return out
+
+    def __call__(self, path: Path) -> None:  # already playing since say()
+        pass
+
+
+def _chain(first: bytes, rest: Any) -> Any:
+    yield first
+    yield from rest
 
 
 def grab_window(win: Any, out: Path) -> Path:
@@ -178,15 +258,14 @@ def run(
             if text:
                 if say:
                     try:
+                        if clock() - t_shot > MAX_AGE_S:  # the screen has moved on
+                            raise RuntimeError(f"dropped: frame {clock() - t_shot:.1f} s old")
                         audio = say(text, out / f"say_{n:03d}.mp3")
                         row["tts_s"] = round(clock() - t_text, 2)
-                        if clock() - t_shot > MAX_AGE_S:  # the screen has moved on
-                            row["error"] = f"dropped: frame {clock() - t_shot:.1f} s old"
-                        else:
-                            speaker(getattr(audio, "path", audio))
-                            row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice
+                        speaker(getattr(audio, "path", audio))
+                        row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice
                     except (httpx.HTTPError, RuntimeError, OSError) as e:
-                        row["error"] = f"speech failed: {e}"
+                        row["error"] = str(e) if "dropped" in str(e) else f"speech failed: {e}"
                         print(row["error"], file=sys.stderr)
                 if "error" not in row:  # an unheard line may be said again later
                     recent.append(text)
@@ -223,6 +302,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--minutes", type=float, default=2)
     p.add_argument("--age", type=int, default=8)
     p.add_argument("--language", default="English")
+    p.add_argument("--map", default="", help="the level the child starts on, e.g. E1M1")
     p.add_argument("--no-voice", action="store_true", help="write the lines, do not speak them")
     p.add_argument("--out", type=Path)
     a = p.parse_args(argv)
@@ -233,16 +313,20 @@ def main(argv: list[str] | None = None) -> int:
         # the capture is a screen rectangle: only send it when the game is on top
         return grab_window(win, path) if win and on_top(win.handle) else None
 
-    say = None
+    say, speaker = None, Speaker()
     if not a.no_voice:
-        from voice.tts import speak
+        if os.environ.get("P2_KID_STREAM", "1") == "1":
+            speaker = StreamVoice()
+            say = speaker.say
+        else:
+            from voice.tts import speak
 
-        say = speak
+            say = speak
 
     def ask(shot: Path, recent: list[str]) -> str:
-        return comment(shot, recent, a.age, a.language)
+        return comment(shot, recent, a.age, a.language, level=a.map)
 
-    rows = run(grab, out, a.minutes * 60, ask, say, Speaker())
+    rows = run(grab, out, a.minutes * 60, ask, say, speaker)
     s = summary(rows)
     (out / "summary.json").write_text(json.dumps(s, indent=2))
     print(json.dumps(s), flush=True)

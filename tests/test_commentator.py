@@ -148,15 +148,47 @@ def test_a_line_about_a_stale_frame_is_dropped(tmp_path):
     clock = Clock()
     quiet = Quiet()
 
-    def slow_say(text, path):
+    def slow_ask(shot, recent):
         clock.t += c.MAX_AGE_S + 1
-        return path
+        return "hi"
 
     def grab(p):
         p.write_bytes(b"jpg")
         return p
 
-    rows = c.run(grab, tmp_path, 5, lambda s, r: "hi", slow_say, quiet, clock, clock.sleep)
+    rows = c.run(grab, tmp_path, 5, slow_ask, lambda t, p: p, quiet, clock, clock.sleep)
     assert (
         not quiet.played and rows[0]["error"].startswith("dropped") and "latency_s" not in rows[0]
     )
+
+
+def test_prompt_knows_it_is_doom_and_the_level():
+    text = c.prompt(8, "English", [], "E1M1")
+    assert "Doom" in text and "Level: E1M1" in text and "Space" in text
+    assert "guess it from the screen" in c.prompt(8, "English", [])
+
+
+def test_stream_voice_pipes_chunks_to_the_player_and_the_file(tmp_path, monkeypatch):
+    import os
+    import stat
+
+    player = tmp_path / "player"
+    got = tmp_path / "got.mp3"
+    player.write_text(f"#!/bin/sh\ncat > {got}\n")
+    player.chmod(player.stat().st_mode | stat.S_IEXEC)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "k")
+    v = c.StreamVoice()
+    v.exe = str(player)
+    seen = {}
+
+    def handler(request):
+        seen["url"] = str(request.url)
+        return c.httpx.Response(200, content=b"ID3" + b"x" * 5000)
+
+    v.http = c.httpx.Client(transport=c.httpx.MockTransport(handler))
+    out = v.say("Press Space!", tmp_path / "say.mp3")
+    v.feeder.join(5)
+    v.proc.wait(5)
+    assert "/stream" in seen["url"] and not v.busy()
+    assert out.read_bytes() == got.read_bytes() == b"ID3" + b"x" * 5000
+    assert os.path.getsize(out) == 5003
