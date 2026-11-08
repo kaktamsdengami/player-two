@@ -99,8 +99,9 @@ PRESETS = {
             "1 spawn 3004 -520 -40",
             "1 spawn 2022 -600 60",
         ),
-        plan="Play through the first area like a real player: fight, pick up weapons and items. "
-        "Test power-ups. Expected behaviour (from the developer): "
+        plan="Go straight to the power-up: walk forward through the first area, picking up what is "
+        "on your way. Do not hunt monsters; shoot only if one is already in your crosshair, "
+        "otherwise keep moving to the sphere. Expected behaviour (from the developer): "
         "While invulnerable, the whole screen should be drawn inverted (white/grey), "
         "including the sky. Compare the sky with the walls: if the sky keeps its normal "
         "colour, report it.",

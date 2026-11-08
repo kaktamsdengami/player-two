@@ -50,9 +50,11 @@ def follow_up(fixed: list[Finding]) -> str:
         return FOLLOW_UP
     bugs = "; ".join(f'"{f.title}" (you saw it by: {" / ".join(f.steps)})' for f in fixed)
     return (
-        f"The developer installed a new build that should fix: {bugs}. Check it yourself first: "
-        "do the same again and look closely. If it still happens, report it with report_finding; "
-        "if it is fixed, say so with note. " + FOLLOW_UP
+        f"The developer installed a new build that should fix: {bugs}. The level restarted from "
+        "the beginning. Check the fix first: go straight back there the same way (do not hunt "
+        "monsters; shoot only if one is already in your crosshair), do the same again and look "
+        "closely. If it still happens, report it with report_finding; if it is fixed, say so with "
+        "note. " + FOLLOW_UP
     )
 
 
