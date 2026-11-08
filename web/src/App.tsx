@@ -513,22 +513,24 @@ function BuiltByDevin() {
 const DEVIN_STEPS: [string, string[]][] = [
   ['Devin session started', ['queued', 'working', 'pr_open', 'merged', 'fixed', 'not_fixed']],
   ['Pull request opened', ['pr_open', 'merged', 'fixed', 'not_fixed']],
-  ['Merged → game rebuilt', ['merged', 'fixed', 'not_fixed']],
-  ['H replays the bug', ['fixed', 'not_fixed']],
+  ['PR merged', ['merged', 'fixed', 'not_fixed']],
+  ['Game rebuilt, H replays the bug', ['fixed', 'not_fixed']],
 ]
 
 /** The fix in progress, on the live view: Devin's steps, its latest message, session and PR links. */
 function DevinLive({ fix, live }: { fix: FixAttempt; live: boolean }) {
   const [now, setNow] = useState(Date.now())
-  useEffect(() => {
-    if (!live || fix.finished_at) return
-    const t = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(t)
-  }, [live, fix.finished_at])
-  const end = fix.finished_at ? Date.parse(fix.finished_at) : live ? now : NaN
-  const elapsed = (end - Date.parse(fix.started_at)) / 1000
   const done = fix.result === 'fixed'
   const failed = fix.result === 'not_fixed' || fix.result === 'failed'
+  // finished_at is set at merge already; the loop (rebuild, replay) runs on until fixed / not fixed
+  const over = done || failed
+  useEffect(() => {
+    if (!live || over) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [live, over])
+  const end = over && fix.finished_at ? Date.parse(fix.finished_at) : live && !over ? now : NaN
+  const elapsed = (end - Date.parse(fix.started_at)) / 1000
   return (
     <div className={`devin-live ${done ? 'ok' : failed ? 'bad' : ''}`}>
       <div className="devin-head">
@@ -539,7 +541,7 @@ function DevinLive({ fix, live }: { fix: FixAttempt; live: boolean }) {
       <ol className="devin-steps">
         {DEVIN_STEPS.map(([label, states]) => (
           <li key={label} className={states.includes(fix.result) ? 'on' : ''}>
-            {label === 'H replays the bug' && done ? 'H replayed the bug: fixed' : label}
+            {label.startsWith('Game rebuilt') && done ? 'Game rebuilt, H replayed the bug: fixed' : label}
           </li>
         ))}
       </ol>
