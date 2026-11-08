@@ -97,7 +97,7 @@ def test_reused_out_dir_keeps_numbering(tmp_path):
 
     first = c.run(grab, tmp_path, 10, lambda s, r: "a", None, Quiet(), clock, clock.sleep)
     again = c.run(grab, tmp_path, 10, lambda s, r: "b", None, Quiet(), clock, clock.sleep)
-    assert again[0]["i"] == len(first) and again[0]["shot"] == f"shot_{len(first):03d}.png"
+    assert again[0]["i"] == len(first) and again[0]["shot"] == f"shot_{len(first):03d}.jpg"
 
 
 class Resp:
@@ -124,12 +124,39 @@ def test_comment_drops_the_thinking_switch_on_400_and_flags_empty_reasoning(tmp_
         bodies.append(dict(json))
         return next(replies)
 
-    monkeypatch.setattr(c.httpx, "post", post)
+    monkeypatch.setattr(c, "_post", post)
     assert c.comment(shot, []) == "Look, green armour!"
     assert "chat_template_kwargs" in bodies[0] and "chat_template_kwargs" not in bodies[1]
     assert bodies[0]["max_tokens"] >= 400
-    monkeypatch.setattr(c.httpx, "post", lambda *a, **k: Resp(200, None, "length"))
+    monkeypatch.setattr(c, "_post", lambda *a, **k: Resp(200, None, "length"))
     import pytest
 
     with pytest.raises(ValueError):
         c.comment(shot, [])
+
+
+def test_grab_window_writes_a_small_jpeg(tmp_path, monkeypatch):
+    from PIL import Image, ImageGrab
+
+    monkeypatch.setattr(ImageGrab, "grab", lambda bbox, all_screens: Image.new("RGB", (1600, 1200)))
+    win = type("W", (), {"x": 0, "y": 0, "width": 1600, "height": 1200})()
+    out = c.grab_window(win, tmp_path / "s.jpg")
+    assert Image.open(out).size == (c.SHOT_W, c.SHOT_W * 3 // 4)
+
+
+def test_a_line_about_a_stale_frame_is_dropped(tmp_path):
+    clock = Clock()
+    quiet = Quiet()
+
+    def slow_say(text, path):
+        clock.t += c.MAX_AGE_S + 1
+        return path
+
+    def grab(p):
+        p.write_bytes(b"jpg")
+        return p
+
+    rows = c.run(grab, tmp_path, 5, lambda s, r: "hi", slow_say, quiet, clock, clock.sleep)
+    assert (
+        not quiet.played and rows[0]["error"].startswith("dropped") and "latency_s" not in rows[0]
+    )

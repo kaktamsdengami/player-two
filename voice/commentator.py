@@ -1,6 +1,6 @@
 """Kid mode (T21): a friendly buddy watches the game window and talks to the child.
 
-Every ~3 s: a screenshot of the window -> the fast H vision model writes one short line ->
+Every ~3 s: a small JPEG of the window (Pillow) -> the fast H vision model writes one short line ->
 ElevenLabs speaks it. It never talks over itself: a new line waits until the last one has been
 played and `MIN_GAP_S` has passed. Each line is logged with its latency to `<out>/comments.jsonl`.
 
@@ -32,6 +32,17 @@ PROMPT = Path(__file__).resolve().parent.parent / "agents" / "prompts" / "kid.md
 EVERY_S = 3.0
 MIN_GAP_S = 6.0
 RECENT = 4
+MAX_AGE_S = 3.0  # a line about a frame older than this is dropped, not said
+_http: httpx.Client | None = None
+
+
+def _post(url: str, headers: dict, json: dict, timeout: float) -> httpx.Response:
+    global _http
+    _http = _http or httpx.Client()  # one TLS connection for the whole run
+    return _http.post(url, headers=headers, json=json, timeout=timeout)
+
+
+SHOT_W = 320  # the model reads a small frame as well as a full one, and much faster
 
 
 def _env() -> None:
@@ -57,21 +68,22 @@ def comment(
     """One line for the child about this screenshot, or "" when the model says SKIP."""
     _env()
     img = base64.b64encode(shot.read_bytes()).decode()
+    mime = "jpeg" if shot.suffix.lower() in (".jpg", ".jpeg") else "png"
     body = {
         "model": os.environ.get("P2_KID_MODEL", MODEL),
         "temperature": 0.7,
         "max_tokens": 600,  # a reasoning model: a small cap is all spent thinking, no answer
         "chat_template_kwargs": {"enable_thinking": False},  # faster when the API honours it
         "messages": [{"role": "user", "content": [
-            {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}},
+            {"type": "image_url", "image_url": {"url": f"data:image/{mime};base64,{img}"}},
             {"type": "text", "text": prompt(age, language, recent)},
         ]}],
     }  # fmt: skip
     headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
-    r = httpx.post(MODELS_URL, headers=headers, json=body, timeout=timeout)
+    r = _post(MODELS_URL, headers=headers, json=body, timeout=timeout)
     if r.status_code == 400:  # the switch is not accepted: plain call
         body.pop("chat_template_kwargs")
-        r = httpx.post(MODELS_URL, headers=headers, json=body, timeout=timeout)
+        r = _post(MODELS_URL, headers=headers, json=body, timeout=timeout)
     r.raise_for_status()
     choice = r.json()["choices"][0]
     content = choice["message"].get("content")
@@ -88,6 +100,22 @@ def on_top(handle: int) -> bool:
     import ctypes
 
     return ctypes.windll.user32.GetForegroundWindow() == handle
+
+
+def grab_window(win: Any, out: Path) -> Path:
+    """The window's pixels as a small JPEG. Pillow takes ~0.05 s; spawning ffmpeg takes ~3 s."""
+    try:
+        from PIL import ImageGrab
+
+        box = (win.x, win.y, win.x + win.width, win.y + win.height)
+        img = ImageGrab.grab(bbox=box, all_screens=True).convert("RGB")
+    except (ImportError, OSError):  # no Pillow / no grab backend: the slow full-size PNG
+        from launcher.capture import screenshot
+
+        return screenshot(win, out.with_suffix(".png"))
+    img.thumbnail((SHOT_W, SHOT_W))
+    img.save(out, "JPEG", quality=75)
+    return out
 
 
 class Speaker:
@@ -132,10 +160,11 @@ def run(
                 sleep(0.5)
                 continue
             n = n0 + len(rows)
-            shot = grab(out / f"shot_{n:03d}.png")
+            shot = grab(out / f"shot_{n:03d}.jpg")
             if shot is None:  # window gone, minimised or covered
                 sleep(EVERY_S)
                 continue
+            t_shot = clock()
             try:
                 text = ask(shot, recent)
             except (httpx.HTTPError, KeyError, ValueError) as e:
@@ -144,14 +173,18 @@ def run(
                 continue
             t_text = clock()
             row: dict[str, Any] = {"i": n, "t": round(t0 - start, 2), "shot": shot.name,
-                                   "text": text, "vision_s": round(t_text - t0, 2)}  # fmt: skip
+                                   "text": text, "grab_s": round(t_shot - t0, 2),
+                                   "vision_s": round(t_text - t_shot, 2)}  # fmt: skip
             if text:
                 if say:
                     try:
                         audio = say(text, out / f"say_{n:03d}.mp3")
                         row["tts_s"] = round(clock() - t_text, 2)
-                        speaker(getattr(audio, "path", audio))
-                        row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice starts
+                        if clock() - t0 > MAX_AGE_S:  # the screen has moved on
+                            row["error"] = f"dropped: frame {clock() - t0:.1f} s old"
+                        else:
+                            speaker(getattr(audio, "path", audio))
+                            row["latency_s"] = round(clock() - t0, 2)  # screenshot -> voice
                     except (httpx.HTTPError, RuntimeError, OSError) as e:
                         row["error"] = f"speech failed: {e}"
                         print(row["error"], file=sys.stderr)
@@ -183,7 +216,6 @@ def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    from launcher.capture import screenshot
     from launcher.window import find_window
 
     p = argparse.ArgumentParser(prog="python -m voice.commentator")
@@ -199,7 +231,7 @@ def main(argv: list[str] | None = None) -> int:
     def grab(path: Path) -> Path | None:
         win = find_window(a.window)
         # the capture is a screen rectangle: only send it when the game is on top
-        return screenshot(win, path) if win and on_top(win.handle) else None
+        return grab_window(win, path) if win and on_top(win.handle) else None
 
     say = None
     if not a.no_voice:
