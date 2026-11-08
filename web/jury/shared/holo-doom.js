@@ -266,8 +266,9 @@ window.HoloDoom = (() => {
       const turns = move.keys.filter((k) => k === 'left' || k === 'right')
       const walksOn = move.keys.includes('up') && !move.keys.some((k) => ['use', 'left', 'right', 'strafe_left', 'strafe_right'].includes(k))
       if (stalled && walksOn) {
-        if (st.same === 1) { move.keys = ['use', 'up']; move.hold_ms = 300; move.thought = 'Blocked. A door? Use.' } // doors look like walls
-        else { move.keys = ['left']; move.hold_ms = 900; move.thought = 'Still blocked: turning around.' }
+        const fire = move.keys.includes('fire') ? ['fire'] : [] // keep shooting at whatever is in front
+        if (st.same === 1) { move.keys = ['use', 'up', ...fire]; move.hold_ms = 300; move.thought = 'Blocked. A door? Use.' } // doors look like walls
+        else { move.keys = ['left', ...fire]; move.hold_ms = 900; move.thought = 'Still blocked: turning around.' }
       }
       if (!stalled && move.status === 'stuck') move.status = 'ok' // the view moved, whatever the model believes
       // turning on the spot: the model swings left-right-left for a minute, so consecutive turns keep one
