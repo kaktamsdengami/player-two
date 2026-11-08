@@ -324,7 +324,7 @@ def summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def listen(heard: list[str], speaker: Any) -> None:
+def listen(heard: list[str], speaker: Any, language: str = "English") -> None:
     """Open mic -> Gladia; every final phrase goes to `heard`. The mic is muted while the buddy
     speaks, so it does not hear itself."""
     from voice.listen import Listener, mic_chunks
@@ -345,7 +345,8 @@ def listen(heard: list[str], speaker: Any) -> None:
             heard.append(text.strip())
             print(json.dumps({"heard": text.strip()}), flush=True)
 
-    listener = Listener(key, lambda intent: None, on_transcript)
+    code = {"english": "en", "french": "fr"}.get(language.lower())
+    listener = Listener(key, lambda intent: None, on_transcript, languages=[code] if code else None)
     threading.Thread(target=mute, daemon=True).start()
     threading.Thread(target=listener.run, args=(mic_chunks(talking),), daemon=True).start()
 
@@ -387,7 +388,7 @@ def main(argv: list[str] | None = None) -> int:
 
     heard: list[str] = []
     if a.talk:
-        listen(heard, speaker)
+        listen(heard, speaker, a.language)
 
     rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard)
     s = summary(rows)
