@@ -104,6 +104,7 @@ function loop() {
 let talking = false
 let mic = null
 let ws = null
+let setup = null // talkStart's pending setup: a quick release waits for it
 let finals = []
 let partial = ''
 
@@ -127,9 +128,13 @@ async function micStream(rate) {
   if (mic.ctx.state === 'suspended') await mic.ctx.resume()
 }
 
-async function talkStart() {
+function talkStart() {
   if (talking || !state.started) return
   talking = true
+  setup = openEars()
+}
+
+async function openEars() {
   stopVoice()
   finals = []
   partial = ''
@@ -161,9 +166,11 @@ async function talkEnd() {
   if (!talking) return
   talking = false
   $('talk').classList.remove('on')
+  await setup
   const sock = ws
   ws = null
   if (sock) {
+    if (sock.readyState === 0) await new Promise((res) => { sock.onopen = res; setTimeout(res, 2000) })
     const closed = new Promise((res) => { sock.onclose = res; setTimeout(res, 2500) })
     if (sock.readyState === 1) sock.send(JSON.stringify({ type: 'stop_recording' }))
     await closed
