@@ -307,3 +307,17 @@ def test_auto_fix_needs_no_approval(tmp_path):
     assert "awaiting_approval" not in _states(o)
     assert _states(o)[3:6] == ["presenting", "fixing", "reverifying"]
     assert o.store.findings["f1"].status == FindingStatus.fixed
+
+
+def test_cached_fix_needs_bug_exe_and_pr(tmp_path, monkeypatch):
+    from app.orchestrator import cached_fix
+
+    exe = tmp_path / "chocolate-doom.exe"
+    pr = "https://github.com/kaktamsdengami/chocolate-doom/pull/5"
+    monkeypatch.setenv("P2_CACHED_FIX_BUG", "KB3")
+    monkeypatch.setenv("P2_CACHED_FIX_EXE", str(exe))
+    monkeypatch.setenv("P2_CACHED_FIX_PR", pr)
+    assert cached_fix("KB3") is None  # no build there yet
+    exe.write_bytes(b"MZ")
+    assert cached_fix("KB3") == (exe, pr, None)
+    assert cached_fix("KB4") is None

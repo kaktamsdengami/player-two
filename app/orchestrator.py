@@ -169,6 +169,18 @@ class Stopped(Exception):
     pass
 
 
+def cached_fix(bug_id: str) -> tuple[Path, str, str | None] | None:
+    """A fixed build Devin made in an earlier run, so the demo replays the fix without waiting:
+    P2_CACHED_FIX_BUG=KB3, P2_CACHED_FIX_EXE=<fixed exe>, P2_CACHED_FIX_PR=<its PR url>,
+    optional P2_CACHED_FIX_DEVIN=<Devin session url>."""
+    exe, pr = os.environ.get("P2_CACHED_FIX_EXE"), os.environ.get("P2_CACHED_FIX_PR")
+    if os.environ.get("P2_CACHED_FIX_BUG") != bug_id or not exe or not pr:
+        return None
+    if not Path(exe).is_file():
+        return None
+    return Path(exe), pr, os.environ.get("P2_CACHED_FIX_DEVIN") or None
+
+
 class Orchestrator:
     def __init__(
         self,
@@ -631,11 +643,37 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         )
         return verdict.finding
 
+    def replay_cached(f, bug, script, ep, mp, cached, update) -> FixAttempt:  # noqa: ANN001
+        """Labelled as an earlier Devin fix; the replay on that build runs now."""
+        exe, pr, devin_url = cached
+        fix_dir = out_dir / "fix"
+        fix_cfg = replace(cfg, exe=exe)
+        a = FixAttempt(
+            id=f"x-{uuid.uuid4().hex[:6]}", finding_id=f.id,
+            devin_session_id=(devin_url or "earlier-run").rstrip("/").rsplit("/", 1)[-1],
+            devin_session_url=devin_url, pr_url=pr, result=FixResult.merged, started_at=_now(),
+            devin_says=f"Fixed earlier by Devin in {pr} (cached build): replaying the bug now.",
+        )  # fmt: skip
+        update(a)
+        replay = ScriptReplay(Game(fix_cfg, fix_dir), bug, qa_script(cfg, script, fix_dir), ep, mp)(
+            f, "round1"
+        )
+        attach_clip(f, replay)
+        fixed = not replay.still_there
+        a = a.model_copy(update={"result": FixResult.fixed if fixed else FixResult.not_fixed,
+                                 "finished_at": _now()})  # fmt: skip
+        if fixed:
+            cfg.exe = exe  # the next round plays the fixed build
+        return a
+
     def fix(f: Finding, update: Callable[[FixAttempt], None]) -> FixAttempt:
         if f.known_bug_ref not in bugs or f.known_bug_ref not in scripts:
             raise RuntimeError(f"no replay script for {f.known_bug_ref or 'an unmatched finding'}")
         bug = bugs[f.known_bug_ref]
         script, ep, mp = scripts[bug.id]
+        cached = cached_fix(bug.id)
+        if cached:
+            return replay_cached(f, bug, script, ep, mp, cached, update)
         branch = f"qa-run/{orch.info.id}"
         create_branch(branch)  # GitHub API: the stage laptop has no fork clone
         fix_dir = out_dir / "fix"
