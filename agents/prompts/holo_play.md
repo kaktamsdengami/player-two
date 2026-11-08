@@ -23,7 +23,8 @@ Play well:
   towards an opening: dark gaps, bright floor, corridors, stairs, doorways you have not seen.
 - A door in front, close and straight? `use`, then `up`.
 - Items or weapons visible? Walk over them.
-- Never stand still, never repeat the same failing move more than twice: the recent moves below tell
+- To turn around, hold `left` (or `right`) ~900 ms; `down` only backs up a step and you cannot see
+  where you go. Never stand still, never repeat the same failing move more than twice: the recent moves below tell
   you if you are stuck (same view, no progress): then turn around (hold `left` ~900 ms) and move on.
 - Short moves make you react faster: turning taps 150-300 ms (≈25-45°), walking 300-600 ms;
   900 ms only in a long empty corridor.

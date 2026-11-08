@@ -66,7 +66,7 @@ window.HoloDoom = (() => {
     film.width = 800; film.height = 600
     const st = {
       mode: 'loading', running: false, human: false, step: 0, recent: [], instruction: '', instructionLeft: 0,
-      lastHash: null, same: 0, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
+      lastThumb: null, thumb: null, same: 0, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
       tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
     }
@@ -131,11 +131,24 @@ window.HoloDoom = (() => {
       shotCanvas.height = Math.round((SHOT_W * src.height) / src.width) || 360
       const ctx = shotCanvas.getContext('2d')
       ctx.drawImage(src, 0, 0, shotCanvas.width, shotCanvas.height)
-      // a coarse hash of the view (without the status bar) tells whether anything changed
-      const d = ctx.getImageData(0, 0, shotCanvas.width, Math.round(shotCanvas.height * 0.8)).data
-      let h = 0
-      for (let i = 0; i < d.length; i += 97) h = (h * 31 + d[i]) >>> 0
-      return { url: shotCanvas.toDataURL('image/jpeg', 0.7), hash: h, w: shotCanvas.width, h: shotCanvas.height }
+      // a 32x24 grey thumbnail of the view (without the status bar): walking into a wall still moves
+      // a few pixels (weapon bob, JPEG noise), so "unchanged" is a mean difference below STILL, not an equal hash
+      thumbCtx.drawImage(src, 0, 0, src.width, src.height * 0.8, 0, 0, 32, 24)
+      const d = thumbCtx.getImageData(0, 0, 32, 24).data
+      const thumb = new Uint8Array(32 * 24)
+      for (let i = 0; i < thumb.length; i++) thumb[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3
+      st.thumb = thumb
+      return { url: shotCanvas.toDataURL('image/jpeg', 0.7), w: shotCanvas.width, h: shotCanvas.height }
+    }
+    const thumbCanvas = document.createElement('canvas')
+    thumbCanvas.width = 32; thumbCanvas.height = 24
+    const thumbCtx = thumbCanvas.getContext('2d', { willReadFrequently: true })
+    const STILL = 2.5 // mean grey difference per pixel; a real move scores 7-35
+    function moved(a, b) {
+      if (!a || !b) return true
+      let s = 0
+      for (let i = 0; i < a.length; i++) s += Math.abs(a[i] - b[i])
+      return s / a.length >= STILL
     }
 
     // ------------------------------------------------------------------ Holo
@@ -211,8 +224,8 @@ window.HoloDoom = (() => {
     async function stepLive() {
       if (o.pauseWhileThinking) { pause(); await frames(1) }
       const frame = shot()
-      const stalled = frame.hash === st.lastHash ? ++st.same >= 2 : (st.same = 0, false)
-      st.lastHash = frame.hash
+      const stalled = moved(st.thumb, st.lastThumb) ? (st.same = 0, false) : ++st.same >= 2
+      st.lastThumb = st.thumb
       const keepFire = st.lastKeys.includes('fire') && !stalled // a monster was in the sights: keep shooting while Holo thinks
       if (keepFire) down('fire', { ctrl: true })
       st.thinking = true
