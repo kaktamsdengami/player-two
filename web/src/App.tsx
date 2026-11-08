@@ -106,7 +106,9 @@ function SessionBar({ snap }: { snap: Snapshot }) {
 function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onIntent: (i: Intent) => void }) {
   const s = snap.session
   const last = snap.actions[snap.actions.length - 1]
-  const shot = media(last?.screenshot)
+  const [badShot, setBadShot] = useState('')
+  const frame = media(last?.screenshot)
+  const shot = frame && frame !== badShot ? frame : null
   return (
     <div className="live-grid">
       <section className="panel agent">
@@ -114,12 +116,14 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         {s.share_url && !USING_MOCK ? (
           <iframe title="H live view" src={s.share_url} />
         ) : shot ? (
-          <img src={shot} alt="latest agent screenshot" />
+          <img src={shot} alt="latest agent screenshot" onError={() => setBadShot(shot)} />
         ) : (
           <div className="placeholder">
             <div>H desktop live view</div>
             <div className="dim">
-              {USING_MOCK
+              {frame
+                ? 'Screenshot not available for this step.'
+                : USING_MOCK
                 ? 'Demo data: no live stream. Open Bugs & fixes to see a finding.'
                 : active(s.state)
                   ? 'Waiting for the first frame…'
@@ -281,6 +285,7 @@ function BugCard({
   const clip = f.evidence.clip
   const src = media(clip?.path)
   const video = useRef<HTMLVideoElement>(null)
+  const [clipErr, setClipErr] = useState(false)
   const [cue, setCue] = useState(-1)
   const [playing, setPlaying] = useState(false)
   const [sent, setSent] = useState('')
@@ -330,16 +335,19 @@ function BugCard({
       </div>
       <div className="card-body">
         <div className="clip">
-          {src ? (
+          {src && !clipErr ? (
             <video
               ref={video}
               src={`${src}#t=${clip!.start_s},${clip!.end_s}`}
               controls
               muted
               onLoadedMetadata={(e) => (e.currentTarget.playbackRate = clip!.speed)}
+              onError={() => setClipErr(true)}
             />
           ) : (
-            <div className="placeholder small">clip {clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}</div>
+            <div className="placeholder small">
+              {clipErr ? 'clip file not available' : `clip ${clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}`}
+            </div>
           )}
           {clip && <span className="speed">RECORDED · {clip.speed}× speed</span>}
         </div>
