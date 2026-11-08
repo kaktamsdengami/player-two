@@ -1,0 +1,13 @@
+{
+  "note": "Summary transcribed from the stage-laptop output posted on PR #42 (stage run 4). Raw run dir stays on the stage laptop.",
+  "label": "RECORDED",
+  "mode": "spec-based (preset carries a visible developer test plan)",
+  "preset": "stage-play",
+  "h_session": "0d17032d-5bb1-4dc3-8832-d9565409af77",
+  "actions": 37,
+  "game_tics": 1107,
+  "pickups": ["shotgun", "invulnerability sphere", "bullets"],
+  "report_finding": "Sky not inverted during invulnerability power-up",
+  "demo_replay_player_samples": {"identical": 31, "total": 31},
+  "verifier": {"status": "verified", "known_bug_ref": "KB3", "replay": "demo", "clip_seconds": 10}
+}

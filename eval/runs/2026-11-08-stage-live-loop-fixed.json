@@ -1,0 +1,30 @@
+{
+  "note": "Summary transcribed from the stage-laptop output posted on PR #42 (comment 6715339509). Raw run dir recordings/20261108-013710-session stays on the stage laptop. Times are events.jsonl UTC.",
+  "label": "RECORDED",
+  "mode": "spec-based (preset carries a visible developer test plan)",
+  "preset": "stage-play",
+  "entry": "dashboard click (New run -> stage-play -> Start), windowed game 1066x800, app.main --mode live",
+  "product_commit": "f6432de",
+  "h_session": "47748a00-6f70-410c-9cbb-9db55bf5057a",
+  "timeline_utc": {
+    "exploring": "00:37:10",
+    "finding_new": "00:39:38",
+    "verifying": "00:41:43",
+    "presenting": "00:42:31",
+    "fix_approved": "00:42:50",
+    "fork_pr_open": "00:44:59",
+    "merged_reverifying": "00:45:31",
+    "fixed": "00:50:11",
+    "debrief_ready": "00:57:02"
+  },
+  "fix_click_to_fixed_s": 438,
+  "report_finding": "Sky not inverted during invulnerability power-up",
+  "verifier": {"status": "verified", "known_bug_ref": "KB3"},
+  "approval": "dashboard Fix button (source: button); voice-in not exercised in this run",
+  "devin_session": "bcf35a3d7da840afa6df6e4afea73020",
+  "fork_pr": "https://github.com/kaktamsdengami/chocolate-doom/pull/4",
+  "after_fix_replay": {"script": "qa/kb3_sky_invul_e3m1.txt", "powerup_tic": 8, "sky_ignores_colormap_events": 0, "sky": "grey/inverted like the walls"},
+  "upstream_comparison": null,
+  "agent_actions": {"total": 95, "key_press": 90, "clicks": 0},
+  "focus_guard_refocus": 3
+}

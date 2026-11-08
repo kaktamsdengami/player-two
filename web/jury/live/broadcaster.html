@@ -1,0 +1,16 @@
+<!doctype html><html><head><meta charset="utf-8"><title>PLAYER TWO · live broadcaster</title>
+<style>body{margin:0;background:#000}.holo-doom{width:960px}</style></head>
+<body><div id="g"></div>
+<script src="/jury/shared/holo-doom.js"></script>
+<script>
+// Plays with Holo and pushes every step (frame + move) to /api/live/push; viewers watch via the WebSocket.
+const api = new URLSearchParams(location.search).get('api') || ''
+const hd = HoloDoom.create({ container: document.getElementById('g'), mode: 'live', skill: '3' })
+window.keep = true
+hd.on('step', async (s) => {
+  const body = { type: 'step', step: s.step, thought: s.thought, keys: s.keys, hold_ms: s.hold_ms, aim: s.aim, status: s.status,
+    latency_ms: s.latency_ms, model: s.model, mode: s.mode, frame: s.frame && s.frame.url ? { url: s.frame.url, w: s.frame.w, h: s.frame.h } : null, error: s.error || null }
+  try { const r = await fetch(api + '/api/live/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const j = await r.json(); window.keep = j.keep !== false } catch (e) { /* server away */ }
+})
+hd.start()
+</script></body></html>

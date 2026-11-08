@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap');
+:root { --bg: #070a0f; --card: #0d131c; --line: #1c2a3a; --fg: #d6e2f0; --dim: #7d90a8; --acc: #4ef2c3; --warn: #ffb020; --red: #ff4d6d; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); font-family: 'IBM Plex Sans', system-ui, sans-serif; font-size: 15px; }
+body { background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 40px 40px; background-attachment: fixed; }
+a { color: var(--acc); }
+code { font-family: 'IBM Plex Mono', monospace; color: var(--acc); font-size: 13px; }
+.top { padding: 16px 24px; border-bottom: 1px solid var(--line); background: rgba(7,10,15,.9); display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; position: sticky; top: 0; z-index: 5; }
+.brand { font-family: 'IBM Plex Mono', monospace; font-size: 20px; letter-spacing: 2px; }
+.brand b { color: var(--acc); }
+.tag { font-size: 11px; color: var(--bg); background: var(--acc); padding: 2px 6px; border-radius: 3px; margin-left: 8px; vertical-align: middle; }
+.head { color: var(--dim); max-width: 760px; }
+.head b { color: var(--fg); }
+.pool { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--dim); text-align: right; }
+.grid { display: grid; grid-template-columns: 1fr 1.6fr 1fr; grid-template-areas: "eye game brain" "feed game prompt" "feed desk prompt"; gap: 16px; padding: 16px 24px; max-width: 1600px; margin: 0 auto; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.card h2 { margin: 0 0 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 2px; color: var(--acc); display: flex; justify-content: space-between; gap: 8px; }
+.card h2 small { color: var(--dim); font-weight: 400; letter-spacing: 0; text-transform: none; text-align: right; }
+.eye { grid-area: eye; } .game { grid-area: game; } .brain { grid-area: brain; } .feed-card { grid-area: feed; } .prompt { grid-area: prompt; } .desk { grid-area: desk; }
+.eye-wrap { position: relative; background: #000; border-radius: 6px; overflow: hidden; aspect-ratio: 4/3; }
+.eye-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; filter: contrast(1.05); }
+.eye-aim { position: absolute; width: 26px; height: 26px; border: 2px solid var(--red); border-radius: 50%; transform: translate(-50%,-50%); box-shadow: 0 0 10px var(--red); }
+.caption { color: var(--dim); font-size: 13px; margin-top: 10px; line-height: 1.4; }
+.screen { aspect-ratio: 4/3; width: 100%; border-radius: 6px; overflow: hidden; background: #000; }
+.holo-badge { position: absolute; top: 8px; left: 8px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 3px 7px; border-radius: 3px; background: rgba(0,0,0,.7); border: 1px solid var(--acc); color: var(--acc); }
+.holo-badge[data-mode="live"] { border-color: var(--red); color: var(--red); }
+.holo-badge[data-mode="recorded"] { border-color: var(--warn); color: var(--warn); }
+.holo-aim { position: absolute; width: 28px; height: 28px; border: 2px solid var(--acc); border-radius: 50%; transform: translate(-50%,-50%); transition: left .25s, top .25s; pointer-events: none; }
+.holo-aim::before, .holo-aim::after { content: ''; position: absolute; background: var(--acc); }
+.holo-aim::before { left: 50%; top: -8px; width: 1px; height: 44px; margin-left: -.5px; }
+.holo-aim::after { top: 50%; left: -8px; height: 1px; width: 44px; margin-top: -.5px; }
+.row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.row input { flex: 1; min-width: 160px; font: inherit; padding: 8px 10px; background: #000; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; }
+button, .btn { font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 1px; padding: 9px 12px; background: #132033; color: var(--fg); border: 1px solid #27405e; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+#over { background: var(--acc); color: var(--bg); border-color: var(--acc); font-weight: 600; }
+#back { background: var(--warn); color: var(--bg); border-color: var(--warn); font-weight: 600; }
+#sound.on { border-color: var(--acc); color: var(--acc); }
+pre { margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; background: #000; border: 1px solid var(--line); border-radius: 6px; padding: 10px; color: #b8f5e3; max-height: 300px; overflow: auto; }
+.prompt-text { color: var(--fg); max-height: none; }
+.metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0; }
+.metrics div { background: #000; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+.metrics span { display: block; color: var(--dim); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.metrics b { font-family: 'IBM Plex Mono', monospace; font-size: 18px; color: var(--acc); word-break: break-all; }
+#spark { width: 100%; height: 60px; display: block; background: #000; border: 1px solid var(--line); border-radius: 6px; }
+.feed { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 720px; overflow: auto; }
+.step { font-size: 13px; padding: 6px 8px; border-left: 2px solid var(--acc); background: #0a1018; animation: fade .3s; }
+.step.recorded { border-left-color: var(--warn); } .step.err { border-left-color: var(--red); }
+.step .n { color: var(--dim); font-family: 'IBM Plex Mono', monospace; margin-right: 6px; }
+.step .key { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: #132033; color: var(--acc); padding: 1px 5px; border-radius: 3px; margin-right: 4px; }
+.step .hold, .step .lat { color: var(--dim); font-size: 11px; margin-left: 4px; }
+.step .say { display: block; color: var(--fg); margin-top: 2px; }
+@keyframes fade { from { opacity: 0 } }
+.desk p { margin: 6px 0; line-height: 1.5; }
+.credits { text-align: center; color: var(--dim); font-size: 13px; padding: 10px 24px 30px; line-height: 1.5; }
+@media (max-width: 1100px) { .grid { grid-template-columns: 1fr 1fr; grid-template-areas: "game game" "eye brain" "feed prompt" "desk desk"; } }
+@media (max-width: 700px) { .grid { grid-template-columns: 1fr; grid-template-areas: "game" "eye" "brain" "feed" "prompt" "desk"; padding: 10px; } .top { grid-template-columns: 1fr; gap: 6px; position: static; } .pool { text-align: left; } }
+
+.hub { color: var(--acc); font-weight: 600; }

@@ -183,6 +183,7 @@
       "pr_url": "https://example.invalid/mock-pr/1",
       "round": 1,
       "result": "pr_open",
+      "devin_says": "MOCK: Opened the PR: ST_updateFaceWidget compared health the wrong way round, so the ouch face never showed. Swapped the subtraction.",
       "started_at": "2026-11-08T10:02:00Z",
       "finished_at": null,
       "acus": null,

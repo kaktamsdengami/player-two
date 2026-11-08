@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>dev</title>
+<style>body{background:#111;color:#ddd;font:14px monospace}.holo-doom{width:800px}.holo-aim{position:absolute;width:24px;height:24px;border:2px solid #0f0;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}.holo-badge{position:absolute;top:4px;left:4px;background:#000a;padding:2px 6px}#log{white-space:pre-wrap;max-height:300px;overflow:auto}</style></head>
+<body><div id="g"></div><button id="over">take over</button><button id="back">give back</button><input id="tell"><button id="send">tell</button><div id="log"></div>
+<script src="/jury/shared/holo-doom.js"></script>
+<script>
+const log=(t)=>{const l=document.getElementById('log');l.textContent=t+'\n'+l.textContent}
+const hd=HoloDoom.create({container:document.getElementById('g')})
+hd.on('step',(s)=>log(`#${s.step} ${s.mode} ${s.latency_ms}ms ${JSON.stringify(s.keys)} ${s.hold_ms} aim=${JSON.stringify(s.aim)} ${s.status} :: ${s.thought} ${s.error||''}`))
+hd.on('state',(s)=>log('state '+JSON.stringify({mode:s.mode,why:s.why,ready:s.gameReady})))
+hd.on('error',(e)=>log('error '+e.message))
+hd.start().then((m)=>log('started '+m))
+window.hd=hd
+document.getElementById('over').onclick=()=>hd.takeOver();document.getElementById('back').onclick=()=>hd.giveBack()
+document.getElementById('send').onclick=()=>hd.tell(document.getElementById('tell').value)
+</script></body></html>

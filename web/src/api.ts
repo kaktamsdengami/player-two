@@ -1,9 +1,13 @@
 import mock from '../../docs/api-mock.json'
 import type { SseEvent, Snapshot, VoiceIntent } from './types'
 
-/** Set VITE_API_BASE (e.g. http://localhost:8000) to switch from docs/api-mock.json to the live API. */
-export const API_BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '')
-export const USING_MOCK = API_BASE === ''
+/** Set VITE_API_BASE (e.g. http://localhost:8000) to switch from docs/api-mock.json to the live API;
+ * `same-origin` when app.main serves the built dashboard itself (the public watch link). */
+const RAW_BASE = import.meta.env.VITE_API_BASE ?? ''
+export const API_BASE = RAW_BASE === 'same-origin' ? '' : RAW_BASE.replace(/\/$/, '')
+export const USING_MOCK = RAW_BASE === ''
+/** Opened from anywhere but the laptop itself (the tunnel link): watch only, no controls. */
+export const VIEW_ONLY = !USING_MOCK && !['localhost', '127.0.0.1'].includes(window.location.hostname)
 
 const MOCK = mock as unknown as Record<string, unknown>
 
@@ -62,29 +66,33 @@ export function subscribe(onEvent: (e: SseEvent) => void): () => void {
   return () => clearInterval(timer)
 }
 
-async function post(path: string, body?: unknown): Promise<void> {
-  if (USING_MOCK) return
+/** POST JSON; errors carry the API's `detail` (e.g. "no session") instead of a bare status code. */
+async function post<T = unknown>(path: string, body?: unknown): Promise<T | null> {
+  if (USING_MOCK) return null
   const r = await fetch(`${API_BASE}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (!r.ok) throw new Error(`POST ${path}: HTTP ${r.status}`)
+  const data = (await r.json().catch(() => null)) as { detail?: unknown } | null
+  if (!r.ok) {
+    const detail = typeof data?.detail === 'string' ? data.detail : `HTTP ${r.status}`
+    throw new Error(`${path.replace('/api/', '')}: ${detail}`)
+  }
+  return data as T
 }
 
 export const sendIntent = (intent: VoiceIntent) => post('/api/intent', intent)
+export const sendText = (text: string) => post('/api/intent/text', { text })
 export const stopSession = () => post('/api/stop')
+export const getPtt = () => get<{ on: boolean }>('/api/ptt')
+export const setPtt = (on: boolean) => post<{ on: boolean }>('/api/ptt', { on })
+/** No `mode`: the server runs its configured mode (live on the stage laptop, recorded elsewhere). */
+export const startSession = (plan: string, preset: string) =>
+  post<{ started: boolean; live: boolean }>('/api/session/start', { plan: plan.trim() || null, preset })
 
-export async function checkout(plan: string): Promise<string | null> {
-  if (USING_MOCK) return null
-  const r = await fetch(`${API_BASE}/api/billing/checkout`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ plan }),
-  })
-  if (!r.ok) throw new Error(`checkout: HTTP ${r.status}`)
-  return ((await r.json()) as { url: string }).url
-}
+export const checkout = async (plan: string): Promise<string | null> =>
+  (await post<{ url: string }>('/api/billing/checkout', { plan }))?.url ?? null
 
 /** Media URL, or null in mock mode (mock paths point to files that do not exist). */
 export const media = (path?: string | null) =>

@@ -28,7 +28,7 @@ export interface Finding {
 export interface FixAttempt {
   id: string; finding_id: string; devin_session_id: string; devin_session_url?: string | null
   pr_url?: string | null; round: number; result: string; started_at: string; finished_at?: string | null
-  acus?: number | null; upstream_fix_ref?: string | null
+  acus?: number | null; upstream_fix_ref?: string | null; devin_says?: string | null
   comparison?: { upstream_fix_ref: string; upstream_diff: string; devin_diff: string; verdict: string; summary: string } | null
 }
 export interface NarrationCue { at_s: number; clip_s: number; text: string }

@@ -7,7 +7,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from launcher.config import LauncherConfig, Speed
+from launcher.config import PRESETS, LauncherConfig, Speed
 from launcher.log import EventLog
 from launcher.window import Window, find_window, foreground
 
@@ -18,6 +18,7 @@ class Game:
     run_dir: Path
     proc: subprocess.Popen | None = None
     started_at: float = 0.0  # wall clock at launch; GameEvent.t counts from about here
+    extra_args: list[str] = field(default_factory=list)  # e.g. ["-qa-trace", "1"]
     log: EventLog = field(init=False)
 
     def __post_init__(self) -> None:
@@ -30,7 +31,12 @@ class Game:
         return self.run_dir / "events.jsonl"
 
     def command(
-        self, episode: int, map_: int, speed: Speed, script: Path | None = None
+        self,
+        episode: int,
+        map_: int,
+        speed: Speed,
+        script: Path | None = None,
+        record: Path | None = None,
     ) -> list[str]:
         c = self.cfg
         extra = self.run_dir / "launcher.cfg"
@@ -41,11 +47,30 @@ class Game:
                "-fullscreen" if c.fullscreen else "-window",
                "-extraconfig", str(extra), "-qa-log", str(self.log_path),
                *speed.args()]  # fmt: skip
+        cmd += self.extra_args
         if not c.sound:
             cmd.append("-nosound")
+        if record:  # vanilla demo (.lmp appended): the agent's inputs per tic, for replays
+            cmd += ["-record", str(record), "-maxdemo", "4096"]
+        if script is None:
+            script = self.start_script()
         if script:
             cmd += ["-qa-script", str(script)]
         return cmd
+
+    def start_script(self) -> Path | None:
+        """QA start state for free play (replay scripts set their own)."""
+        preset = PRESETS[self.cfg.preset] if self.cfg.preset else None
+        start = (preset and preset.start) or self.cfg.start
+        line = {"god": "1 god", "tough": "1 health 999"}.get(start)
+        lines = [line] if line else []
+        if self.cfg.preset:
+            lines += PRESETS[self.cfg.preset].lines
+        if not lines:
+            return None
+        path = self.run_dir / "qa_start.txt"
+        path.write_text("".join(x + "\n" for x in lines))
+        return path
 
     def start(
         self,
@@ -54,6 +79,7 @@ class Game:
         speed: Speed | None = None,
         script: Path | None = None,
         wait_window: float = 10.0,
+        record: Path | None = None,
     ) -> Window | None:
         """Launch, wait for the window, put it in front. Returns the window (None if not seen)."""
         self.stop()
@@ -61,7 +87,7 @@ class Game:
             self.log_path.unlink()
         self.log = EventLog(self.log_path)
         c = self.cfg
-        cmd = self.command(episode or c.episode, map_ or c.map, speed or c.speed, script)
+        cmd = self.command(episode or c.episode, map_ or c.map, speed or c.speed, script, record)
         self.started_at = time.time()
         self.proc = subprocess.Popen(
             cmd, cwd=self.run_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL

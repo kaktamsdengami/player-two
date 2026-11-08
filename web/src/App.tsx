@@ -1,7 +1,7 @@
-import { useEffect, useReducer, useState } from 'react'
-import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, stopSession, subscribe } from './api'
+import { useEffect, useReducer, useRef, useState } from 'react'
+import { API_BASE, USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, sendIntent, sendText, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
-import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
+import type { AgentAction, Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
 type Tab = 'live' | 'bugs' | 'debrief' | 'plans' | 'parent'
 const TABS: [Tab, string][] = [
@@ -12,9 +12,14 @@ const TABS: [Tab, string][] = [
   ['parent', 'Parent'],
 ]
 
+const tabFromHash = (): Tab => {
+  const h = location.hash.slice(1)
+  return TABS.some(([id]) => id === h) ? (h as Tab) : 'live'
+}
+
 export default function App() {
   const [state, dispatch] = useReducer(reducer, initialState)
-  const [tab, setTab] = useState<Tab>(() => (location.hash.slice(1) as Tab) || 'live')
+  const [tab, setTab] = useState<Tab>(tabFromHash)
 
   useEffect(() => {
     loadSnapshot()
@@ -24,14 +29,26 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    location.hash = tab
+    if (location.hash.slice(1) !== tab) location.hash = tab
   }, [tab])
+
+  useEffect(() => {
+    const onHash = () => setTab(tabFromHash())
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [])
 
   const intent = (i: Intent, finding_id?: string, text = '') => {
     const body = { intent: i, source: 'button' as const, finding_id: finding_id ?? null, text }
     dispatch({ type: 'intent', intent: body })
-    sendIntent(body).catch((e: Error) => dispatch({ type: 'error', message: e.message }))
     if (i === 'stop') stopSession().catch(() => undefined)
+    return sendIntent(body).then(
+      () => true,
+      (e: Error) => {
+        dispatch({ type: 'error', message: e.message })
+        return false
+      },
+    )
   }
 
   const snap = state.snap
@@ -42,6 +59,10 @@ export default function App() {
           PLAYER <span>TWO</span>
         </div>
         {snap && <SessionBar snap={snap} />}
+        <nav className="modes">
+          <a href="/">← home</a>
+          <a href="/kid/">kid mode →</a>
+        </nav>
         <nav>
           {TABS.map(([id, label]) => (
             <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
@@ -50,7 +71,15 @@ export default function App() {
           ))}
         </nav>
       </header>
-      {state.error && <div className="error">{state.error}</div>}
+      <BuiltByDevin />
+      {state.error && (
+        <div className="error" role="alert">
+          <span>{state.error}</span>
+          <button className="link" onClick={() => dispatch({ type: 'dismiss' })} aria-label="dismiss">
+            ✕
+          </button>
+        </div>
+      )}
       {!snap ? (
         <main className="loading">Loading…</main>
       ) : (
@@ -72,6 +101,7 @@ function SessionBar({ snap }: { snap: Snapshot }) {
   return (
     <div className="session">
       <span className={`badge ${mode === 'LIVE' ? 'live' : 'rec'}`}>{mode}</span>
+      {VIEW_ONLY && <span className="badge rec" title="This public link can watch the run, not start, steer or approve it">VIEW ONLY</span>}
       <span>{s.game}</span>
       <span className="dim">{s.map}</span>
       <span className={`state st-${s.state}`}>{s.state.replace('_', ' ')}</span>
@@ -85,23 +115,69 @@ function SessionBar({ snap }: { snap: Snapshot }) {
 
 // ---------------------------------------------------------------- live
 
+const KEY_NAMES: Record<string, string> = {
+  up: '↑', arrowup: '↑', down: '↓', arrowdown: '↓', left: '←', arrowleft: '←', right: '→', arrowright: '→',
+  ctrl: 'FIRE', control: 'FIRE', space: 'USE', alt: 'STRAFE', shift: 'RUN', enter: 'ENTER', return: 'ENTER', escape: 'ESC',
+}
+
+/** What H pressed, as a player would read it: "STRAFE + ←", "↑ hold 1.2 s", "REPORT BUG". */
+function keyLabel(a: AgentAction): string {
+  if (a.kind === 'tool_call') {
+    const tool = a.description.split(' ')[0]
+    return tool === 'report_finding' ? 'REPORT BUG' : tool === 'note' ? 'NOTE' : tool.toUpperCase()
+  }
+  const keys = a.keys.flatMap((k) => k.split('+')).map((k) => KEY_NAMES[k.trim().toLowerCase()] ?? k.toUpperCase())
+  const hold = a.kind === 'key_hold' && a.duration_ms ? ` hold ${(a.duration_ms / 1000).toFixed(1)} s` : ''
+  return (keys.join(' + ') || a.kind.replace('_', ' ').toUpperCase()) + hold
+}
+
 function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onIntent: (i: Intent) => void }) {
   const s = snap.session
   const last = snap.actions[snap.actions.length - 1]
-  const shot = media(last?.screenshot)
+  const [badShot, setBadShot] = useState('')
+  const frame = media(last?.screenshot)
+  const shot = frame && frame !== badShot ? frame : null
+  const [screen, setScreen] = useState<string | null>(null)
+  const watching = !USING_MOCK && active(s.state)
+  useEffect(() => {
+    if (!watching) return setScreen(null)
+    let misses = 0
+    const id = setInterval(() => {  // swap only loaded frames: no flicker, no broken image
+      const url = `${API_BASE}/api/screen?t=${Date.now()}`
+      const img = new Image()
+      img.onload = () => { misses = 0; setScreen(url) }
+      img.onerror = () => { if (++misses >= 3) setScreen(null) }
+      img.src = url
+    }, 1000)
+    return () => clearInterval(id)
+  }, [watching])
   return (
     <div className="live-grid">
       <section className="panel agent">
         <h2>Agent view</h2>
-        {s.share_url && !USING_MOCK ? (
-          <iframe title="H live view" src={s.share_url} />
-        ) : shot ? (
-          <img src={shot} alt="latest agent screenshot" />
-        ) : (
+        {(screen || shot) && (
+          <div className="screen-wrap">
+            <img className="game-screen" src={screen ?? shot!} alt="the game window right now" onError={() => !screen && shot && setBadShot(shot)} />
+            {last && <div key={last.step} className="key-overlay">H: {keyLabel(last)}</div>}
+          </div>
+        )}
+        <Filmstrip actions={snap.actions} />
+        {screen || shot ? null : (
           <div className="placeholder">
             <div>H desktop live view</div>
-            <div className="dim">{USING_MOCK ? 'mock mode: no stream' : 'waiting for the first frame'}</div>
+            <div className="dim">
+              {frame
+                ? 'Screenshot not available for this step.'
+                : USING_MOCK
+                ? 'Demo data: no live stream. Open Bugs & fixes to see a finding.'
+                : active(s.state)
+                  ? 'Waiting for the first frame…'
+                  : 'No run in progress. Start one with New run →'}
+            </div>
           </div>
+        )}
+        {s.share_url && !USING_MOCK && (
+          <a className="small" href={s.share_url} target="_blank" rel="noreferrer">H session trajectory (raw JSON from H)</a>
         )}
         {last && (
           <div className="caption">
@@ -110,27 +186,34 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         )}
       </section>
       <section className="panel side">
-        <VoicePanel voice={voice} onIntent={onIntent} />
+        {snap.fixes.length > 0 && <DevinLive fix={snap.fixes.at(-1)!} live={s.live && !USING_MOCK} />}
+        {!VIEW_ONLY && <NewRun running={active(s.state)} />}
+        <VoicePanel voice={voice} onIntent={onIntent} enabled={USING_MOCK || active(s.state)} />
         <h2>Action timeline</h2>
+        {!snap.actions.length && <div className="dim small">The agent's key presses appear here.</div>}
         <ol className="timeline">
           {[...snap.actions].reverse().map((a) => (
             <li key={a.step}>
               <span className="t">{fmtS(a.t_session_s)}</span>
-              <span className="k">{a.keys.join('+') || a.kind}</span>
+              <span className="k">{keyLabel(a)}</span>
               <span>{a.description}</span>
             </li>
           ))}
         </ol>
         <h2>Tester notes</h2>
+        {!snap.notes.length && <div className="dim small">What the tester notices while playing.</div>}
         <ul className="notes">
           {snap.notes.map((n) => (
             <li key={n.ts}>
-              <span className="t">{fmtS(n.t_session_s)}</span> {n.text}
-              {n.tags.map((t) => (
-                <span key={t} className="tag">
-                  {t}
-                </span>
-              ))}
+              <span className="t">{fmtS(n.t_session_s)}</span>
+              <span className="grow">
+                {n.text}
+                {n.tags.map((t) => (
+                  <span key={t} className="tag">
+                    {t}
+                  </span>
+                ))}
+              </span>
             </li>
           ))}
         </ul>
@@ -139,36 +222,133 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
   )
 }
 
+/** H's last steps as pictures: what each key press did in the game. */
+function Filmstrip({ actions }: { actions: AgentAction[] }) {
+  const steps = actions.filter((a) => media(a.screenshot)).slice(-8)
+  if (!steps.length) return null
+  return (
+    <div className="filmstrip">
+      {steps.map((a) => (
+        <figure key={a.screenshot!}>
+          <img src={media(a.screenshot)!} alt={`step ${a.step}`} loading="lazy" />
+          <figcaption><b>{keyLabel(a)}</b> · step {a.step}</figcaption>
+        </figure>
+      ))}
+    </div>
+  )
+}
+
+/** New live run: an optional test plan (a focus area, never a bug) and a QA start preset. */
+function NewRun({ running }: { running: boolean }) {
+  const [plan, setPlan] = useState('')
+  const [preset, setPreset] = useState('')
+  const [status, setStatus] = useState('')
+  const [busy, setBusy] = useState(false)
+  const start = () => {
+    setBusy(true)
+    setStatus('Starting…')
+    startSession(plan, preset)
+      .then((r) =>
+        setStatus(!r ? 'Demo data: nothing is started.' : r.live ? 'Live run started.' : 'Recorded run started (replay).'),
+      )
+      .catch((e: Error) => setStatus(e.message))
+      .finally(() => setBusy(false))
+  }
+  return (
+    <details className="new-run" open={!running && !USING_MOCK ? true : undefined}>
+      <summary>New run</summary>
+      <label>
+        Test plan (optional)
+        <textarea
+          rows={3}
+          value={plan}
+          placeholder="e.g. Test power-ups and check the whole screen renders correctly while one is active."
+          onChange={(e) => setPlan(e.target.value)}
+        />
+      </label>
+      <label>
+        Start
+        <select value={preset} onChange={(e) => setPreset(e.target.value)}>
+          <option value="">E3M1, free exploration</option>
+          <option value="stage-kb3">stage-kb3 (E3M1, power-up near the start)</option>
+          <option value="stage-play">stage-play (E3M1, items and enemies on the way to a power-up)</option>
+        </select>
+      </label>
+      <div className="row">
+        <button className="primary" onClick={start} disabled={busy || running}>
+          {running ? 'Run in progress' : 'Start run'}
+        </button>
+        <span className="dim small">{status}</span>
+      </div>
+    </details>
+  )
+}
+
 const INTENTS: Intent[] = ['fix', 'skip', 'explain', 'yes', 'no', 'stop']
 
-function VoicePanel({ voice, onIntent }: { voice: Voice; onIntent: (i: Intent) => void }) {
-  const fresh = Date.now() - voice.at < 4000
+function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: Intent) => void; enabled: boolean }) {
+  const [text, setText] = useState('')
+  const [sent, setSent] = useState(0)
+  const [pttError, setPttError] = useState<string | null>(null)
+  const say = () => {
+    const t = text.trim()
+    if (!t) return
+    sendText(t).then(
+      () => {
+        setText('')
+        setSent(Date.now())
+        setPttError(null)
+      },
+      (e: Error) => setPttError(e.message),
+    )
+  }
+  const fresh = enabled && (Date.now() - sent < 4000 || Date.now() - voice.at < 4000)
   return (
     <div className="voice">
       <div className={`mic ${fresh ? 'hot' : ''}`} aria-label="voice activity" />
       <div className="voice-text">
         {voice.speaking && <div className="speaking">{voice.speaking.text}</div>}
-        <div className={voice.final ? '' : 'dim'}>{voice.transcript ? `“${voice.transcript}”` : 'Say “fix it”, “skip”, “stop”…'}</div>
+        <div className={voice.final ? '' : 'dim'}>{voice.transcript ? `“${voice.transcript}”` : 'Type “fix it”, “skip”, “stop”… below'}</div>
         {voice.intent && (
           <div className="intent">
             intent: <b>{voice.intent.intent}</b> ({voice.intent.source})
           </div>
         )}
       </div>
+      {!VIEW_ONLY && (
+        <>
+      <input
+        className="talk"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') say(); e.stopPropagation() }}
+        disabled={!enabled || USING_MOCK}
+        placeholder={enabled ? 'Type to the tester and press Enter: “fix it”, “skip”, “explain”, “go left”…' : 'Start a run first'}
+        title={USING_MOCK ? 'Needs the live backend' : 'Typed instruction: parsed like a spoken one'}
+      />
+      {pttError && <div className="talk-error">{pttError}</div>}
       <div className="intent-buttons">
         {INTENTS.map((i) => (
-          <button key={i} className={i === 'stop' ? 'danger' : ''} onClick={() => onIntent(i)}>
+          <button
+            key={i}
+            className={`cap ${i === 'stop' ? 'danger' : ''}`}
+            onClick={() => onIntent(i)}
+            disabled={!enabled}
+            title={enabled ? `Send “${i}” as if spoken` : 'Start a run first'}
+          >
             {i}
           </button>
         ))}
       </div>
+        </>
+      )}
     </div>
   )
 }
 
 // ---------------------------------------------------------------- bugs
 
-function BugsView({ snap, onIntent }: { snap: Snapshot; onIntent: (i: Intent, f?: string) => void }) {
+function BugsView({ snap, onIntent }: { snap: Snapshot; onIntent: (i: Intent, f?: string) => Promise<boolean> }) {
   if (!snap.findings.length) return <div className="empty">No findings yet.</div>
   return (
     <div className="cards">
@@ -194,10 +374,52 @@ function BugCard({
   f: Finding
   fix?: FixAttempt
   narration?: Narration
-  onIntent: (i: Intent, f?: string) => void
+  onIntent: (i: Intent, f?: string) => Promise<boolean>
 }) {
   const clip = f.evidence.clip
   const src = media(clip?.path)
+  const video = useRef<HTMLVideoElement>(null)
+  const [badClip, setBadClip] = useState('')
+  const [cue, setCue] = useState(-1)
+  const [playing, setPlaying] = useState(false)
+  const [sent, setSent] = useState('')
+  const act = (i: Intent, label: string) => {
+    void onIntent(i, f.id).then((ok) =>
+      setSent(USING_MOCK ? `Demo data: “${label}” is not sent.` : ok ? `Sent “${label}”.` : `“${label}” failed.`),
+    )
+  }
+  const narrate = () => {
+    if (!narration || playing) return
+    let shown = -1
+    const show = (i: number) => {
+      if (i === shown || i < 0) return
+      shown = i
+      setCue(i)
+      const v = video.current
+      if (v && clip) {
+        v.currentTime = clip.start_s + narration.cues[i].clip_s
+        void v.play()
+      }
+    }
+    const end = () => {
+      setPlaying(false)
+      setCue(-1)
+      video.current?.pause()
+    }
+    // no audio file (demo data, TTS failed): step through the cues on their own timing
+    const silent = () => {
+      narration.cues.forEach((c, i) => setTimeout(() => show(i), c.at_s * 1000))
+      const last = narration.cues.at(-1)?.at_s ?? 0
+      setTimeout(end, Math.max(narration.duration_s ?? 0, last + 2) * 1000)
+    }
+    setPlaying(true)
+    const src = media(narration.audio_path)
+    if (!src) return silent()
+    const audio = new Audio(src)
+    audio.ontimeupdate = () => show(narration.cues.reduce((last, c, k) => (c.at_s <= audio.currentTime ? k : last), -1))
+    audio.onended = end
+    audio.play().catch(silent)
+  }
   return (
     <article className={`card sev-${f.severity}`}>
       <div className="card-head">
@@ -208,15 +430,19 @@ function BugCard({
       </div>
       <div className="card-body">
         <div className="clip">
-          {src ? (
+          {src && src !== badClip ? (
             <video
+              ref={video}
               src={`${src}#t=${clip!.start_s},${clip!.end_s}`}
               controls
               muted
               onLoadedMetadata={(e) => (e.currentTarget.playbackRate = clip!.speed)}
+              onError={() => setBadClip(src)}
             />
           ) : (
-            <div className="placeholder small">clip {clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}</div>
+            <div className="placeholder small">
+              {src && src === badClip ? 'clip file not available' : `clip ${clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}`}
+            </div>
           )}
           {clip && <span className="speed">RECORDED · {clip.speed}× speed</span>}
         </div>
@@ -232,7 +458,21 @@ function BugCard({
           <div>
             <b>Actual:</b> {f.actual}
           </div>
-          {narration && <div className="narration">{narration.text}</div>}
+          {narration && (
+            <div className={`narration ${playing ? 'on' : ''}`}>
+              <button onClick={narrate} disabled={playing}>
+                {playing ? 'Narrating…' : '▶ Narrate over the clip'}
+              </button>
+              <br />
+              {narration.cues.length
+                ? narration.cues.map((c, i) => (
+                    <span key={i} className={i === cue ? 'cue-now' : undefined}>
+                      {c.text}{' '}
+                    </span>
+                  ))
+                : narration.text}
+            </div>
+          )}
           {f.evidence.log_excerpt.length > 0 && (
             <details>
               <summary>event log ({f.evidence.log_excerpt.length})</summary>
@@ -242,25 +482,26 @@ function BugCard({
         </div>
       </div>
       <div className="card-actions">
-        {!fix && (
+        {!VIEW_ONLY && !fix && (
           <>
             {(f.status === 'verified' || f.status === 'presented') && (
-              <button className="primary" onClick={() => onIntent('fix', f.id)}>
-                Fix?
+              <button className="primary" onClick={() => act('fix', 'fix it')} title="Ask Devin to fix this bug">
+                Fix with Devin
               </button>
             )}
-            <button onClick={() => onIntent('explain', f.id)}>Explain</button>
-            <button onClick={() => onIntent('skip', f.id)}>Skip</button>
+            <button onClick={() => act('explain', 'explain')}>Explain</button>
+            <button onClick={() => act('skip', 'skip')}>Skip</button>
           </>
         )}
-        {fix?.result === 'pr_open' && (
+        {!VIEW_ONLY && fix?.result === 'pr_open' && (
           <>
-            <button className="primary" onClick={() => onIntent('yes', f.id)}>
-              Merge
+            <button className="primary" onClick={() => act('yes', 'merge')} title="Merge Devin's pull request, then replay the bug">
+              Merge PR
             </button>
-            <button onClick={() => onIntent('no', f.id)}>Not yet</button>
+            <button onClick={() => act('no', 'not yet')}>Not yet</button>
           </>
         )}
+        {sent && <span className="dim small">{sent}</span>}
       </div>
       {fix && <DevinPanel fix={fix} />}
     </article>
@@ -287,6 +528,7 @@ function DevinPanel({ fix }: { fix: FixAttempt }) {
         )}
         {fix.acus != null && <span className="dim">{fix.acus} ACU</span>}
       </div>
+      {fix.devin_says && <div className="devin-says">“{fix.devin_says}”</div>}
       {c && (
         <div className="compare">
           <div>
@@ -306,21 +548,103 @@ function DevinPanel({ fix }: { fix: FixAttempt }) {
   )
 }
 
+/** Verified with `gh pr list` on 2026-11-08; update when the numbers change. */
+const DEVIN_BUILD = { prs: 18, lines: '21.7k', runtimePrs: 5, runtimeMerged: 3 }
+
+function BuiltByDevin() {
+  const d = DEVIN_BUILD
+  return (
+    <div className="built-by-devin">
+      <b>Devin</b>
+      <span>
+        <b>at runtime:</b> every verified bug becomes a Devin API session that fixes the game&apos;s C code, then H
+        replays the bug on the rebuilt game ({d.runtimePrs} fix PRs to the game so far, {d.runtimeMerged} merged)
+      </span>
+      <span className="dim">
+        <b>built by Devin:</b> all {d.prs} PRs of this product, +{d.lines} lines
+      </span>
+    </div>
+  )
+}
+
+const DEVIN_STEPS: [string, string[]][] = [
+  ['Devin session started', ['queued', 'working', 'pr_open', 'merged', 'fixed', 'not_fixed']],
+  ['Pull request opened', ['pr_open', 'merged', 'fixed', 'not_fixed']],
+  ['PR merged', ['merged', 'fixed', 'not_fixed']],
+  ['Game rebuilt, H replays the bug', ['fixed', 'not_fixed']],
+]
+
+/** The fix in progress, on the live view: Devin's steps, its latest message, session and PR links. */
+function DevinLive({ fix, live }: { fix: FixAttempt; live: boolean }) {
+  const [now, setNow] = useState(Date.now())
+  const done = fix.result === 'fixed'
+  const failed = fix.result === 'not_fixed' || fix.result === 'failed'
+  // finished_at is set at merge already; the loop (rebuild, replay) runs on until fixed / not fixed
+  const over = done || failed
+  useEffect(() => {
+    if (!live || over) return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [live, over])
+  const end = live && !over ? now : fix.finished_at ? Date.parse(fix.finished_at) : NaN
+  const elapsed = (end - Date.parse(fix.started_at)) / 1000
+  return (
+    <div className={`devin-live ${done ? 'ok' : failed ? 'bad' : ''}`}>
+      <div className="devin-head">
+        <b>{done ? 'Devin fixed the game' : failed ? 'Devin fix: not verified yet' : 'Devin is fixing the game'}</b>
+        <span className={`fix r-${fix.result}`}>{fix.result.replace('_', ' ')}</span>
+        {elapsed >= 0 && <span className="dim">{fmtS(elapsed)}</span>}
+      </div>
+      <ol className="devin-steps">
+        {DEVIN_STEPS.map(([label, states]) => (
+          <li key={label} className={states.includes(fix.result) ? 'on' : ''}>
+            {label.startsWith('Game rebuilt') && done ? 'Game rebuilt, H replayed the bug: fixed' : label}
+          </li>
+        ))}
+      </ol>
+      {fix.devin_says && <div className="devin-says">Devin: “{fix.devin_says}”</div>}
+      <div className="devin-head">
+        {fix.devin_session_url && (
+          <a href={fix.devin_session_url} target="_blank" rel="noreferrer">
+            Devin session
+          </a>
+        )}
+        {fix.pr_url && (
+          <a href={fix.pr_url} target="_blank" rel="noreferrer">
+            pull request
+          </a>
+        )}
+        {fix.round > 1 && <span className="dim">feedback round</span>}
+      </div>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------- debrief
 
 function DebriefView({ snap }: { snap: Snapshot }) {
   const d = snap.debrief
+  const ready = Boolean(d.generated_at) || d.heatmap.length + d.notes.length + d.suggestions.length > 0
+  if (!ready && !snap.placement.length)
+    return (
+      <div className="empty">
+        No debrief yet.
+        <div className="small">When a run ends, the tester's design notes, a deaths & retries heatmap and product-placement ideas appear here.</div>
+      </div>
+    )
   return (
     <div className="debrief-grid">
       <section className="panel">
         <h2>Deaths & retries heatmap</h2>
         <Heatmap cells={d.heatmap} bounds={d.map_bounds} />
-        <div className="dim">
-          {d.maps.join(', ')} · {fmtS(d.duration_s)} played
+        <div className="dim small">
+          {[d.maps.join(', '), d.duration_s ? `${fmtS(d.duration_s)} played` : ''].filter(Boolean).join(' · ')}
+          {d.heatmap.length > 0 && ' · bigger, redder circle = more deaths and retries'}
         </div>
       </section>
       <section className="panel">
         <h2>Design notes</h2>
+        {!d.notes.length && <div className="dim small">No design notes.</div>}
         <ul className="notes">
           {d.notes.map((n) => (
             <li key={n.ts}>
@@ -334,12 +658,13 @@ function DebriefView({ snap }: { snap: Snapshot }) {
           ))}
         </ul>
         <h2>Suggestions</h2>
+        {!d.suggestions.length && <div className="dim small">No suggestions.</div>}
         <ul>
           {d.suggestions.map((s) => (
             <li key={s.finding_id + s.suggestion}>{s.suggestion}</li>
           ))}
         </ul>
-        <h2>References</h2>
+        {d.references.length > 0 && <h2>References</h2>}
         <ul>
           {d.references.map((r) => (
             <li key={r.url}>
@@ -352,6 +677,7 @@ function DebriefView({ snap }: { snap: Snapshot }) {
       </section>
       <section className="panel wide">
         <h2>Product placement</h2>
+        {!snap.placement.length && <div className="dim small">No placement spots found in this run.</div>}
         <div className="cards">
           {snap.placement.map((p) => (
             <div key={p.id} className="card">
@@ -377,7 +703,7 @@ function DebriefView({ snap }: { snap: Snapshot }) {
 }
 
 function Heatmap({ cells, bounds }: { cells: { x: number; y: number; deaths: number; retries: number }[]; bounds?: [number, number, number, number] | null }) {
-  if (!cells.length) return <div className="placeholder small">no data</div>
+  if (!cells.length) return <div className="placeholder small">No deaths or retries in this run.</div>
   const [x0, y0, x1, y1] = bounds ?? [
     Math.min(...cells.map((c) => c.x)) - 64,
     Math.min(...cells.map((c) => c.y)) - 64,
@@ -402,7 +728,7 @@ function PlansView({ snap }: { snap: Snapshot }) {
   const [msg, setMsg] = useState('')
   const buy = (id: string) =>
     checkout(id)
-      .then((url) => (url ? (location.href = url) : setMsg('Mock mode: Stripe Checkout opens here in live mode.')))
+      .then((url) => (url ? (location.href = url) : setMsg('Demo data: Stripe Checkout opens here when the API is connected.')))
       .catch((e: Error) => setMsg(e.message))
   return (
     <div>
@@ -426,8 +752,8 @@ function PlansView({ snap }: { snap: Snapshot }) {
           </div>
         ))}
       </div>
-      {msg && <div className="dim center">{msg}</div>}
-      <div className="dim center">Stripe test mode. No real payment.</div>
+      {msg && <div className="center notice">{msg}</div>}
+      <div className="dim center">Stripe test mode. No real payment: use card 4242 4242 4242 4242.</div>
     </div>
   )
 }
@@ -436,6 +762,7 @@ function ParentView({ snap }: { snap: Snapshot }) {
   const p = snap.profile
   return (
     <div className="debrief-grid">
+      <div className="wide notice">Preview with sample data: overnight game checks are not connected yet.</div>
       <section className="panel">
         <h2>Child profile</h2>
         <div className="profile">
@@ -481,5 +808,7 @@ function ParentView({ snap }: { snap: Snapshot }) {
   )
 }
 
+const ACTIVE = ['exploring', 'verifying', 'presenting', 'awaiting_approval', 'fixing', 'reverifying', 'debriefing']
+const active = (state: string) => ACTIVE.includes(state)
 const dots = (n: number) => '●'.repeat(n) + '○'.repeat(5 - n)
 const fmtS = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`

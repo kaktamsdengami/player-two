@@ -64,6 +64,22 @@ def label_text(speed: float) -> str:
     return f"RECORDED · {speed:g}× speed" if speed != 1 else "RECORDED"
 
 
+FONTS = (
+    "C:/Windows/Fonts/arialbd.ttf", "C:/Windows/Fonts/arial.ttf", "C:/Windows/Fonts/segoeui.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/Library/Fonts/Arial.ttf",
+)  # fmt: skip
+
+
+def default_font() -> str | None:
+    """A TTF for drawtext: ffmpeg builds on Windows have no fontconfig, so name a file."""
+    env = os.environ.get("P2_FONT")
+    if env:
+        return env
+    return next((f for f in FONTS if Path(f).exists()), None)
+
+
 def cut_args(
     src: Path, start: float, end: float, out: Path, speed: float = 1.0, label: str | None = None,
     fontfile: str | None = None,
@@ -73,7 +89,9 @@ def cut_args(
     if speed != 1:
         filters.append(f"setpts=PTS/{speed:g}")
     if label:
-        font = f"fontfile='{fontfile}':" if fontfile else ""
+        fontfile = fontfile or default_font()
+        path = (fontfile or "").replace("\\", "/").replace(":", r"\:")  # C\:/Windows/...
+        font = f"fontfile='{path}':" if fontfile else ""
         text = label.replace(":", r"\:").replace("'", "")
         filters.append(
             f"drawtext={font}text='{text}':x=w-tw-24:y=24:fontsize=h/18:"

@@ -103,10 +103,19 @@ Stream: `GET /api/events` (`text/event-stream`, `event:` = type, `data:` = the e
 | `GET /api/parent/profile` | `ChildProfile` |
 | `GET /api/parent/report` | `GameVerdict[]` |
 | `GET /api/events` | SSE stream of `SseEvent` |
+| `POST /api/session/start` | body `{mode: "live" \| "recorded"}` → `SessionInfo` (T14) |
 | `POST /api/intent` | body `VoiceIntent` (buttons use `source: "button"`) |
+| `POST /api/transcript` | body `TranscriptPayload`; republished as `voice.transcript` (the voice listener) |
+| `GET/POST /api/ptt` | body `{"on": bool}`; push-to-talk state set by the dashboard's Talk button (or Enter in the listener), followed by `voice.listen --mic --post`; echoed as `voice.transcript` |
 | `POST /api/stop` | stops the session (H session cancelled within 5 s) |
 | `POST /api/billing/checkout` | body `{plan: PlanId}` → `{url}` (T18) |
+| `POST /api/billing/webhook` | Stripe signed webhook → active plan (T18) |
 | `GET /media/{path}` | clips, screenshots, audio |
+
+Control endpoints (`session/start`, `intent`, `stop`) take JSON only (`Content-Type:
+application/json`, else 415). When `P2_CONTROL_TOKEN` is set they also need the header
+`X-P2-Token` (else 401). CORS origins come from `P2_CORS_ORIGINS` (default: localhost Vite).
+`GET /api/session` returns an idle `SessionInfo` (`id: "idle"`, `live: false`) before a run.
 
 Dashboard views → mock keys: live view (`session`, `actions`, `events`), bug cards (`findings`,
 `narrations`), Devin panel (`fixes`), voice indicator (`events` of type `voice.*`), Debrief tab
