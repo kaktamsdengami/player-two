@@ -11,7 +11,11 @@
   <header class="marquee">
     <div class="neon">PLAYER <span>TWO</span></div>
     <div class="sub">An AI is playing Doom in this cabinet right now. <b>H Company's Holo</b> looks at the pixels, thinks, presses the keys.</div>
-    <nav class="modes"><a href="/">← home</a><a href="/kid/">kid mode →</a></nav>
+    <nav class="modes">
+      <a class="mode on" href="/arcade/"><b>TESTER MODE · you are here</b><small>Holo plays by itself. INSERT COIN takes the controls, type it an order below.</small></a>
+      <a class="mode" href="/kid/"><b>KID MODE →</b><small>You play, Pixel (Holo) watches the screen and talks with you.</small></a>
+      <a class="home" href="/">← home</a>
+    </nav>
   </header>
 
   <main class="cabinet">
@@ -34,8 +38,7 @@
         <button id="over" class="coin"><span class="slot"></span>INSERT COIN<small>take over · arrows · Ctrl · Space</small></button>
         <button id="back" class="coin back" hidden>HOLO, YOUR TURN<small>give the controls back</small></button>
         <div class="tell-row">
-          <input id="tell" maxlength="120" placeholder="tell Holo something: “find the exit”, “shoot the imp”" />
-          <button id="send">TELL</button>
+          <input id="tell" maxlength="120" placeholder="type an order for Holo and press Enter: “find the exit”, “shoot the imp”" />
         </div>
         <button id="sound" class="sound" data-on="SOUND ON">SOUND OFF · tap for audio</button>
       </div>
@@ -53,7 +56,7 @@
 <script src="/jury/shared/jury.js"></script>
 <script>
   const hd = Jury.boot({ container: '#game', feed: '#feed', thought: '#thought', status: '#status', latency: '#latency',
-    over: '#over', back: '#back', tell: '#tell', send: '#send', sound: '#sound',
+    over: '#over', back: '#back', tell: '#tell', sound: '#sound',
     onState: (s) => { document.getElementById('led').dataset.mode = s.mode } })
 </script>
 </body>

@@ -57,9 +57,9 @@ window.Jury = (() => {
 
     if (over) over.onclick = () => hd.takeOver()
     if (back) back.onclick = () => hd.giveBack()
-    if (send && tell) {
+    if (tell) {
       const go = () => { if (tell.value.trim()) { hd.tell(tell.value.trim()); tell.value = ''; if (thought) thought.textContent = 'Holo heard you: ' + hd.state().instruction } }
-      send.onclick = go
+      if (send) send.onclick = go
       tell.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); e.stopPropagation() })
     }
     if (sound) sound.onclick = async () => { await hd.unmute(); sound.classList.add('on'); sound.textContent = sound.dataset.on || 'sound on' }

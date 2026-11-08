@@ -234,8 +234,7 @@ window.HoloDoom = (() => {
       const frame = shot()
       const stalled = moved(st.thumb, st.lastThumb) ? (st.same = 0, false) : ++st.same >= 1
       st.lastThumb = st.thumb
-      const keepFire = st.lastKeys.includes('fire') && !stalled // a monster was in the sights: keep shooting while Holo thinks
-      if (keepFire) down('fire', { ctrl: true })
+      // fire is never held across the think gap: the target may have left the gun's line by now
       st.thinking = true
       emit('thinking', { frame })
       const t0 = performance.now()
@@ -246,7 +245,6 @@ window.HoloDoom = (() => {
         st.errors = 0
         st.busyCount = 0
       } catch (e) {
-        if (keepFire) up('fire', { ctrl: true })
         if (e.capped) { setMode('recorded', e.message); st.thinking = false; return 'capped' }
         if (e.busy) { // the shared H budget is spent for this minute: everyone else gets a turn first
           if (e.retryAfter) { st.busyUntil = Date.now() + e.retryAfter * 1000; emit('busy', { retryAfter: e.retryAfter }) }
@@ -290,12 +288,18 @@ window.HoloDoom = (() => {
       if (!move.keys.includes('use') && says(/\bdoors?\b|\bopen\b|\bswitch/i) && !says(/no (enemies or )?doors?|door (opened|is open|opens)|opened|no .*door/i)) move.keys.push('use')
       // Doom only hits what is straight ahead: a monster the model aims at in the outer thirds of
       // the view gets a turn towards it instead of a shot (fire comes on the next move, when centred)
-      if (move.keys.includes('fire') && move.aim && frame && Math.abs(move.aim.x - frame.w / 2) > frame.w / 6) {
-        const dir = move.aim.x < frame.w / 2 ? 'left' : 'right'
-        move.keys = [dir, ...move.keys.filter((k) => !['fire', 'left', 'right', 'up', 'strafe_left', 'strafe_right'].includes(k))]
-        move.hold_ms = Math.min(move.hold_ms, 300)
-        move.thought = 'Target is to the ' + dir + ': turning to put it over my gun first.'
-        st.turnStreak = 0
+      if (move.keys.includes('fire') && frame) {
+        const noFire = () => move.keys.filter((k) => !['fire', 'left', 'right', 'up', 'strafe_left', 'strafe_right'].includes(k))
+        if (!move.aim) { // no target named: no shot
+          move.keys = move.keys.filter((k) => k !== 'fire')
+          move.thought = (move.thought || '') + ' (no target above my gun, holding fire)'
+        } else if (Math.abs(move.aim.x - frame.w / 2) > frame.w / 6) {
+          const dir = move.aim.x < frame.w / 2 ? 'left' : 'right'
+          move.keys = [dir, ...noFire()]
+          move.hold_ms = Math.min(move.hold_ms, 300)
+          move.thought = 'Target is to the ' + dir + ': turning to put it over my gun first.'
+          st.turnStreak = 0
+        }
       }
       if (move.keys.includes('fire')) move.hold_ms = Math.max(move.hold_ms, 600) // a burst, not a tap
       if (move.status === 'dead' || move.status === 'menu') move.keys = ['use']

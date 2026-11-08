@@ -6,9 +6,15 @@ body { background: radial-gradient(ellipse at 50% 0%, #2a0a3a 0%, var(--bg) 60%)
 a { color: var(--neon2); }
 .room { max-width: 1280px; margin: 0 auto; padding: 16px 16px 40px; display: grid; grid-template-columns: 1fr 320px; grid-template-areas: "marquee marquee" "cabinet ticker" "credits credits"; gap: 18px; }
 .marquee { grid-area: marquee; text-align: center; padding: 10px 0 0; }
-.marquee .modes { display: flex; justify-content: center; gap: 10px; margin-top: 8px; }
-.marquee .modes a { color: #cdbfff; border: 1px solid #4a3a7a; border-radius: 8px; padding: 5px 12px; font-size: 14px; text-decoration: none; }
+.marquee .modes { display: flex; justify-content: center; align-items: stretch; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+.marquee .modes a { color: #fff; text-decoration: none; border: 2px solid #4a3a7a; border-radius: 10px; padding: 10px 16px; text-align: left; max-width: 360px; background: #140c26; }
+.marquee .modes a.on { border-color: var(--neon2); box-shadow: 0 0 18px rgba(0, 229, 255, 0.35); }
 .marquee .modes a:hover { border-color: #ff3cac; }
+.marquee .modes a b { display: block; font-family: 'Press Start 2P', monospace; font-size: 12px; margin-bottom: 6px; color: var(--neon2); }
+.marquee .modes a.on b { color: #fff; }
+.marquee .modes a small { display: block; font-size: 15px; line-height: 1.35; color: #cdbfff; }
+.marquee .modes a.home { align-self: center; border-color: transparent; color: #9f8fc8; }
+@media (max-width: 700px) { .marquee .modes a { max-width: none; } }
 .neon { font-family: 'Press Start 2P', monospace; font-size: 44px; letter-spacing: 4px; color: #fff; text-shadow: 0 0 6px #fff, 0 0 18px var(--neon), 0 0 40px var(--neon), 0 0 80px var(--neon); animation: flicker 6s infinite; }
 .neon span { color: var(--neon2); text-shadow: 0 0 6px #fff, 0 0 18px var(--neon2), 0 0 40px var(--neon2); }
 @keyframes flicker { 0%, 92%, 100% { opacity: 1 } 93% { opacity: .6 } 95% { opacity: 1 } 97% { opacity: .75 } }
