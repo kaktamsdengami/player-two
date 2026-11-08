@@ -47,6 +47,7 @@ window.HoloDoom = (() => {
       warp: (q.get('warp') || '1 1').split(/[ ,]/), skill: q.get('skill') || '3', god: !q.has('nogod'),
       recordedUrl: '/jury/recorded/run.json', speak: false, pushUrl: null, onStep: () => {}, onState: () => {},
       onFrame: () => {}, record: q.has('record'), busyLimit: Number(q.get('busy')) || 40,
+      sound: q.get('sound') === '1', // game sound effects off by default: a mic next to the speaker hears shots as speech
       briefing: q.get('briefing') !== '0', // the scripted walk to the first door before Holo's first move
       pace: Number(q.get('pace')) || 1200, // ms of plain play between moves: Holo gets time to think, the API budget stretches
     }, opts)
@@ -97,7 +98,7 @@ window.HoloDoom = (() => {
           Module.FS.createPreloadedFile('', 'default.cfg', KID + 'default.cfg', true, true)
         },
         onRuntimeInitialized: async () => {
-          callMain(['-iwad', 'doom1.wad', '-window', '-nogui', '-nomusic', '-config', 'default.cfg', '-skill', o.skill, '-warp', ...o.warp])
+          callMain(['-iwad', 'doom1.wad', '-window', '-nogui', ...(o.sound ? [] : ['-nosound']), '-nomusic', '-config', 'default.cfg', '-skill', o.skill, '-warp', ...o.warp])
           // SDL resizes the canvas to its CSS size when video starts: that marks the main loop
           // running. Only then may key events reach the game (the build uses Asyncify: input
           // during start-up leaves every later frame dying with "memory access out of bounds").
