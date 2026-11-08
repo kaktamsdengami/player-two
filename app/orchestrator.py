@@ -607,9 +607,10 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         )
         a, replay = loop.run(f)
         attach_clip(f, replay)
+        a = add_comparison(a, bug)
         if a.result == FixResult.fixed:
             cfg.exe = fix_cfg.exe  # the next round plays the fixed build: the agent re-tests it
-        return add_comparison(a, bug)
+        return a
 
     try:  # T16 / T17: optional until merged
         from insights.debrief import build as debrief
