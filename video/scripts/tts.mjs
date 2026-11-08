@@ -27,6 +27,14 @@ export const LINES = {
   r5: "Our backend sends the finding to Devin, through its API. Two minutes later, Devin's pull request is up: a fix in the 1993 renderer. It is merged, and CI rebuilds the game.",
   r6: "On the new build, our proof script replays the same scenario. Now the sky inverts too. Fixed, six and a half minutes after 'fix it'.",
   r8: 'Devin built this product, and works inside it. Today it tests Doom. Next, the games that studios spend months testing. PLAYER TWO. The link is on screen.',
+  // criteria cut (Criteria.tsx): one chapter per judging criterion, real footage of the 02:26 UTC run
+  a0: 'PLAYER TWO is an AI that plays your game like a hostile tester, finds the bugs, and gets them fixed. This is one live run.',
+  a1: 'One: computer use. H drives a real Windows desktop. It sees only the screen and presses keys. No game state, no code. And we stress-tested it with a live mission: imps and zombies hit it forty-seven times, and its health fell from 999 to four hundred and forty-one. It killed three of them, reached the power-up, and reported the bug.',
+  a2: 'Two: it works end to end, with no hand-holding. A verifier replays its inputs and checks a hidden engine log. The developer says one sentence: yes, fix it. Then Devin opens a pull request, it is merged, CI rebuilds the game, and a replay proves the fix. Six and a half minutes. And when the game lost keyboard focus, the product took it back by itself.',
+  a3: 'Three: usefulness. This bug still ships in Chocolate Doom and Crispy Doom today. Instead of a vague ticket, the developer gets steps, a clip, proof, and a fix to review.',
+  a4: 'Four: what is new. We built frame-stepping into the engine, so a slow AI can play a real-time game. H never sees the bug list or the engine log. A hidden oracle checks every finding, and a scripted replay of the same scenario proves the fix.',
+  a5: 'Five: you stay in control. Every finding waits for your word, by voice or by button: fix, skip, explain, or stop. Stop ended this run in about a second.',
+  a6: 'Built with Devin, powered by H. PLAYER TWO.',
   k7: 'The same eyes power Pixel, a game buddy. H sees the screen, Gladia hears you, ElevenLabs talks back.',
 }
 
