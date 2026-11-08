@@ -21,11 +21,13 @@ h1 span { color: var(--acc); }
 .preview .holo-aim { position: absolute; width: 28px; height: 28px; border: 2px solid var(--acc); border-radius: 50%; transform: translate(-50%,-50%); transition: left .25s, top .25s; pointer-events: none; }
 .thought { position: absolute; left: 0; right: 0; bottom: 0; padding: 30px 14px 12px; background: linear-gradient(0deg, rgba(0,0,0,.9), transparent); font-size: 16px; font-weight: 600; }
 h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14px; }
-.looks { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.looks { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.look.lab b { color: #35ffb5; }
 .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 34px; }
 .look.mode { min-height: 150px; border-color: var(--acc); background: linear-gradient(160deg, #141420, #0c0c12); }
 .look.mode b { font-size: 24px; }
 .look.mode.tester { border-color: #ff3cac; box-shadow: 0 0 28px rgba(255,60,172,.25); }
+.look .start.next { background: var(--acc); }
 .look .start { display: inline-block; background: #ff3cac; color: #000; font-weight: 800; font-size: 12px; letter-spacing: 2px; padding: 3px 8px; border-radius: 6px; margin-bottom: 8px; }
 .look { display: block; border-radius: 12px; padding: 18px 16px 16px; min-height: 190px; border: 1px solid #22222c; transition: transform .2s, border-color .2s; position: relative; overflow: hidden; }
 .look:hover { transform: translateY(-4px); border-color: var(--acc); }
@@ -50,7 +52,7 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
 @media (max-width: 900px) { .stripe-widget { grid-template-columns: 1fr; text-align: center; } }
 .credits { margin-top: 36px; color: var(--dim); font-size: 13px; line-height: 1.6; text-align: center; }
 .credits a { color: var(--acc); }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } h1 { font-size: 34px; } .looks { grid-template-columns: 1fr 1fr; } .modes { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } h1 { font-size: 34px; } .looks { grid-template-columns: 1fr; } .modes { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -59,7 +61,7 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
     <div>
       <h1>An AI is playing Doom <span>right now</span>, in your browser.</h1>
       <p class="lead"><b>H Company's Holo</b>, a vision model, looks at the game pixels about once a second, says what it sees, and presses real keys. No scripts, no game state: eyes and hands only. Below, five ways to watch it — and take over whenever you like.</p>
-      <div class="row"><span>built overnight by <b>Devin</b> for the 42AI × H Company hackathon</span><a href="/lab/">how it works →</a><a href="/dashboard/">the full tester dashboard →</a></div>
+      <div class="row"><span>built overnight by <b>Devin</b> for the 42AI × H Company hackathon</span></div>
     </div>
     <a class="preview" href="/arcade/"><div id="game"></div><div class="thought" id="thought">Holo is warming up…</div></a>
   </section>
@@ -76,16 +78,13 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
   <h2>TWO WAYS TO PLAY · start with TESTER MODE (the arcade), switch any time · every page has ← home</h2>
   <nav class="modes">
     <a class="look mode tester" href="/arcade/"><span class="path">/arcade/</span><span class="start">START HERE</span><b>TESTER MODE · ARCADE</b><small>Holo plays Doom by itself, live: looks at the pixels, says what it sees, presses the keys. Press INSERT COIN to take the sticks, hand them back any time. Kid mode is one tap away in the header.</small></a>
-    <a class="look mode kid" href="/kid/"><span class="path">/kid/</span><b>KID MODE · COUCH BUDDY</b><small>You play, Pixel watches and talks with you (Holo eyes, ElevenLabs voice, Gladia ears). Tester mode is one tap away in the header.</small></a>
+    <a class="look mode kid" href="/kid/"><span class="path">/kid/</span><span class="start next">CONTINUE HERE</span><b>COUCH BUDDY</b><small>You play, Pixel watches and talks with you (Holo eyes, ElevenLabs voice, Gladia ears). Tester mode is one tap away in the header.</small></a>
   </nav>
 
-  <h2>PICK A LOOK · same AI, five experiences</h2>
+  <h2>TWO WAYS TO WATCH · the same Holo, two views</h2>
   <nav class="looks">
-    <a class="look arcade" href="/arcade/"><span class="path">/arcade/</span><b>ARCADE</b><small>A glowing cabinet. Watch the move log, then INSERT COIN and take the sticks.</small></a>
-    <a class="look live" href="/live/"><span class="path">/live/</span><b>LIVE</b><small>One shared stream for everyone, Holo commentating like a streamer. Press PLAY to get your own game.</small></a>
-    <a class="look lab" href="/lab/"><span class="path">/lab/</span><b>LAB</b><small>X-ray view: the exact frame Holo sees, the JSON it answers, latency, the prompt, the model pool.</small></a>
-    <a class="look story" href="/story/"><span class="path">/story/</span><b>THE BUG HUNT</b><small>A short film: the AI as a hostile QA tester, subtitles in its own words, four chapters.</small></a>
-    <a class="look kid" href="/kid/"><span class="path">/kid/</span><b>COUCH BUDDY</b><small>Kid mode: you play, Pixel (Holo + ElevenLabs voice + Gladia ears) watches and talks with you.</small></a>
+    <a class="look arcade" href="/arcade/"><span class="path">/arcade/</span><b>ARCADE · Watch H play →</b><small>A glowing cabinet. Watch the move log, then INSERT COIN and take the sticks.</small></a>
+    <a class="look lab" href="/lab/"><span class="path">/lab/</span><b>LAB · Check out what H sees →</b><small>The exact frame Holo gets, the JSON it answers with, latency per move, the prompt, the model pool. The best way to see it is really looking, not scripted.</small></a>
   </nav>
   <footer class="credits" data-credits=""></footer>
 </div>
