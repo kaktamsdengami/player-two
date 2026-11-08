@@ -1,11 +1,11 @@
 """Kid mode in the browser: Doom (Chocolate Doom in WebAssembly + Freedoom) on the page, Pixel
-watches the canvas (Holo), talks (ElevenLabs Chris) and listens (Gladia live, push-to-talk).
+watches the canvas (Holo), talks (ElevenLabs Chris) and listens (Gladia live, open mic).
 
 The keys stay on this server; the page only gets lines, audio and a one-time Gladia socket URL.
 A small budget keeps a public link from eating the credits.
 
-    uv run uvicorn voice.kid_web:app --port 8010
-    cloudflared tunnel --url http://localhost:8010   # public https link for the jury
+    uv run uvicorn voice.kid_web:app --host 127.0.0.1 --port 8010
+    cloudflared tunnel --url http://127.0.0.1:8010   # public https link for the jury
 """
 
 from __future__ import annotations
@@ -95,6 +95,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/kid/line")
     def line(body: LineIn, req: Request) -> dict:
+        t_in = time.monotonic()
         head, _, data = body.image.partition(",")
         if not head.startswith("data:image/") or len(data) > MAX_IMAGE:
             raise HTTPException(400, "send a small JPEG data URL")
@@ -115,19 +116,23 @@ def create_app() -> FastAPI:
                                  question=body.question, chat=body.chat,
                                  timeout=c.VISION_TIMEOUT_S)  # fmt: skip
             except (httpx.HTTPError, ValueError, KeyError) as e:
-                return {"text": "", "skipped": f"vision: {type(e).__name__}"}
+                return {"text": "", "skipped": f"vision: {type(e).__name__}",
+                        "vision_s": round(time.monotonic() - t0, 2)}  # fmt: skip
+        timing = {"vision_s": round(time.monotonic() - t0, 2),
+                  "server_s": round(time.monotonic() - t_in, 2)}  # fmt: skip
         recent = body.recent[-c.RECENT :]
         if (
             text
             and not body.question
             and (c.BOT.search(text) or any(c.similar(text, r) >= c.SAME for r in recent))
         ):
-            return {"text": "", "skipped": "repeat", "vision_s": round(time.monotonic() - t0, 2)}
-        return {"text": text, "vision_s": round(time.monotonic() - t0, 2)}
+            return {"text": "", "skipped": "repeat", **timing}
+        return {"text": text, **timing}
 
     @app.get("/api/kid/say")
     def say(text: str, req: Request) -> StreamingResponse:
         voice.take(who(req))
+        t0 = time.monotonic()
         key = os.environ.get("ELEVENLABS_API_KEY")
         if not key:
             raise HTTPException(503, "no ELEVENLABS_API_KEY on the server")
@@ -145,18 +150,24 @@ def create_app() -> FastAPI:
             r.close()
             raise HTTPException(502, f"ElevenLabs HTTP {r.status_code}")
 
+        chunks = r.iter_bytes()
+        first = next(chunks, b"")  # wait for the first audio here: its delay goes in a header
+        first_ms = round((time.monotonic() - t0) * 1000)
+
         def audio() -> Iterator[bytes]:
             try:
-                yield from r.iter_bytes()
+                yield first
+                yield from chunks
             finally:
                 r.close()
 
-        return StreamingResponse(audio(), media_type="audio/mpeg",
-                                 headers={"Cache-Control": "no-store"})  # fmt: skip
+        headers = {"Cache-Control": "no-store", "X-First-Audio-Ms": str(first_ms)}
+        return StreamingResponse(audio(), media_type="audio/mpeg", headers=headers)
 
     @app.post("/api/kid/listen")
     def listen(req: Request) -> dict:
-        """A Gladia live session for one push-to-talk turn: the page streams 16 kHz PCM to it."""
+        """A Gladia live session for the open mic: the page streams 16 kHz PCM to it and opens a
+        new one when Gladia ends it."""
         ears.take(who(req))
         from voice.listen import SAMPLE_RATE, start_session
 

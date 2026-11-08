@@ -1,10 +1,10 @@
 // Kid mode in the browser: Doom runs in this page (WebAssembly); every few seconds Pixel gets a
-// small picture of the game canvas from the server (H Holo), says a line (ElevenLabs) and, while
-// the child holds Talk, hears them (Gladia live).
+// small picture of the game canvas from the server (H Holo), says a line (ElevenLabs) and hears
+// the child through an open mic (Gladia live).
 'use strict'
 
-const EVERY_MS = 3000
-const MIN_GAP_MS = 12000 // between Pixel's own lines; an answer to the child does not wait
+const EVERY_MS = 1000
+const MIN_GAP_MS = 10000 // between Pixel's own lines; an answer to the child does not wait
 const SHOT_W = 480
 const $ = (id) => document.getElementById(id)
 const canvas = $('canvas')
@@ -36,18 +36,40 @@ function stopVoice() {
   $('face').classList.remove('talking')
 }
 
-function say(text) {
+function say(text, t = {}) {
   return new Promise((resolve) => {
     stopVoice()
-    const a = new Audio('api/kid/say?text=' + encodeURIComponent(text))
+    const url = 'api/kid/say?text=' + encodeURIComponent(text)
+    const t0 = performance.now()
+    let fellBack = false
+    const a = new Audio(url)
     state.audio = a
     state.speaking = true
     $('face').classList.add('talking')
     const done = () => { if (state.audio === a) stopVoice(); resolve() }
+    a.onplaying = () => { t.voice_ms = Math.round(performance.now() - t0); timing(t) }
     a.onended = done
-    a.onerror = () => { status('voice unavailable'); done() }
-    a.play().catch(done)
+    a.onerror = async () => { // some browsers refuse a chunked mp3 stream: play it as a blob
+      if (fellBack || state.audio !== a) return done()
+      fellBack = true
+      try {
+        const r = await fetch(url)
+        if (!r.ok) throw new Error('HTTP ' + r.status)
+        const blob = await r.blob()
+        if (state.audio !== a) return done()
+        a.onerror = () => { status('voice unavailable'); done() }
+        a.src = URL.createObjectURL(blob)
+        await a.play()
+      } catch (e) { status('voice unavailable'); done() }
+    }
+    a.play().catch(() => {})
   })
+}
+
+const DEBUG = new URLSearchParams(location.search).has('debug')
+function timing(t) {
+  console.log('pixel timing', JSON.stringify(t))
+  if (DEBUG) $('timing').textContent = Object.entries(t).map(([k, v]) => k + ' ' + v).join(' · ')
 }
 
 function shot() {
@@ -63,13 +85,19 @@ async function turn(question = '') {
   state.busy = true
   try {
     status(question ? 'thinking about what you said…' : 'watching…')
+    const t0 = performance.now()
+    const image = shot()
+    const t = { grab_ms: Math.round(performance.now() - t0) }
     const r = await fetch('api/kid/line', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: shot(), recent: state.recent.slice(-8), chat: memory(), question, level: 'E1M1' }),
+      body: JSON.stringify({ image, recent: state.recent.slice(-8), chat: memory(), question, level: 'E1M1' }),
     })
+    t.line_ms = Math.round(performance.now() - t0)
     if (r.status === 429) { status((await r.json()).detail || 'resting'); return }
     if (!r.ok) { status('Pixel cannot see right now'); return }
-    const { text } = await r.json()
+    const { text, vision_s, server_s, skipped } = await r.json()
+    Object.assign(t, { vision_s, server_s }, skipped ? { skipped } : {})
+    timing(t)
     if (question) state.chat.push('Child: ' + question)
     if (!text) { status('watching…'); return }
     state.recent.push(text)
@@ -77,7 +105,7 @@ async function turn(question = '') {
     if (!question) state.lastOwn = Date.now()
     addChat('Pixel', text)
     status('talking')
-    await say(text)
+    await say(text, t)
     status('watching…')
   } catch (e) {
     status('connection problem')
@@ -93,29 +121,62 @@ function memory() { // the start of the talk (names) plus the last 60 lines
 
 function loop() {
   setInterval(() => {
-    if (!state.started || state.speaking || state.busy || talking) return
+    if (!state.started || state.speaking || state.busy || childSpeaking()) return
     if (Date.now() - state.lastOwn < MIN_GAP_MS) return
     turn()
   }, EVERY_MS)
 }
 
-// ---------------------------------------------------------------- push to talk (Gladia live)
+// ---------------------------------------------------------------- open mic (Gladia live)
+// Like the laptop buddy: the mic is always on; the child talking cuts Pixel off (barge-in); what
+// the mic hears of Pixel's own last lines through the speakers is ignored.
 
-let talking = false
+let muted = false
 let mic = null
 let ws = null
-let setup = null // talkStart's pending setup: a quick release waits for it
-let finals = []
-let partial = ''
+let voiceAt = 0 // last time the child was heard: Pixel does not start a line of its own then
+const pending = []
+const NEW = new Set(['left', 'right', 'ahead', 'behind', 'back', 'up', 'down', 'red', 'blue', 'yellow'])
+
+function words(t) { return new Set(t.toLowerCase().match(/[a-z0-9']+/g) || []) }
+function similar(a, b) { // share of the shorter line's words found in the other (commentator.similar)
+  const wa = words(a), wb = words(b)
+  if (!wa.size || !wb.size) return 0
+  for (const w of [...wa, ...wb]) if (wa.has(w) !== wb.has(w) && (NEW.has(w) || /^\d+$/.test(w))) return 0
+  let n = 0
+  for (const w of wa) if (wb.has(w)) n++
+  return n / Math.min(wa.size, wb.size)
+}
+function childSpeaking() { return Date.now() - voiceAt < 2000 }
+
+function heard(text, final) {
+  text = text.trim()
+  const short = text.split(/\s+/).length < 2 && !(final && text.length > 2)
+  if (short || state.recent.slice(-2).some((r) => similar(text, r) >= 0.6)) return // noise or echo
+  voiceAt = Date.now()
+  if (state.speaking) stopVoice()
+  $('heard').textContent = final ? '“' + text + '”' : text + '…'
+  if (!final) return
+  addChat('You', text)
+  pending.push(text)
+  answer()
+}
+
+async function answer() {
+  await waitIdle()
+  if (!pending.length) return
+  const q = pending.splice(0).join(' ')
+  turn(q)
+}
 
 async function micStream(rate) {
   if (!mic) {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } })
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
     const ctx = new AudioContext({ sampleRate: rate })
     const src = ctx.createMediaStreamSource(stream)
     const proc = ctx.createScriptProcessor(2048, 1, 1)
     proc.onaudioprocess = (e) => {
-      if (!talking || !ws || ws.readyState !== 1) return
+      if (muted || !ws || ws.readyState !== 1) return
       const f = e.inputBuffer.getChannelData(0)
       const pcm = new Int16Array(f.length)
       for (let i = 0; i < f.length; i++) pcm[i] = Math.max(-1, Math.min(1, f[i])) * 0x7fff
@@ -128,57 +189,33 @@ async function micStream(rate) {
   if (mic.ctx.state === 'suspended') await mic.ctx.resume()
 }
 
-function talkStart() {
-  if (talking || !state.started) return
-  talking = true
-  setup = openEars()
-}
-
-async function openEars() {
-  stopVoice()
-  finals = []
-  partial = ''
-  $('talk').classList.add('on')
-  $('heard').textContent = 'listening…'
+async function openEars(tries = 0) {
   try {
     const r = await fetch('api/kid/listen', { method: 'POST' })
-    if (!r.ok) throw new Error((await r.json()).detail || 'no ears')
+    if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || 'no ears')
     const { url, sample_rate } = await r.json()
     await micStream(sample_rate)
-    ws = new WebSocket(url)
-    ws.onmessage = (m) => {
+    const sock = new WebSocket(url)
+    ws = sock
+    sock.onopen = () => { tries = 0; micLabel() }
+    sock.onmessage = (m) => {
       let msg
       try { msg = JSON.parse(m.data) } catch { return }
       if (msg.type !== 'transcript') return
       const text = ((msg.data || {}).utterance || {}).text || ''
-      if (!text.trim()) return
-      if (msg.data.is_final) { finals.push(text.trim()); partial = '' } else partial = text.trim()
-      $('heard').textContent = [...finals, partial].join(' ')
+      if (text.trim()) heard(text, !!msg.data.is_final)
     }
+    sock.onclose = () => { if (ws === sock) { ws = null; setTimeout(() => openEars(tries + 1), 2500) } }
   } catch (e) {
     $('heard').textContent = 'mic unavailable: ' + e.message
-    talking = false
-    $('talk').classList.remove('on')
+    if (tries < 3 && !/denied|Permission|NotAllowed/i.test(e.message)) setTimeout(() => openEars(tries + 1), 3000)
   }
 }
 
-async function talkEnd() {
-  if (!talking) return
-  talking = false
-  $('talk').classList.remove('on')
-  await setup
-  const sock = ws
-  ws = null
-  if (sock) {
-    if (sock.readyState === 0) await new Promise((res) => { sock.onopen = res; setTimeout(res, 2000) })
-    const closed = new Promise((res) => { sock.onclose = res; setTimeout(res, 2500) })
-    if (sock.readyState === 1) sock.send(JSON.stringify({ type: 'stop_recording' }))
-    await closed
-    try { sock.close() } catch { /* already closed */ }
-  }
-  const q = [...finals, partial].join(' ').trim()
-  $('heard').textContent = q ? '“' + q + '”' : 'did not catch that'
-  if (q) { addChat('You', q); await waitIdle(); turn(q) }
+function micLabel() {
+  const b = $('talk')
+  b.textContent = muted ? 'Mic off: click to talk to Pixel' : 'Mic on: just talk to Pixel (click to mute)'
+  b.classList.toggle('on', !muted)
 }
 
 function waitIdle() {
@@ -186,16 +223,15 @@ function waitIdle() {
 }
 
 const talkBtn = $('talk')
-talkBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); talkStart() })
-window.addEventListener('pointerup', () => { talkEnd(); canvas.focus() })
-window.addEventListener('keydown', (e) => { if (e.key === 't' && !e.repeat) talkStart() }, true)
-window.addEventListener('keyup', (e) => { if (e.key === 't') talkEnd() }, true)
+talkBtn.addEventListener('click', () => { muted = !muted; micLabel(); canvas.focus() })
 
 // ---------------------------------------------------------------- start
 
 $('go').addEventListener('click', async () => {
   $('start').style.display = 'none'
   talkBtn.disabled = false
+  micLabel()
+  openEars()
   canvas.focus()
   window.Module = {
     noInitialRun: true,

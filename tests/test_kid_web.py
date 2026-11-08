@@ -22,7 +22,7 @@ def test_line_uses_the_kid_prompt_and_drops_repeats(client, monkeypatch):
     assert r.json()["text"] == "Hmm... a door over there."
     kid_web.time.sleep(1.6)
     r = client.post("/api/kid/line", json={"image": JPEG, "recent": ["Hmm... a door over there."]})
-    assert r.json() == {"text": "", "skipped": "repeat", "vision_s": r.json()["vision_s"]}
+    assert r.json()["text"] == "" and r.json()["skipped"] == "repeat" and "vision_s" in r.json()
     kid_web.time.sleep(1.6)
     r = client.post("/api/kid/line", json={"image": JPEG, "question": "What's my name?"})
     assert r.json()["text"] == "Your name is Sam."
