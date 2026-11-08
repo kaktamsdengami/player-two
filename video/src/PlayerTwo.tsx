@@ -12,7 +12,7 @@ import vo3 from './data/vo_s3.json'
 import vo4 from './data/vo_s4.json'
 import vo5 from './data/vo_s5.json'
 import vo6 from './data/vo_s6.json'
-import vo7 from './data/vo_s7.json'
+import k7 from './data/vo_k7.json'
 import vo8 from './data/vo_s8.json'
 
 const { fontFamily: SANS } = loadSans('normal', { weights: ['500', '600'] })
@@ -25,12 +25,19 @@ const C = {
 const FPS = 30
 const s = (sec: number) => Math.round(sec * FPS)
 
+// kid_team_boost.mp4 = the team recording with the player's (quiet) mic lines raised ~15 dB.
+// Intro: the k7 voice-over over the muted start; then the real dialog, with the pauses trimmed.
+const KID_INTRO = 7.8
+const KID_SEGS: [number, number][] = [[16.6, 18.1], [22.9, 28.6], [29.9, 32.1], [34.6, 38.3]] // src seconds
+export const KID_LEN = KID_INTRO + KID_SEGS.reduce((n, [a, b]) => n + b - a, 0) + 0.5
+
 // ---------- scene plan (frames) ----------
 const SC = {
   open: [0, s(11)], run: [s(11), s(40)], pickup: [s(40), s(60)], verify: [s(60), s(80)],
-  devin: [s(80), s(110)], fixed: [s(110), s(125)], kid: [s(125), s(142)], end: [s(142), s(150)],
+  devin: [s(80), s(110)], fixed: [s(110), s(125)], kid: [s(125), s(125 + KID_LEN)],
+  end: [s(125 + KID_LEN), s(133 + KID_LEN)],
 } as const
-export const TOTAL = s(150)
+export const TOTAL = s(133 + KID_LEN)
 const XF = 12 // crossfade frames between scenes
 
 // ---------- helpers ----------
@@ -47,13 +54,13 @@ const FadeIn: React.FC<{ delay?: number; children: React.ReactNode; style?: Reac
   )
 }
 
-const Scene: React.FC<{ range: readonly [number, number]; children: React.ReactNode }> = ({ range, children }) => {
+export const Scene: React.FC<{ range: readonly [number, number]; children: React.ReactNode; total?: number }> = ({ range, children, total = TOTAL }) => {
   const [a, b] = range
   const from = Math.max(0, a - XF)
-  const dur = b - from + (b >= TOTAL ? 0 : XF)
+  const dur = b - from + (b >= total ? 0 : XF)
   return (
     <Sequence from={from} durationInFrames={dur}>
-      <SceneFade dur={dur} first={a === 0} last={b >= TOTAL}>{children}</SceneFade>
+      <SceneFade dur={dur} first={a === 0} last={b >= total}>{children}</SceneFade>
     </Sequence>
   )
 }
@@ -216,14 +223,14 @@ const HLines: React.FC<{ lines: string[][]; every: number; first?: number }> = (
 )
 
 const RUN_SEGS: [number, number][] = [[0, 6], [7, 14], [44, 53], [76, 83]]
-const SceneRun: React.FC = () => {
+const SceneRun: React.FC<{ segs?: [number, number][] }> = ({ segs = RUN_SEGS }) => {
   const W = 1080, H = Math.round(W * 800 / 1066)
   let at = 0
   return (
     <AbsoluteFill style={{ padding: '70px 64px', flexDirection: 'row', gap: 44 }}>
       <div>
         <FadeIn><Frame w={W} h={H}>
-          {RUN_SEGS.map(([a, b]) => { const from = at; at += s(b - a); return (
+          {segs.map(([a, b]) => { const from = at; at += s(b - a); return (
             <Sequence key={a} from={from} durationInFrames={s(b - a)} layout="none"><RunClip from={a} to={b} w={W} h={H} /></Sequence>
           ) })}
         </Frame></FadeIn>
@@ -327,10 +334,13 @@ const DIFF: [string, string][] = [
   [' ', '    dc_texturemid = skytexturemid;'],
   ['-', '    QA_SkyDrawn(viewplayer->fixedcolormap);'],
 ]
-const SceneDevin: React.FC = () => {
+// card starts in seconds: session, diff, PR, merged, end of the scene
+type DevinTimes = { A: number; B: number; Cc: number; D: number; end: number }
+const DEVIN_T: DevinTimes = { A: 5, B: 11.5, Cc: 20, D: 26.5, end: 30 }
+const SceneDevin: React.FC<{ t?: DevinTimes }> = ({ t = DEVIN_T }) => {
   const f = useCurrentFrame()
   // voice card -> session (VO part 1) -> diff (part 2) -> PR (part 3) -> merged (part 4), see DEVIN_VO
-  const A = s(5), B = s(11.5), Cc = s(20), D = s(26.5)
+  const A = s(t.A), B = s(t.B), Cc = s(t.Cc), D = s(t.D)
   const zoom = interpolate(f, [B, Cc], [1, 1.05], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })
   return (
     <AbsoluteFill style={{ padding: '80px 120px', alignItems: 'center', justifyContent: 'center' }}>
@@ -373,7 +383,7 @@ const SceneDevin: React.FC = () => {
         </SubFade>
       </Sequence>
       <Sequence from={D} layout="none">
-        <SubFade dur={s(30) - D}>
+        <SubFade dur={s(t.end) - D}>
           <div style={{ display: 'flex', gap: 22 }}><Pill color={C.ok} style={{ fontSize: 30, padding: '14px 30px' }}>merged</Pill><Pill color={C.text} style={{ fontSize: 30, padding: '14px 30px' }}>rebuilding · CI Windows build</Pill></div>
         </SubFade>
       </Sequence>
@@ -412,23 +422,73 @@ const SceneFixed: React.FC = () => {
 }
 
 const KID_W = 1080, KID_H = Math.round(1080 * 1078 / 1316)
-const SceneKid: React.FC = () => (
-  <AbsoluteFill style={{ padding: '60px 64px', flexDirection: 'row', gap: 44, alignItems: 'flex-start' }}>
-    <FadeIn>
-      <Frame w={KID_W} h={KID_H}>
-        <OffthreadVideo src={staticFile('kid_team.mp4')} startFrom={s(20)} endAt={s(37.5)}
-          volume={(f) => interpolate(f, [s(7.8), s(8.6)], [0.18, 1], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
-          style={{ width: KID_W, height: KID_H }} />
-      </Frame>
-      <Pill style={{ marginTop: 14 }}>recorded on our laptop · a person playing and talking to Pixel</Pill>
-    </FadeIn>
-    <div style={{ width: 640 }}>
-      <FadeIn delay={8}><Title size={48}>Pixel</Title></FadeIn>
-      <FadeIn delay={16}><Sub style={{ marginTop: 8 }}>a game buddy that watches the screen with H's eyes and talks back</Sub></FadeIn>
-      <FadeIn delay={30}><Mono style={{ marginTop: 26 }}>Chocolate Doom on our laptop<br />H vision · ElevenLabs voice · Gladia ears</Mono></FadeIn>
-    </div>
-  </AbsoluteFill>
-)
+// Gladia transcript of kid_team.mp4 (src seconds)
+const KID_LINES: [number, number, 'Player' | 'Pixel', string][] = [
+  [16.91, 17.73, 'Player', 'What is this, Pixel?'],
+  [23.15, 24.19, 'Pixel', 'Oh, this is Doom.'],
+  [24.57, 26.74, 'Pixel', "It's a game where you shoot baddies and solve puzzles."],
+  [27.31, 28.37, 'Pixel', "You're holding a gun now, see?"],
+  [30.3, 31.85, 'Player', 'What is this green box, Pixel?'],
+  [34.96, 36.2, 'Pixel', "That's an armor pickup, sweet."],
+  [36.66, 37.97, 'Pixel', 'Walk over it to get more protection.'],
+]
+const kidSrc = (t: number): number | null => {
+  let at = KID_INTRO
+  for (const [a, b] of KID_SEGS) { if (t < at + b - a) return t >= at ? a + t - at : null; at += b - a }
+  return null
+}
+const PARTNERS: [string, string, number][] = [['Gladia', 'hears the player', 4.06], ['H', 'sees the game frame', 2.67], ['ElevenLabs', "is Pixel's voice", 5.36]]
+const SceneKid: React.FC = () => {
+  const f = useCurrentFrame(); const t = f / FPS
+  const src = kidSrc(t)
+  const line = src === null ? undefined : KID_LINES.find(([a, b]) => src >= a - 0.1 && src < b + 0.4)
+  const active = src === null ? '' : line ? (line[2] === 'Player' ? 'Gladia' : 'ElevenLabs') : 'H'
+  let at = s(KID_INTRO)
+  return (
+    <AbsoluteFill style={{ padding: '60px 64px', flexDirection: 'row', gap: 44, alignItems: 'flex-start' }}>
+      <FadeIn>
+        <div style={{ position: 'relative' }}>
+          <Frame w={KID_W} h={KID_H}>
+            <Sequence durationInFrames={s(KID_INTRO)} layout="none">
+              <OffthreadVideo src={staticFile('kid_team_boost.mp4')} startFrom={s(0.6)} endAt={s(0.6 + KID_INTRO)} muted style={{ width: KID_W, height: KID_H }} />
+            </Sequence>
+            {KID_SEGS.map(([a, b]) => { const from = at; at += s(b - a); return (
+              <Sequence key={a} from={from} durationInFrames={s(b - a)} layout="none">
+                <OffthreadVideo src={staticFile('kid_team_boost.mp4')} startFrom={s(a)} endAt={s(b)} style={{ width: KID_W, height: KID_H }} />
+              </Sequence>
+            ) })}
+          </Frame>
+          {line && (
+            <div style={{ position: 'absolute', left: 24, right: 24, bottom: 24, display: 'flex', justifyContent: 'center' }}>
+              <div style={{ background: 'rgba(11,11,12,0.85)', borderRadius: 12, padding: '10px 20px', fontFamily: SANS, fontWeight: 500, fontSize: 30, color: C.text }}>
+                <span style={{ color: line[2] === 'Player' ? C.key : C.ok, fontFamily: MONO, fontSize: 22, marginRight: 12 }}>{line[2]}</span>{line[3]}
+              </div>
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
+          <Pill>recorded on our laptop · a team member talking to Pixel</Pill>
+          {src !== null && <Pill color={C.key}>pauses trimmed</Pill>}
+        </div>
+      </FadeIn>
+      <div style={{ width: 640 }}>
+        <FadeIn delay={8}><Title size={48}>Pixel</Title></FadeIn>
+        <FadeIn delay={16}><Sub style={{ marginTop: 8 }}>a game buddy that watches the screen with H's eyes and talks back</Sub></FadeIn>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 36 }}>
+          {PARTNERS.map(([name, what, d]) => (
+            <FadeIn key={name} delay={s(0.4 + d)}>
+              <div style={{ border: `1.5px solid ${active === name ? C.key : C.line}`, borderRadius: 14, padding: '14px 20px', background: active === name ? 'rgba(255,216,77,0.06)' : C.card }}>
+                <span style={{ fontFamily: SANS, fontWeight: 600, fontSize: 30, color: C.text }}>{name}</span>
+                <span style={{ fontFamily: MONO, fontSize: 20, color: active === name ? C.key : C.sub, marginLeft: 14 }}>{what}</span>
+              </div>
+            </FadeIn>
+          ))}
+        </div>
+        <FadeIn delay={s(7)}><Mono style={{ marginTop: 26 }}>our partners' APIs, running live in Pixel</Mono></FadeIn>
+      </div>
+    </AbsoluteFill>
+  )
+}
 
 const Stat: React.FC<{ v: string; l: string; delay: number }> = ({ v, l, delay }) => (
   <FadeIn delay={delay}>
@@ -451,6 +511,10 @@ const SceneEnd: React.FC = () => (
   </AbsoluteFill>
 )
 
+// shared with the pitch cut (Pitch.tsx)
+export { SceneKid, KID_INTRO, KID_SEGS, KID_LINES, kidSrc, KID_W, KID_H, C, SANS, MONO, s, FadeIn, Pill, Title, Sub, Mono, Stat, Voice, Frame, BeforeAfter, SubFade, SceneOpen, SceneRun, ScenePickup, SceneVerify, SceneDevin, SceneFixed, DEVIN_VO }
+export type { VO, DevinTimes }
+
 // s5 is cut at its sentence pauses so each part plays over its own card: [at (s into the scene), from, to (s in the mp3)]
 const DEVIN_VO: [number, number, number | undefined][] = [[5.4, 0, 3.6], [12, 3.7, 7.1], [20.4, 7.1, 10.0], [26.9, 10.0, undefined]]
 
@@ -471,7 +535,7 @@ export const PlayerTwo: React.FC = () => (
     <Voice file="s4" vo={vo4 as VO} at={SC.verify[0] + s(0.8)} />
     {DEVIN_VO.map(([at, from, to]) => <Voice key={at} file="s5" vo={vo5 as VO} at={SC.devin[0] + s(at)} from={from} to={to} />)}
     <Voice file="s6" vo={vo6 as VO} at={SC.fixed[0] + s(1.5)} />
-    <Voice file="s7" vo={vo7 as VO} at={SC.kid[0] + s(0.8)} />
+    <Voice file="k7" vo={k7 as VO} at={SC.kid[0] + s(0.4)} />
     <Voice file="s8" vo={vo8 as VO} at={SC.end[0] + s(0.6)} />
 
     <div style={{ position: 'absolute', left: 32, top: 26 }}>
