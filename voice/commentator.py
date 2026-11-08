@@ -13,6 +13,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import shutil
 import statistics
 import subprocess
@@ -59,7 +60,8 @@ def comment(
     body = {
         "model": os.environ.get("P2_KID_MODEL", MODEL),
         "temperature": 0.7,
-        "max_tokens": 60,
+        "max_tokens": 600,  # a reasoning model: a small cap is all spent thinking, no answer
+        "chat_template_kwargs": {"enable_thinking": False},  # faster when the API honours it
         "messages": [{"role": "user", "content": [
             {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img}"}},
             {"type": "text", "text": prompt(age, language, recent)},
@@ -67,8 +69,15 @@ def comment(
     }  # fmt: skip
     headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
     r = httpx.post(MODELS_URL, headers=headers, json=body, timeout=timeout)
+    if r.status_code == 400:  # the switch is not accepted: plain call
+        body.pop("chat_template_kwargs")
+        r = httpx.post(MODELS_URL, headers=headers, json=body, timeout=timeout)
     r.raise_for_status()
-    text = (r.json()["choices"][0]["message"]["content"] or "").strip().strip('"')
+    choice = r.json()["choices"][0]
+    content = choice["message"].get("content")
+    if content is None and choice.get("finish_reason") == "length":
+        raise ValueError("the model used all max_tokens on reasoning: no line")
+    text = re.sub(r"<think>.*?</think>", "", content or "", flags=re.S).strip().strip('"')
     return "" if not text or text.upper().startswith("SKIP") else text
 
 
