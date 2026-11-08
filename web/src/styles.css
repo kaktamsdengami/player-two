@@ -55,6 +55,9 @@ h3 { margin: 0.2rem 0; }
 .voice-text { font-size: 1rem; }
 .speaking { color: var(--warn); }
 .intent { font-size: 0.85rem; color: var(--dim); }
+.talk { grid-column: 1 / -1; font-size: 1.1rem; padding: 0.7rem; font-weight: 700; }
+.talk.on { background: var(--accent); border-color: var(--accent); color: white; }
+.talk-error { grid-column: 1 / -1; color: var(--accent); font-size: 0.85rem; }
 .intent-buttons { grid-column: 1 / -1; display: flex; gap: 0.4rem; flex-wrap: wrap; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(560px, 1fr)); gap: 1.2rem; }
 .card { background: var(--panel); border: 1px solid var(--line); border-left: 5px solid var(--dim); border-radius: 12px; padding: 1rem 1.2rem; }

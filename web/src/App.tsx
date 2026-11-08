@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, startSession, stopSession, subscribe } from './api'
+import { USING_MOCK, checkout, loadSnapshot, media, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
@@ -228,7 +228,25 @@ function NewRun({ running }: { running: boolean }) {
 const INTENTS: Intent[] = ['fix', 'skip', 'explain', 'yes', 'no', 'stop']
 
 function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: Intent) => void; enabled: boolean }) {
-  const fresh = enabled && Date.now() - voice.at < 4000
+  const [talking, setTalking] = useState(false)
+  const [pttError, setPttError] = useState<string | null>(null)
+  useEffect(() => {
+    // Enter in the voice terminal also toggles push-to-talk; the backend echoes it as a transcript.
+    if (voice.transcript?.startsWith('[push-to-talk ON')) setTalking(true)
+    else if (voice.transcript?.startsWith('[push-to-talk OFF')) setTalking(false)
+  }, [voice.transcript, voice.at])
+  useEffect(() => {
+    if (!enabled) setTalking(false)
+  }, [enabled])
+  const talk = () =>
+    setPtt(!talking).then(
+      (r) => {
+        setTalking(r ? r.on : false)
+        setPttError(null)
+      },
+      (e: Error) => setPttError(e.message),
+    )
+  const fresh = enabled && (talking || Date.now() - voice.at < 4000)
   return (
     <div className="voice">
       <div className={`mic ${fresh ? 'hot' : ''}`} aria-label="voice activity" />
@@ -241,6 +259,15 @@ function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: 
           </div>
         )}
       </div>
+      <button
+        className={`talk ${talking ? 'on' : ''}`}
+        onClick={talk}
+        disabled={!enabled || USING_MOCK}
+        title={USING_MOCK ? 'Needs the live backend and the voice listener' : 'Mic on/off (the voice listener follows this)'}
+      >
+        {talking ? '■ Listening… click to stop' : '● Talk'}
+      </button>
+      {pttError && <div className="talk-error">{pttError}</div>}
       <div className="intent-buttons">
         {INTENTS.map((i) => (
           <button

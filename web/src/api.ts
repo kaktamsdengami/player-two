@@ -80,6 +80,7 @@ async function post<T = unknown>(path: string, body?: unknown): Promise<T | null
 
 export const sendIntent = (intent: VoiceIntent) => post('/api/intent', intent)
 export const stopSession = () => post('/api/stop')
+export const setPtt = (on: boolean) => post<{ on: boolean }>('/api/ptt', { on })
 /** No `mode`: the server runs its configured mode (live on the stage laptop, recorded elsewhere). */
 export const startSession = (plan: string, preset: string) =>
   post<{ started: boolean; live: boolean }>('/api/session/start', { plan: plan.trim() || null, preset })

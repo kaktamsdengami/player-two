@@ -146,27 +146,24 @@ def wav_chunks(path: str, realtime: bool = True) -> Iterable[bytes]:
             time.sleep(CHUNK_MS / 1000)
 
 
-def mic_chunks(
-    ptt: bool = False, on_ptt: Callable[[bool], None] = lambda on: None
-) -> Iterable[bytes]:
+def sync_ptt(get: Callable[[], bool], talking: threading.Event) -> None:
+    """Follow the dashboard's Talk button; the mic stays muted while the backend is unreachable."""
+    try:
+        on = get()
+    except (httpx.HTTPError, ValueError):
+        on = False
+    if on != talking.is_set():
+        talking.set() if on else talking.clear()
+        print("PTT", "ON" if on else "OFF", file=sys.stderr)
+
+
+def mic_chunks(talking: threading.Event) -> Iterable[bytes]:
+    """Mic audio while `talking` is set, silence otherwise (keeps the Gladia stream alive)."""
     import queue
 
     import sounddevice as sd  # local-only dependency (stage laptop)
 
     q: queue.Queue[bytes] = queue.Queue()
-    talking = threading.Event()
-    if not ptt:
-        talking.set()
-    else:
-
-        def toggle() -> None:
-            for _ in sys.stdin:
-                talking.clear() if talking.is_set() else talking.set()
-                print("PTT", "ON" if talking.is_set() else "OFF", file=sys.stderr)
-                on_ptt(talking.is_set())
-
-        threading.Thread(target=toggle, daemon=True).start()
-        print("push-to-talk: press Enter to start/stop talking", file=sys.stderr)
     silence = b"\x00\x00" * (SAMPLE_RATE * CHUNK_MS // 1000)
 
     def cb(indata, frames, t, status):  # noqa: ARG001
@@ -233,11 +230,42 @@ def main(argv: list[str] | None = None) -> int:
 
     listener = Listener(key, on_intent, on_transcript, languages=args.lang)
 
-    def on_ptt(on: bool) -> None:  # the dashboard's voice panel shows whether the mic is live
-        text = "[push-to-talk ON: speak now]" if on else "[push-to-talk OFF]"
-        post("/api/transcript", {"text": text, "final": True, "language": None})
+    talking = threading.Event()
+    if args.mic and args.open_mic:
+        talking.set()
+    elif args.mic and args.post:
+        # The backend holds the push-to-talk state: the dashboard's Talk button and Enter here
+        # both set it, and this listener follows it.
+        url = f"{args.post.rstrip('/')}/api/ptt"
 
-    chunks = mic_chunks(not args.open_mic, on_ptt) if args.mic else wav_chunks(args.wav)
+        def get() -> bool:
+            return bool(httpx.get(url, headers=headers, timeout=2).json().get("on"))
+
+        def follow() -> None:
+            while True:
+                sync_ptt(get, talking)
+                time.sleep(0.25)
+
+        def flip() -> None:
+            post("/api/ptt", {"on": not talking.is_set()})
+
+        threading.Thread(target=follow, daemon=True).start()
+        print("push-to-talk: the dashboard's Talk button (or Enter here)", file=sys.stderr)
+    elif args.mic:
+
+        def flip() -> None:
+            talking.clear() if talking.is_set() else talking.set()
+            print("PTT", "ON" if talking.is_set() else "OFF", file=sys.stderr)
+
+        print("push-to-talk: press Enter to start/stop talking", file=sys.stderr)
+    if args.mic and not args.open_mic:
+
+        def keys() -> None:
+            for _ in sys.stdin:
+                flip()
+
+        threading.Thread(target=keys, daemon=True).start()
+    chunks = mic_chunks(talking) if args.mic else wav_chunks(args.wav)
     try:
         listener.run(chunks)
     except KeyboardInterrupt:

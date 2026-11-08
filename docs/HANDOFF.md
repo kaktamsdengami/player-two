@@ -2,6 +2,8 @@
 
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
+
+- Push-to-talk is on the dashboard: the voice panel's **Talk** button sets `POST /api/ptt`; `voice.listen --mic --post` follows it (Enter in that terminal still works). Start the listener once, then the stage team only uses the browser.
 ## Current state (2026-11-08, Devin)
 
 - **Done (merged):** T01 (#34), T04 (#35), T15 (#37), T18 (#39), T10 (#36), T05 (#40), T06 (#41).

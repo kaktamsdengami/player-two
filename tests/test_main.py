@@ -43,3 +43,24 @@ def test_transcript_after_the_session_ended_is_dropped(tmp_path):
     rt.current.info.state = "exploring"
     assert c.post("/api/transcript", json={"text": "hi", "final": True}).status_code == 200
     assert len(seen) == 1
+
+
+def test_ptt_is_held_by_the_backend_and_echoed_to_the_dashboard(tmp_path):
+    from types import SimpleNamespace
+
+    from fastapi.testclient import TestClient
+
+    from app.main import Runtime, create_app
+
+    rt = Runtime(tmp_path)
+    seen = []
+    rt.current = SimpleNamespace(
+        info=SimpleNamespace(state="awaiting_approval"), publish=lambda *a: seen.append(a)
+    )
+    c = TestClient(create_app(rt))
+    assert c.get("/api/ptt").json() == {"on": False}
+    assert c.post("/api/ptt", json={"on": True}).json() == {"on": True}
+    assert c.get("/api/ptt").json() == {"on": True}
+    assert seen[-1][1].text.startswith("[push-to-talk ON")
+    c.post("/api/ptt", json={"on": False})
+    assert seen[-1][1].text == "[push-to-talk OFF]"

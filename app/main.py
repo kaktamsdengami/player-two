@@ -58,6 +58,10 @@ class StartRequest(BaseModel):
     preset: str | None = None  # launcher PRESETS key, e.g. "stage-kb3"; "" = none; null = P2_PRESET
 
 
+class PttPayload(BaseModel):
+    on: bool
+
+
 class Runtime:
     """Holds the current session (live orchestrator or RECORDED replay)."""
 
@@ -65,11 +69,13 @@ class Runtime:
         self.runs_dir, self.mode, self.recording = runs_dir, mode, recording
         self.current: Orchestrator | Recorded | None = None
         self.factory = None  # tests inject a factory returning an Orchestrator
+        self.ptt = False  # push-to-talk from the dashboard; the voice listener follows it
 
     def new(
         self, mode: str | None = None, plan: str | None = None, preset: str | None = None
     ) -> Orchestrator | Recorded:
         mode = mode or self.mode
+        self.ptt = False
         out = self.runs_dir / datetime.now().strftime("%Y%m%d-%H%M%S-session")
         if self.factory:
             return self.factory(out)
@@ -191,6 +197,19 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             raise HTTPException(409, "no running session")
         rt.current.publish(SseType.transcript, t)
         return {"ok": True}
+
+    @app.get("/api/ptt")
+    def ptt_state() -> Any:
+        return {"on": rt.ptt}
+
+    @app.post("/api/ptt", dependencies=[Depends(control)])
+    def ptt(p: PttPayload) -> Any:
+        rt.ptt = p.on
+        info = getattr(rt.current, "info", None)
+        if info and info.state not in ("stopped", "done", "error"):
+            text = "[push-to-talk ON: speak now]" if p.on else "[push-to-talk OFF]"
+            rt.current.publish(SseType.transcript, TranscriptPayload(text=text, final=True))
+        return {"on": rt.ptt}
 
     @app.post("/api/stop", dependencies=[Depends(control)])
     def stop() -> Any:
