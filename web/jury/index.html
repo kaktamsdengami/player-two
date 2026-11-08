@@ -39,6 +39,15 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
 .kid { background: linear-gradient(135deg, #1a2a44, #0e1a2c); } .kid b { color: #ffd166; }
 .row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 30px; color: var(--dim); font-size: 14px; }
 .row a { border: 1px solid #2a2a36; border-radius: 8px; padding: 8px 12px; }
+.stripe-widget { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 22px; margin-top: 40px; padding: 18px 22px; border-radius: 14px; background: linear-gradient(90deg, #635bff, #4b45d6 60%, #3a35b5); color: #fff; box-shadow: 0 10px 40px rgba(99, 91, 255, .35); text-decoration: none; transition: transform .2s; }
+.stripe-widget:hover { transform: translateY(-2px); }
+.stripe-logo { font-family: Inter, system-ui, sans-serif; font-weight: 800; font-size: 34px; letter-spacing: -1.5px; background: #fff; color: #635bff; padding: 4px 16px 8px; border-radius: 10px; line-height: 1; }
+.stripe-text { display: grid; gap: 4px; }
+.stripe-text b { font-size: 18px; }
+.stripe-text span { font-size: 14px; color: #e4e2ff; }
+.stripe-text em { font-style: normal; font-weight: 700; color: #fff; }
+.stripe-cta { border: 2px solid #fff; border-radius: 10px; padding: 10px 16px; font-weight: 700; white-space: nowrap; }
+@media (max-width: 900px) { .stripe-widget { grid-template-columns: 1fr; text-align: center; } }
 .credits { margin-top: 36px; color: var(--dim); font-size: 13px; line-height: 1.6; text-align: center; }
 .credits a { color: var(--acc); }
 @media (max-width: 900px) { .hero { grid-template-columns: 1fr; } h1 { font-size: 34px; } .looks { grid-template-columns: 1fr 1fr; } .modes { grid-template-columns: 1fr; } }
@@ -50,10 +59,19 @@ h2 { font-size: 14px; letter-spacing: 3px; color: var(--dim); margin: 46px 0 14p
     <div>
       <h1>An AI is playing Doom <span>right now</span>, in your browser.</h1>
       <p class="lead"><b>H Company's Holo</b>, a vision model, looks at the game pixels about once a second, says what it sees, and presses real keys. No scripts, no game state: eyes and hands only. Below, five ways to watch it — and take over whenever you like.</p>
-      <div class="row"><span>built overnight by <b>Devin</b> for the 42AI × H Company hackathon</span><a href="/lab/">how it works →</a><a href="/pricing/">plans · Stripe €5 / €49 →</a><a href="/dashboard/">the full tester dashboard →</a></div>
+      <div class="row"><span>built overnight by <b>Devin</b> for the 42AI × H Company hackathon</span><a href="/lab/">how it works →</a><a href="/dashboard/">the full tester dashboard →</a></div>
     </div>
     <a class="preview" href="/arcade/"><div id="game"></div><div class="thought" id="thought">Holo is warming up…</div></a>
   </section>
+
+  <a class="stripe-widget" href="/pricing/">
+    <div class="stripe-logo" aria-label="Stripe">stripe</div>
+    <div class="stripe-text">
+      <b>Subscriptions, live in Stripe test mode</b>
+      <span>KID · COUCH BUDDY <em>€5/mo</em> &nbsp;·&nbsp; PRO · TESTER <em>€49/mo</em> &nbsp;·&nbsp; real Checkout, test card 4242, nothing charged</span>
+    </div>
+    <span class="stripe-cta">see plans & pay →</span>
+  </a>
 
   <h2>TWO WAYS TO PLAY · start with TESTER MODE (the arcade), switch any time · every page has ← home</h2>
   <nav class="modes">
