@@ -35,6 +35,17 @@ export const LINES = {
   a4: 'Four: what is new. We built frame-stepping into the engine, so a slow AI can play a real-time game. H never sees the bug list or the engine log. A hidden oracle checks every finding, and a scripted replay of the same scenario proves the fix.',
   a5: 'Five: you stay in control. Every finding waits for your word, by voice or by button: fix, skip, explain, or stop. Stop ended this run in about a second.',
   a6: 'Built with Devin, powered by H. PLAYER TWO.',
+  // story cut (Story.tsx): problem -> idea -> live demo -> the bug -> found, proven, fixed -> potential
+  b1: 'Every game ships with bugs. Studios pay big teams of testers to play the same levels for months, and bugs still slip through to players.',
+  b2: 'So we built PLAYER TWO: an AI that tests your game the way a player would. It plays, it hunts for bugs, it proves each one, and it gets it fixed.',
+  b3: 'To show it, we gave it a real game: Doom. Open source, thirty years old. The AI gets no code and no game data. Only the screen, and a keyboard.',
+  b4: 'This is it playing, live, on our laptop. The player is H, a computer-use agent. Monsters attack it. It fights back, and keeps testing.',
+  b5: 'And here is what it caught. Invulnerability should turn the whole screen grey. But look at the sky. It stays red. A tiny bug that has survived thirty years of players.',
+  b6: 'It writes a bug report, with the steps. Then our verifier replays its exact moves, and the game engine itself confirms the bug.',
+  b7: 'The developer says one sentence: yes, fix it. Devin, an AI software engineer, finds the cause, writes the fix, and opens a pull request.',
+  b8: "The game is rebuilt, the scenario is replayed, and now the sky turns grey. Found, proven and fixed, six and a half minutes after 'fix it'.",
+  b9: "That was one bug, in one night. Now imagine it on a studio's game, as big as GTA 6: hundreds of AI testers playing every build overnight, and every bug arriving with a video, a proof, and a fix ready to review.",
+  b10: "PLAYER TWO. Your game's toughest tester.",
   k7: 'The same eyes power Pixel, a game buddy. H sees the screen, Gladia hears you, ElevenLabs talks back.',
 }
 
