@@ -3,6 +3,7 @@
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
 
+- Kid mode (T21, branch `t21-kid-mode-friend`): `python -m voice.commentator --window "Chocolate Doom" --minutes 2 --age 8` screenshots the window every ~3 s, `holo4-35b-a3b` (Models API, no H slots) writes one line from `agents/prompts/kid.md`, ElevenLabs speaks it via ffplay; never talks over itself (`MIN_GAP_S`); latencies in `<out>/comments.jsonl` + `summary.json`. Not yet run with real keys.
 - Push-to-talk is on the dashboard: the voice panel's **Talk** button sets `POST /api/ptt`; `voice.listen --mic --post` follows it (Enter in that terminal still works). Start the listener once, then the stage team only uses the browser.
 - Stage presets have `goal="powerup"`: if H finishes a round with no `powerup` event in the QA log, the orchestrator sends it back to the sphere (`GOAL_NUDGE`, up to 3 times) instead of accepting the answer.
 - Stage rerun 01:15 UTC: the H create call timed out after the server had started the session, which then drove the desktop with no game. `Tester` now uses a 120 s client timeout, cancels its own live sessions (`list_sessions` by agent, created since start) when create fails or `stop()` runs without a handle, and reconnects the event stream after a read timeout. Prompts: if a monster is in the centre, fire in that step without moving.
