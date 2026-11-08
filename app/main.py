@@ -338,7 +338,7 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     jury = ROOT / "web" / "jury"
     if jury.is_dir():  # T33: the jury site (hub + five front-ends), plain static pages
         app.mount("/jury", StaticFiles(directory=jury), name="jury-assets")
-        for name in ("arcade", "live", "lab", "story"):  # the five jury front-ends (+ /kid/)
+        for name in ("arcade", "live", "lab", "story", "pricing"):  # jury front-ends (+ /kid/)
             if (jury / name).is_dir():
                 app.mount(f"/{name}", StaticFiles(directory=jury / name, html=True), name=name)
     if (DIST / "index.html").is_file():  # built with VITE_API_BASE=same-origin: one link for all

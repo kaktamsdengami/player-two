@@ -284,8 +284,8 @@ window.HoloDoom = (() => {
         if (e.capped) { setMode('recorded', e.message); st.thinking = false; return 'capped' }
         if (e.busy) { // the shared H budget is spent for this minute: everyone else gets a turn first
           if (e.retryAfter) { st.busyUntil = Date.now() + e.retryAfter * 1000; emit('busy', { retryAfter: e.retryAfter }) }
-          if (++st.busyCount >= o.busyLimit) { setMode('recorded', 'Holo is busy: many people are playing'); st.thinking = false; return 'capped' }
-          move = localMove(stalled, 'shared limit, retry in ' + (e.retryAfter || Math.ceil(Math.max(0, st.busyUntil - Date.now()) / 1000)) + ' s'); move.error = e.message; move.busy = true
+          if (++st.busyCount >= o.busyLimit) { setMode('recorded', 'H API free plan exhausted: too many jurors playing at once (not a demo bug), showing a recorded run'); st.thinking = false; return 'capped' }
+          move = localMove(stalled, 'H API free plan, 30 req/min per model: too many jurors playing at once, not a demo bug, retry in ' + (e.retryAfter || Math.ceil(Math.max(0, st.busyUntil - Date.now()) / 1000)) + ' s'); move.error = e.message; move.busy = true
           st.thinking = false
           st.step++
           const step = Object.assign({ step: st.step, frame, mode: 'live', t: Date.now(), diff: Math.round(st.diff * 10) / 10 }, move)

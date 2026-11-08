@@ -52,7 +52,7 @@ window.Jury = (() => {
       }
       if (cfg.onStep) cfg.onStep(s)
     })
-    hd.on('busy', (b) => { if (status) status.textContent = `LIVE · many people are playing, Holo answers in ${b.retryAfter}s` })
+    hd.on('busy', (b) => { if (status) status.textContent = `LIVE · H API free plan (30 req/min): too many jurors at once, Holo answers in ${b.retryAfter}s` })
     hd.on('error', (e) => { if (status && hd.state().mode === 'loading') status.textContent = e.message })
 
     if (over) over.onclick = () => hd.takeOver()

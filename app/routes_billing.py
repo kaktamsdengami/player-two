@@ -30,6 +30,7 @@ router = APIRouter(prefix="/api")
 
 class CheckoutRequest(BaseModel):
     plan: PlanId
+    return_url: str | None = None  # where Checkout comes back; default: the dashboard
 
 
 class CheckoutResponse(BaseModel):
@@ -89,12 +90,16 @@ def checkout(req: CheckoutRequest, b: BillingDep) -> CheckoutResponse:
     plan = PlanId(req.plan)
     try:
         price = b.prices()[plan]
-        url = b.stripe.create_checkout(
-            plan,
-            price,
-            success_url=f"{b.dashboard_url}/?checkout=success#plans",
-            cancel_url=f"{b.dashboard_url}/?checkout=cancel#plans",
-        )
+        if req.return_url:
+            if not req.return_url.startswith(("http://", "https://")):
+                raise HTTPException(400, "return_url must be absolute")
+            sep = "&" if "?" in req.return_url else "?"
+            success = f"{req.return_url}{sep}checkout=success&plan={plan.value}"
+            cancel = f"{req.return_url}{sep}checkout=cancel"
+        else:
+            success = f"{b.dashboard_url}/?checkout=success#plans"
+            cancel = f"{b.dashboard_url}/?checkout=cancel#plans"
+        url = b.stripe.create_checkout(plan, price, success_url=success, cancel_url=cancel)
     except StripeError as e:
         raise HTTPException(502, str(e)) from e
     return CheckoutResponse(url=url)
