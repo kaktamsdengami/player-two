@@ -67,7 +67,7 @@ window.HoloDoom = (() => {
     film.width = 800; film.height = 600
     const st = {
       mode: 'loading', running: false, human: false, step: 0, recent: [], instruction: '', instructionLeft: 0,
-      lastThumb: null, thumb: null, same: 0, prevUrl: '', turnStreak: 0, turnMs: 0, turnDir: 'left', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
+      lastThumb: null, thumb: null, same: 0, prevUrl: '', turnStreak: 0, turnMs: 0, turnDir: 'left', sameThought: 0, lastThought: '', diff: 99, thinking: false, held: new Set(), latencies: [], started: 0, speaking: false,
       audio: false, recorded: null, recIndex: 0, booted: false, gameReady: false, errors: 0, keyUp: null, muted: false,
       tape: [], busyUntil: 0, busyCount: 0, loopRunning: false, lastKeys: [],
     }
@@ -134,7 +134,7 @@ window.HoloDoom = (() => {
       ctx.drawImage(src, 0, 0, shotCanvas.width, shotCanvas.height)
       // a 32x24 grey thumbnail of the view (without the status bar): walking into a wall still moves
       // a few pixels (weapon bob, JPEG noise), so "unchanged" is a mean difference below STILL, not an equal hash
-      thumbCtx.drawImage(src, 0, 0, src.width, src.height * 0.8, 0, 0, 32, 24)
+      thumbCtx.drawImage(src, 0, 0, src.width, src.height * 0.52, 0, 0, 32, 24) // walls and ceiling only: the bobbing gun below must not count as motion
       const d = thumbCtx.getImageData(0, 0, 32, 24).data
       const thumb = new Uint8Array(32 * 24)
       for (let i = 0; i < thumb.length; i++) thumb[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3
@@ -232,7 +232,7 @@ window.HoloDoom = (() => {
     async function stepLive() {
       if (o.pauseWhileThinking) { pause(); await frames(1) }
       const frame = shot()
-      const stalled = moved(st.thumb, st.lastThumb) ? (st.same = 0, false) : ++st.same >= 1
+      let stalled = moved(st.thumb, st.lastThumb) ? (st.same = 0, false) : ++st.same >= 1
       st.lastThumb = st.thumb
       // fire is never held across the think gap: the target may have left the gun's line by now
       st.thinking = true
@@ -267,6 +267,10 @@ window.HoloDoom = (() => {
       // the client is authoritative when the view did not change: walking on is never the answer
       const turns = move.keys.filter((k) => k === 'left' || k === 'right')
       const walksOn = move.keys.includes('up') && !move.keys.some((k) => ['use', 'left', 'right', 'strafe_left', 'strafe_right'].includes(k))
+      // the same sentence with the same "forward" three times in a row is a wall the pixels missed
+      st.sameThought = walksOn && move.thought === st.lastThought ? st.sameThought + 1 : 0
+      st.lastThought = move.thought
+      if (!stalled && st.sameThought >= 2) { stalled = true; st.same = Math.max(st.same, 2) }
       if (stalled && walksOn) {
         const fire = move.keys.includes('fire') ? ['fire'] : [] // keep shooting at whatever is in front
         if (st.same === 1) { move.keys = ['use', 'up', ...fire]; move.hold_ms = 300; move.thought = 'Blocked. A door? Use.' } // doors look like walls
