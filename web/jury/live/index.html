@@ -71,7 +71,7 @@
       const m = JSON.parse(ev.data)
       if (m.viewers != null) $('#viewers').textContent = m.viewers + ' watching'
       if (m.type === 'hello') { (m.history || []).slice(-8).forEach((s) => showStep(s, 'stream')); if (m.history && m.history.length) gotFrame = Date.now() }
-      if (m.type === 'step') { streamSteps++; showStep(m, 'stream'); if (!own) { $('#status').textContent = 'LIVE · shared stream · ' + (m.mode === 'recorded' ? 'RECORDED' : 'Holo plays'); document.documentElement.dataset.mode = 'live' } }
+      if (m.type === 'step') { streamSteps++; showStep(m, 'stream'); if (!own) { const rec = m.mode === 'recorded'; $('#status').textContent = rec ? 'RECORDED · shared replay of a Holo run' : 'LIVE · shared stream · Holo plays'; document.documentElement.dataset.mode = rec ? 'recorded' : 'live' } }
     }
     ws.onclose = () => setTimeout(connect, 3000)
   }
@@ -83,16 +83,24 @@
     startOwn(false)
   }
   setTimeout(fallback, 8000); setInterval(fallback, 15000)
+  function showOwn(on) { $('#stream').hidden = on; $('#game').hidden = !on; $('#over').hidden = on; $('#back').hidden = !on }
   function startOwn(human) {
-    if (own) { if (human) own.takeOver(); return }
-    $('#stream').hidden = true; $('#game').hidden = false
-    own = Jury.boot({ container: '#game', status: '#status', latency: '#latency', thought: '#thought', over: '#over', back: '#back', tell: '#tell', send: '#send', sound: '#sound', tapToPlay: false,
-      onStep: (s) => showStep(s, 'own'),
-      onState: (s) => { document.documentElement.dataset.mode = s.mode; if (s.mode === 'human') $('#status').textContent = 'YOU play · arrows · Ctrl · Space' } })
-    if (human) own.on('ready', () => own.takeOver())
+    showOwn(true)
+    if (!own) {
+      own = Jury.boot({ container: '#game', status: '#status', latency: '#latency', thought: '#thought', tell: '#tell', send: '#send', sound: '#sound', tapToPlay: false,
+        onStep: (s) => showStep(s, 'own'),
+        onState: (s) => { document.documentElement.dataset.mode = s.mode; if (s.mode === 'human') $('#status').textContent = 'YOU play · arrows · Ctrl · Space' } })
+    }
+    // takeOver boots the game itself when needed, so this also works when the server has no key (recorded start)
+    if (human) own.takeOver()
   }
   $('#over').onclick = () => startOwn(true)
-  $('#back').onclick = () => { if (own) own.giveBack() }
+  $('#back').onclick = () => { // back to the shared stream: the private game stops asking Holo
+    if (own) own.stop()
+    showOwn(false)
+    gotFrame = Date.now()
+    $('#status').textContent = 'back to the shared stream'
+  }
   $('#sound').onclick = () => { if (own) own.unmute(); $('#sound').textContent = $('#sound').dataset.on }
   $('#send').onclick = () => { if (own && $('#tell').value.trim()) { own.tell($('#tell').value.trim()); $('#tell').value = '' } else $('#thought').textContent = 'Press PLAY YOURSELF first: instructions go to your own game.' }
 </script>
