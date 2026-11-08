@@ -29,7 +29,7 @@ from typing import Any
 import httpx
 
 MODELS_URL = "https://api.hcompany.ai/v1/chat/completions"
-MODEL = "holo4-35b-a3b"  # H's fastest vision model
+MODEL = "holo4-27b"  # smarter talk than holo4-35b-a3b, as fast without thinking (~0.3 s)
 PROMPT = Path(__file__).resolve().parent.parent / "agents" / "prompts" / "kid.md"
 EVERY_S = 3.0
 MIN_GAP_S = 12.0  # between the buddy's own lines; an answer to the child does not wait
