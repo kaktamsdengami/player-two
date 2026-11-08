@@ -41,7 +41,7 @@ window.Jury = (() => {
       steps++
       if (s.latency_ms) lat.push(s.latency_ms)
       if (latency) latency.textContent = lat.length ? median(lat.slice(-20)) + ' ms' : '—'
-      if (thought) thought.textContent = (hd.state().instructionLeft > 0 ? '[you: ' + hd.state().instruction + '] ' : '') + (s.thought || (s.error ? 'Holo is busy, I keep moving: ' + s.error : '…'))
+      if (thought) thought.textContent = (s.mode === 'live' && hd.state().instructionLeft > 0 ? '[you: ' + hd.state().instruction + '] ' : '') + (s.thought || (s.error ? 'Holo is busy, I keep moving: ' + s.error : '…'))
       if (feed) {
         const li = document.createElement('li')
         li.className = 'step ' + (s.mode || '') + (s.error ? ' err' : '')
