@@ -254,6 +254,7 @@ def test_the_buddy_does_not_repeat_itself_or_talk_over_the_child(tmp_path):
         >= c.SAME
     )
     assert c.similar("Nice shot!", "Grab that medikit on the left") < c.SAME
+    assert c.similar("Grab that medikit on the left!", "Grab that medikit on the right!") < c.SAME
     clock, quiet = Clock(), Quiet()
 
     def grab(p):

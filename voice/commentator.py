@@ -234,10 +234,15 @@ class Speaker:
             self.proc.kill()
 
 
+_NEW = {"left", "right", "ahead", "behind", "back", "up", "down", "red", "blue", "yellow"}
+
+
 def similar(a: str, b: str) -> float:
     """Share of the shorter line's words that are also in the other line (0..1)."""
     wa, wb = (set(re.findall(r"[a-z0-9']+", x.lower())) for x in (a, b))
-    return len(wa & wb) / min(len(wa), len(wb)) if wa and wb else 0.0
+    if not wa or not wb or any(w in _NEW or w.isdigit() for w in wa ^ wb):
+        return 0.0  # "on the left" vs "on the right", "health 20" vs "health 80": new news
+    return len(wa & wb) / min(len(wa), len(wb))
 
 
 class _Retry(str):
