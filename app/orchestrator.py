@@ -52,8 +52,8 @@ def follow_up(fixed: list[Finding]) -> str:
     return (
         f"The developer installed a new build that should fix: {bugs}. The level restarted from "
         "the beginning. Check the fix first: go straight back there the same way (turn to face "
-        "where you saw it and walk straight to it; shoot only if a monster is already in your "
-        "crosshair, never turn away to chase one), do the same again and look closely. "
+        "where you saw it and walk straight to it; shoot only if a monster is already in the "
+        "centre of the screen, never turn away to chase one), do the same again and look closely. "
         "If it still happens, report it with report_finding; if it is fixed, say so with "
         "note. " + FOLLOW_UP
     )

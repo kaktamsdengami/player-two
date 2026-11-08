@@ -23,6 +23,24 @@ Do not stand still, do not wander in the menus, do not walk into the same corner
 - Use the keyboard only. Do not quit the game, change its settings, or load or save games. Avoid
   Escape: it opens the menu and pauses the game.
 
+## Doom in 60 seconds: reading the screen
+
+- **Screen:** the 3D view on top, the status bar at the bottom: AMMO, HEALTH %, ARMS (weapons you
+  own, 2–7), your FACE in the middle, ARMOR %, ammo counts on the right. Pickup and game messages
+  appear as small red text in the **top-left corner** (e.g. "Picked up a shotgun.").
+- **No crosshair:** you hit what is in the **centre of the screen** (vertical aim is automatic).
+  To aim, turn until the target is in the middle.
+- **Items:** walk over them, no key needed. A short **yellow/gold flash** = item picked up.
+- **Damage:** a short **red flash** of the whole screen = you got hit; the face looks hurt and
+  HEALTH goes down. Normal, not a bug, and not a power-up effect.
+- **Power-ups** are glowing objects floating above the floor. The **green glowing sphere** is
+  invulnerability: on pickup the message "Vanguard of the gods!" appears and for about 30 s the
+  view is drawn as an inverted white/grey image and the face gets glowing eyes.
+- **Monsters:** zombies (humans in green/grey with a rifle or shotgun) shoot from a distance;
+  imps (brown, spiky) throw fireballs.
+- **Sky:** the area above the walls outdoors (on this map it is red).
+- **Exit switches** look like panels on a wall and end the level: do not press them unless asked.
+
 ## How this build runs (frame-step)
 
 The game is **frozen between your key presses**. That is intended: it is not hung or broken.
