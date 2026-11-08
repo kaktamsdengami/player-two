@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import threading
 import time
 from datetime import UTC, datetime
@@ -17,6 +18,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -24,10 +26,19 @@ from pydantic import BaseModel
 from app.contracts import SessionInfo, SseType, TranscriptPayload, VoiceIntent
 from app.orchestrator import Orchestrator, Recorded, sse_format
 from app.routes_billing import router as billing_router
+from app.routes_holo import create_router as holo_router
+from app.routes_live import create_router as live_router
+from voice.intents import parse_intent
 
 ROOT = Path(__file__).resolve().parent.parent
 MOCK = ROOT / "docs" / "api-mock.json"
 DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
+
+
+class TextIn(BaseModel):
+    text: str
+
+
 MEDIA_SUFFIXES = {
     ".mp4",
     ".webm",
@@ -56,6 +67,9 @@ def control(request: Request) -> None:
     token = os.environ.get("P2_CONTROL_TOKEN")
     if token and request.headers.get("x-p2-token") != token:
         raise HTTPException(401, "missing or wrong X-P2-Token")
+    host = request.client.host if request.client else ""
+    if not token and host not in ("127.0.0.1", "::1", "testclient"):
+        raise HTTPException(403, "set P2_CONTROL_TOKEN to control the session from another machine")
 
 
 class StartRequest(BaseModel):
@@ -129,7 +143,21 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     origins = [o.strip() for o in os.environ.get("P2_CORS_ORIGINS", DEV_ORIGINS).split(",")]
     app.add_middleware(CORSMiddleware, allow_origins=[o for o in origins if o],
                        allow_methods=["*"], allow_headers=["*"])  # fmt: skip
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+    @app.middleware("http")
+    async def static_cache(request: Request, call_next):  # type: ignore[no-untyped-def]
+        resp = await call_next(request)
+        path = request.url.path
+        if re.search(r"\.(wasm|wad|jpg|png|woff2?)$", path) or "/assets/" in path:
+            resp.headers.setdefault("Cache-Control", "public, max-age=604800, immutable")
+        elif re.search(r"\.(js|css)$", path):
+            resp.headers.setdefault("Cache-Control", "public, max-age=300")
+        return resp
+
     app.include_router(billing_router)
+    app.include_router(holo_router())
+    app.include_router(live_router())
 
     def store():
         return rt.current.store if rt.current else None
@@ -195,6 +223,23 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             raise HTTPException(409, "no session")
         rt.current.intent(i)
         return {"ok": True}
+
+    @app.post("/api/intent/text", dependencies=[Depends(control)])
+    def intent_text(body: TextIn) -> Any:
+        """The typed equivalent of the microphone: the dashboard sends what the tester wrote."""
+        if not rt.current:
+            raise HTTPException(409, "no session")
+        i = parse_intent(body.text)
+        if i is None:
+            raise HTTPException(422, "not an instruction: say what to do, e.g. 'fix it', 'skip'")
+        # typed = deliberate, like a button press: it survives the narration drain (a half-heard
+        # voice "fix it" during the narration does not)
+        i = i.model_copy(update={"source": "button"})
+        publish = getattr(rt.current, "publish", None)  # Recorded replays have no transcript feed
+        if publish:
+            publish(SseType.transcript, TranscriptPayload(text=body.text.strip(), final=True))
+        rt.current.intent(i)
+        return i.model_dump(mode="json")
 
     @app.post("/api/transcript", dependencies=[Depends(control)])
     def transcript(t: TranscriptPayload) -> Any:
@@ -290,8 +335,20 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
         app.mount("/kid", kid_app(), name="kid")
     except ImportError:
         pass
+    jury = ROOT / "web" / "jury"
+    if jury.is_dir():  # T33: the jury site (hub + five front-ends), plain static pages
+        app.mount("/jury", StaticFiles(directory=jury), name="jury-assets")
+        for name in ("arcade", "live", "lab", "story", "pricing"):  # jury front-ends (+ /kid/)
+            if (jury / name).is_dir():
+                app.mount(f"/{name}", StaticFiles(directory=jury / name, html=True), name=name)
     if (DIST / "index.html").is_file():  # built with VITE_API_BASE=same-origin: one link for all
-        app.mount("/", StaticFiles(directory=DIST, html=True), name="dashboard")
+        app.mount("/dashboard", StaticFiles(directory=DIST, html=True), name="dashboard")
+    if (jury / "index.html").is_file():
+
+        @app.get("/", include_in_schema=False)
+        def hub() -> FileResponse:
+            return FileResponse(jury / "index.html")
+
     return app
 
 

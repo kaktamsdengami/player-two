@@ -6,6 +6,27 @@ proves it, explains it by voice, and gets it fixed by the Devin API.**
 Built at the H Company × 42AI Computer Use Agents Hackathon (Paris, November 2026) with the
 H Agents API, Devin, Gladia, Linkup and Stripe.
 
+## Try it now (jury link)
+
+**https://establishment-era-zen-guides.trycloudflare.com/** — no install, no login.
+
+- **TESTER MODE · `/arcade/`** — H Company's Holo plays Doom live in your browser: it looks at the
+  pixels, says what it sees, presses the keys. A short scripted *tester briefing* (labelled as such in
+  the move log) walks the known route to the first door, then Holo is on its own. Every page says LIVE
+  or RECORDED: when the shared H API budget is spent or no key is set, the page replays a recorded
+  Holo run and says so. **INSERT COIN** hands you the controls; give them back any time.
+- **KID MODE · `/kid/`** — you play, Pixel (Holo eyes, ElevenLabs voice, Gladia ears) watches the
+  screen and talks with you.
+- **`/pricing/`** — KID €5 and PRO €49 subscriptions through real Stripe Checkout (test mode, card
+  4242 4242 4242 4242).
+- `/live/`, `/lab/`, `/story/` — the same engine in three more looks; `/dashboard/` — the full tester
+  dashboard (bug hunt, Devin fix loop, debrief, placement scout).
+
+Self-host: `uv run uvicorn app.main:app --port 8000` with `HAI_API_KEY`, `ELEVENLABS_API_KEY`,
+`GLADIA_API_KEY`, `LINKUP_API_KEY`, `STRIPE_SECRET_KEY` in `.env`, then `cloudflared tunnel --url
+http://127.0.0.1:8000` (or `scripts\jury_up.ps1` on Windows). The link above lives as long as the
+demo machine does.
+
 ## The loop
 
 1. **Play.** An H Agents API desktop agent (model `holo4-35b-a3b`) plays real

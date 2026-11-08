@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PLAYER TWO · LAB · inside the loop: what Holo sees, thinks and presses</title>
+<link rel="stylesheet" href="/jury/lab/lab.css" />
+</head>
+<body>
+<header class="top">
+  <div class="brand">PLAYER <b>TWO</b> <span class="tag">LAB · X-RAY</span><br /><a class="hub" href="/">← home · all looks</a></div>
+  <div class="head">The whole loop, exposed: every ~1 s the game is photographed, <b>H Company's Holo</b> (a vision model) reads the picture and answers with a JSON move; the move becomes real key presses.</div>
+  <div class="pool" id="pool">models: …</div>
+</header>
+
+<main class="grid">
+  <section class="card eye">
+    <h2>1 · WHAT HOLO SEES <small id="eye-meta">640px JPEG</small></h2>
+    <div class="eye-wrap"><img id="eye" alt="the frame sent to Holo" /><div id="eye-aim" class="eye-aim"></div></div>
+    <div class="caption">The exact picture posted to <code>/api/holo/act</code>: the WebGL canvas, downscaled. No game state, no memory, no cheats: pixels only.</div>
+  </section>
+
+  <section class="card game">
+    <h2>2 · THE GAME <small id="status">booting…</small></h2>
+    <div id="game" class="screen"></div>
+    <div class="row">
+      <button id="over">TAKE THE KEYBOARD</button>
+      <button id="back" hidden>GIVE IT BACK TO HOLO</button>
+      <input id="tell" maxlength="120" placeholder="instruction for Holo (goes into the prompt)" />
+      <button id="send">SEND</button>
+      <button id="sound" data-on="SOUND ON">SOUND</button>
+    </div>
+  </section>
+
+  <section class="card brain">
+    <h2>3 · WHAT HOLO ANSWERS <small>strict JSON</small></h2>
+    <pre id="json">{ waiting for the first frame… }</pre>
+    <div class="metrics">
+      <div><span>latency, median</span><b id="latency">—</b></div>
+      <div><span>steps</span><b id="steps">0</b></div>
+      <div><span>model</span><b id="model">—</b></div>
+      <div><span>mode</span><b id="mode">—</b></div>
+    </div>
+    <canvas id="spark" width="360" height="60"></canvas>
+    <div class="caption">Latency per step (ms). Keys are injected as <code>KeyboardEvent</code>s the SDL port receives; a stalled picture (same hash twice) makes the loop turn around.</div>
+  </section>
+
+  <section class="card feed-card">
+    <h2>4 · MOVE LOG</h2>
+    <ol id="feed" class="feed"></ol>
+  </section>
+
+  <section class="card prompt">
+    <h2>5 · THE PROMPT (abridged)</h2>
+    <pre class="prompt-text">You are Holo, playing Doom (Freedoom E1M1) from a single screenshot.
+HUD: ammo · health · arms · face · armor. Enemies: brown imps, zombiemen, shotgun guys.
+Doors open with "use"; switches too. Pick up items by walking over them.
+Return ONLY JSON: {"thought": "...", "keys": ["up"], "hold_ms": 500,
+  "aim": {"x": 240, "y": 150}, "status": "ok|dead|menu|stuck"}
+Keys: up down left right strafe_left strafe_right run fire use w1..w7.
+Recent moves: [...]   Viewer instruction: "..."   Stalled: true/false</pre>
+    <div class="caption">Full text: <code>agents/prompts/holo_play.md</code>. The server validates the image, clamps <code>hold_ms</code> (100–1500) and the aim, drops unknown keys, caps calls per client and per model (30 req/min each, pooled over three Holo models).</div>
+  </section>
+
+  <section class="card desk">
+    <h2>6 · THE BIG BROTHER: H DESKTOP AGENT</h2>
+    <p>This browser loop is the small, fast version. The full PLAYER TWO tester runs <b>H Company's Agents API</b> on a desktop (Windows laptop): it plays the native Chocolate Doom QA build, finds bugs from pixels, narrates them by voice, and hands fixes to <b>Devin</b>. Those sessions need the stage laptop, so they are not started from this page.</p>
+    <p><a class="btn" href="/dashboard/">open the PLAYER TWO dashboard →</a> <span class="caption">(bug cards, fix PRs, verification clips; shows the latest LIVE or RECORDED run)</span></p>
+  </section>
+</main>
+<footer class="credits" data-credits=""></footer>
+
+<script src="/jury/shared/holo-doom.js"></script>
+<script src="/jury/shared/jury.js"></script>
+<script>
+  const $ = (s) => document.querySelector(s)
+  const lat = []
+  function spark() {
+    const c = $('#spark'), x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height)
+    const a = lat.slice(-60), max = Math.max(1500, ...a)
+    x.strokeStyle = '#4ef2c3'; x.lineWidth = 2; x.beginPath()
+    a.forEach((v, i) => { const px = (i / 59) * (c.width - 4) + 2, py = c.height - 2 - (v / max) * (c.height - 6); i ? x.lineTo(px, py) : x.moveTo(px, py) })
+    x.stroke()
+  }
+  const hd = Jury.boot({ container: '#game', feed: '#feed', status: '#status', latency: '#latency',
+    over: '#over', back: '#back', tell: '#tell', send: '#send', sound: '#sound', tapToPlay: false,
+    onState: (s) => { $('#mode').textContent = s.mode.toUpperCase() },
+    onStep: (s) => {
+      $('#steps').textContent = s.step
+      if (s.frame && s.frame.url) { $('#eye').src = s.frame.url; $('#eye-meta').textContent = `${s.frame.w}×${s.frame.h} JPEG` }
+      const aim = $('#eye-aim')
+      if (s.aim && s.frame) { aim.style.left = (s.aim.x / (s.frame.w || 640) * 100) + '%'; aim.style.top = (s.aim.y / (s.frame.h || 300) * 100) + '%'; aim.hidden = false } else aim.hidden = true
+      const j = { thought: s.thought, keys: s.keys, hold_ms: s.hold_ms, aim: s.aim, status: s.status, latency_ms: s.latency_ms, model: s.model, image: s.image, usage: s.usage }
+      if (s.error) j.error = s.error
+      $('#json').textContent = JSON.stringify(j, null, 2)
+      if (s.model) $('#model').textContent = s.model
+      if (s.latency_ms) { lat.push(s.latency_ms); spark() }
+    } })
+  async function pool() {
+    try {
+      const st = await (await fetch('/api/holo/status')).json()
+      $('#pool').textContent = st.live ? 'models this minute: ' + Object.entries(st.models || {}).map(([m, n]) => `${m} ${n}/${st.rpm}`).join(' · ') + ` · demo cap ${st.used}/${st.cap}` : 'no HAI key on the server: RECORDED replay'
+    } catch (e) { $('#pool').textContent = 'status unavailable' }
+  }
+  pool(); setInterval(pool, 5000)
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PLAYER TWO · plans</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/jury/arcade/arcade.css" />
+<style>
+  .plans { grid-area: cabinet; display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .plan { background: #0d0818; border: 4px solid #2b1a4d; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .plan.kid { border-color: var(--neon2); box-shadow: 0 0 24px rgba(0, 229, 255, 0.25); }
+  .plan.pro { border-color: #ff3cac; box-shadow: 0 0 24px rgba(255, 60, 172, 0.25); }
+  .plan h2 { font-family: 'Press Start 2P', monospace; font-size: 18px; margin: 0; }
+  .plan.kid h2 { color: var(--neon2); } .plan.pro h2 { color: #ff3cac; }
+  .plan .price { font-family: 'Press Start 2P', monospace; font-size: 30px; color: #fff; }
+  .plan .price small { font-family: 'VT323', monospace; font-size: 20px; color: #9b8fc0; }
+  .plan .tag { font-size: 22px; color: #e9e2ff; }
+  .plan ul { margin: 0; padding-left: 20px; font-size: 20px; color: #c9bfe8; line-height: 1.4; }
+  .plan .for { font-size: 18px; color: #9b8fc0; }
+  .plan button { margin-top: auto; font-family: 'Press Start 2P', monospace; font-size: 14px; padding: 16px; border-radius: 12px; border: 0; cursor: pointer; color: #fff; }
+  .plan.kid button { background: linear-gradient(180deg, #19b7d2, #0a7f94); }
+  .plan.pro button { background: linear-gradient(180deg, #ff3cac, #b0176f); }
+  .plan button:disabled { opacity: .6; cursor: wait; }
+  .stripe { grid-area: ticker; background: #0d0818; border: 4px solid #2b1a4d; border-radius: 18px; padding: 16px; font-size: 19px; color: #c9bfe8; line-height: 1.45; }
+  .stripe b { color: #fff; } .stripe code { color: var(--neon2); font-family: 'VT323', monospace; font-size: 20px; }
+  .note { grid-area: next; border: 2px solid #2b1a4d; border-radius: 10px; padding: 12px 14px; font-size: 19px; color: #c9bfe8; display: none; }
+  .note.on { display: block; } .note.ok { border-color: #35d07f; color: #b9f5d3; } .note.bad { border-color: #ff5f5f; color: #ffc9c9; }
+  @media (max-width: 900px) { .plans { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main class="room">
+  <header class="marquee">
+    <div class="neon">PLAYER <span>TWO</span></div>
+    <div class="sub">Two subscriptions, real <b>Stripe</b> Checkout in test mode: pay with the test card, nothing is charged.</div>
+    <nav class="modes">
+      <a class="mode" href="/arcade/"><b>TESTER MODE</b><small>Holo plays Doom by itself; INSERT COIN to take over.</small></a>
+      <a class="mode" href="/kid/"><b>KID MODE · BUDDY</b><small>You play, Pixel watches and talks with you.</small></a>
+      <a class="home" href="/">← home</a>
+    </nav>
+  </header>
+
+  <section class="plans">
+    <article class="plan kid">
+      <h2>KID · COUCH BUDDY</h2>
+      <div class="price">€5 <small>/ month</small></div>
+      <div class="tag">A friend on the couch while your kid plays.</div>
+      <ul>
+        <li>Pixel watches the screen and talks (Holo eyes, ElevenLabs voice, Gladia ears)</li>
+        <li>Hints, never spoilers · age-aware vocabulary</li>
+        <li>Morning report for parents</li>
+      </ul>
+      <div class="for">For families. What you tried in <a href="/kid/">KID MODE</a>.</div>
+      <button data-plan="kid">SUBSCRIBE · KID €5</button>
+    </article>
+    <article class="plan pro">
+      <h2>PRO · TESTER</h2>
+      <div class="price">€49 <small>/ month</small></div>
+      <div class="tag">A hostile QA tester for your game, overnight.</div>
+      <ul>
+        <li>Unlimited Holo test sessions on your real build</li>
+        <li>Bugs explained by voice, fixed through the Devin API, re-verified</li>
+        <li>Design debrief + product-placement scout (Linkup)</li>
+      </ul>
+      <div class="for">For studios. What you watched in <a href="/arcade/">TESTER MODE</a>.</div>
+      <button data-plan="pro">SUBSCRIBE · PRO €49</button>
+    </article>
+  </section>
+
+  <aside class="stripe">
+    <b>Stripe test mode.</b> The button opens a real Stripe Checkout session (monthly subscription, EUR). Use the test card
+    <code>4242 4242 4242 4242</code>, any future date, any CVC, any e-mail. A paid session comes back here and the webhook
+    (<code>checkout.session.completed</code>) flips the plan flag the dashboard reads. No live keys are accepted by the server.
+  </aside>
+
+  <div class="note" id="note"></div>
+
+  <footer class="credits">
+    <span>Stripe · H Company Holo · ElevenLabs · Gladia · Devin · Linkup</span>
+  </footer>
+</main>
+<script>
+  const note = document.getElementById('note')
+  const say = (text, cls) => { note.textContent = text; note.className = 'note on ' + cls }
+  const q = new URLSearchParams(location.search)
+  if (q.get('checkout') === 'success') {
+    const plan = (q.get('plan') || '').toUpperCase()
+    say('Stripe Checkout completed (test mode, nothing charged). Checking the ' + plan + ' plan…', 'ok')
+    fetch('/api/plans').then((r) => r.json()).then((plans) => {
+      const p = plans.find((x) => x.id === (q.get('plan') || ''))
+      say(p && p.active
+        ? 'Stripe Checkout completed (test mode). ' + plan + ' plan is active: the webhook confirmed the payment and the dashboard shows it.'
+        : 'Stripe Checkout completed (test mode, nothing charged). ' + plan + ' plan is not marked active yet: the Stripe webhook (checkout.session.completed) is not wired to this public demo server, so the dashboard flag stays off. The payment itself is in the Stripe test dashboard.', 'ok')
+    }).catch(() => {})
+  }
+  if (q.get('checkout') === 'cancel') say('Checkout cancelled: nothing was charged.', 'bad')
+  for (const b of document.querySelectorAll('button[data-plan]')) {
+    b.addEventListener('click', async () => {
+      b.disabled = true; b.textContent = 'OPENING STRIPE…'
+      try {
+        const r = await fetch('/api/billing/checkout', { method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ plan: b.dataset.plan, return_path: '/pricing/' }) })
+        if (!r.ok) throw new Error((await r.json()).detail || r.statusText)
+        location.href = (await r.json()).url
+      } catch (e) {
+        say('Stripe is not reachable right now: ' + e.message, 'bad')
+        b.disabled = false; b.textContent = 'SUBSCRIBE · ' + b.dataset.plan.toUpperCase()
+      }
+    })
+  }
+</script>
+</body>
+</html>

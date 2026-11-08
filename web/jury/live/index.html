@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PLAYER TWO · LIVE · Holo streams Doom</title>
+<link rel="stylesheet" href="/jury/live/live.css" />
+</head>
+<body>
+<header class="bar">
+  <div class="brand">PLAYER <b>TWO</b></div>
+  <div class="title"><span class="live-dot" id="dot"></span><b>Holo plays Doom</b> · an AI streamer that sees the game and talks through every move · <span id="viewers">— watching</span></div>
+  <a class="hub" href="/">← home · all looks</a>
+</header>
+
+<main class="layout">
+  <section class="player">
+    <div class="video">
+      <div id="stream" class="stream"><img id="frame" alt="shared Holo game" /><div id="aim" class="aim"></div></div>
+      <div id="game" class="screen own" hidden></div>
+      <div class="overlay top"><span class="pill" id="status">connecting to the stream…</span><span class="pill dim" id="latency">—</span></div>
+      <div class="overlay bottom"><div class="now" id="thought">…</div></div>
+      <button id="over" class="play">▶ PLAY YOURSELF<small>opens your own game in this window · arrows · Ctrl · Space</small></button>
+      <button id="back" class="play back" hidden>■ BACK TO THE STREAM</button>
+    </div>
+    <div class="below">
+      <div class="streamer">
+        <div class="avatar">H</div>
+        <div><b>Holo</b> <span class="verified">✓</span><div class="dim">H Company's vision model · playing Freedoom E1M1 · hands: real key presses</div></div>
+      </div>
+      <div class="actions">
+        <button id="sound" class="btn" data-on="🔊 sound on">🔇 sound</button>
+        <a class="btn" href="/lab/">how it works</a>
+      </div>
+    </div>
+    <p class="about">This stream is one shared game: a single Holo loop plays on the server and every viewer gets the same frames, so ten visitors cost one model call per step. Press <b>PLAY YOURSELF</b> to open a private copy of the game in this window and take the keys; Holo keeps streaming for everyone else.</p>
+  </section>
+
+  <aside class="chat">
+    <div class="chat-head">HOLO'S COMMENTARY <span class="dim">live, unedited</span></div>
+    <ol id="feed" class="feed"></ol>
+    <div class="say">
+      <input id="tell" maxlength="120" placeholder="say something to Holo (works on your own game)" />
+      <button id="send">Send</button>
+    </div>
+  </aside>
+</main>
+<footer class="credits" data-credits=""></footer>
+
+<script src="/jury/shared/holo-doom.js"></script>
+<script src="/jury/shared/jury.js"></script>
+<script>
+  const $ = (s) => document.querySelector(s)
+  const KEY_LABEL = { up: '↑', down: '↓', left: '←', right: '→', strafe_left: '⇠', strafe_right: '⇢', run: 'SHIFT', fire: 'FIRE', use: 'USE' }
+  const esc = (s) => String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  const lat = []
+  let own = null, ws, gotFrame = 0, streamSteps = 0
+  function showStep(s, from) {
+    if (s.frame && s.frame.url && from === 'stream') { $('#frame').src = s.frame.url; gotFrame = Date.now() }
+    if (s.aim && s.frame && from === 'stream') { const a = $('#aim'); a.style.left = (s.aim.x / (s.frame.w || 640) * 100) + '%'; a.style.top = (s.aim.y / (s.frame.h || 300) * 100) + '%'; a.hidden = false } else if (from === 'stream') $('#aim').hidden = true
+    $('#thought').textContent = s.thought || s.error || '…'
+    if (s.latency_ms) { lat.push(s.latency_ms); $('#latency').textContent = Jury.median(lat.slice(-20)) + ' ms' }
+    const li = document.createElement('li')
+    li.innerHTML = `<span class="who ${from}">${from === 'stream' ? 'Holo' : from === 'own' ? 'Holo (yours)' : 'Holo'}</span> <span class="k">${(s.keys || []).map((k) => KEY_LABEL[k] || k).join(' ')}</span> ${esc(s.thought || s.error)}`
+    $('#feed').prepend(li)
+    while ($('#feed').children.length > 60) $('#feed').lastChild.remove()
+  }
+  function connect() {
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/api/live/ws')
+    ws.onmessage = (ev) => {
+      const m = JSON.parse(ev.data)
+      if (m.viewers != null) $('#viewers').textContent = m.viewers + ' watching'
+      if (m.broadcaster) bcast = m.broadcaster
+      if (m.type === 'hello') { (m.history || []).slice(-8).forEach((s) => showStep(s, 'stream')); if (m.history && m.history.length) gotFrame = Date.now() }
+      if (m.type === 'step') { streamSteps++; showStep(m, 'stream'); if (!own) { const rec = m.mode === 'recorded'; $('#status').textContent = rec ? 'RECORDED · shared replay of a Holo run' : 'LIVE · shared stream · Holo plays'; document.documentElement.dataset.mode = rec ? 'recorded' : 'live' } }
+    }
+    ws.onclose = () => setTimeout(connect, 3000)
+  }
+  connect()
+  // nobody streams within 8 s -> this browser runs its own Holo game (the usual engine), still zero clicks
+  let bcast = 'off', t0 = Date.now()
+  const fallback = () => {
+    if (($('#stream').hidden && own) || Date.now() - gotFrame < 8000) return
+    if (bcast === 'running' && Date.now() - t0 < 40000) return // the server is booting the shared game: give it time
+    $('#status').textContent = 'no shared stream here: starting your own Holo game'
+    if (own) { showOwn(true); own.start(); own.giveBack() } else startOwn(false) // after BACK with the stream gone: resume the private game
+  }
+  setTimeout(fallback, 8000); setInterval(fallback, 15000)
+  function showOwn(on) { $('#stream').hidden = on; $('#game').hidden = !on; $('#over').hidden = on; $('#back').hidden = !on }
+  function startOwn(human) {
+    showOwn(true)
+    if (!own) {
+      own = Jury.boot({ container: '#game', status: '#status', latency: '#latency', thought: '#thought', tell: '#tell', send: '#send', sound: '#sound', tapToPlay: false,
+        onStep: (s) => showStep(s, 'own'),
+        onState: (s) => { document.documentElement.dataset.mode = s.mode; if (s.mode === 'human') $('#status').textContent = 'YOU play · arrows · Ctrl · Space' } })
+    }
+    // takeOver boots the game itself when needed, so this also works when the server has no key (recorded start)
+    if (human) own.takeOver()
+  }
+  $('#over').onclick = () => startOwn(true)
+  $('#back').onclick = () => { // back to the shared stream: the private game stops asking Holo
+    if (own) own.stop()
+    showOwn(false)
+    gotFrame = Date.now()
+    $('#status').textContent = 'back to the shared stream'
+  }
+  $('#sound').onclick = () => { if (own) own.unmute(); $('#sound').textContent = $('#sound').dataset.on }
+  $('#send').onclick = () => { if (own && $('#tell').value.trim()) { own.tell($('#tell').value.trim()); $('#tell').value = '' } else $('#thought').textContent = 'Press PLAY YOURSELF first: instructions go to your own game.' }
+</script>
+</body>
+</html>

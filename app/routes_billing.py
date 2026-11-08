@@ -30,6 +30,7 @@ router = APIRouter(prefix="/api")
 
 class CheckoutRequest(BaseModel):
     plan: PlanId
+    return_path: str | None = None  # a path on this server to come back to; default: dashboard
 
 
 class CheckoutResponse(BaseModel):
@@ -85,16 +86,21 @@ def list_plans(b: BillingDep) -> list[Plan]:
 
 
 @router.post("/billing/checkout", response_model=CheckoutResponse)
-def checkout(req: CheckoutRequest, b: BillingDep) -> CheckoutResponse:
+def checkout(req: CheckoutRequest, b: BillingDep, request: Request) -> CheckoutResponse:
     plan = PlanId(req.plan)
     try:
         price = b.prices()[plan]
-        url = b.stripe.create_checkout(
-            plan,
-            price,
-            success_url=f"{b.dashboard_url}/?checkout=success#plans",
-            cancel_url=f"{b.dashboard_url}/?checkout=cancel#plans",
-        )
+        if req.return_path:
+            path = req.return_path
+            if not path.startswith("/") or path.startswith("//") or any(c in path for c in "?#\\"):
+                raise HTTPException(400, "return_path must be a plain path on this site")
+            base = str(request.base_url).rstrip("/") + path  # our own origin, never a third party
+            success = f"{base}?checkout=success&plan={plan.value}"
+            cancel = f"{base}?checkout=cancel"
+        else:
+            success = f"{b.dashboard_url}/?checkout=success#plans"
+            cancel = f"{b.dashboard_url}/?checkout=cancel#plans"
+        url = b.stripe.create_checkout(plan, price, success_url=success, cancel_url=cancel)
     except StripeError as e:
         raise HTTPException(502, str(e)) from e
     return CheckoutResponse(url=url)

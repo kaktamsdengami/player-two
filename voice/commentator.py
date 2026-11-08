@@ -32,6 +32,7 @@ import httpx
 
 MODELS_URL = "https://api.hcompany.ai/v1/chat/completions"
 MODEL = "holo4-27b"  # smarter talk than holo4-35b-a3b, as fast without thinking (~0.3 s)
+MUTE = re.compile(r"\bSKIP\b|not sure what to say|nothing to say|don't know what to say", re.I)
 PROMPT = Path(__file__).resolve().parent.parent / "agents" / "prompts" / "kid.md"
 EVERY_S = 3.0
 MIN_GAP_S = 12.0  # between the buddy's own lines; an answer to the child does not wait
@@ -175,7 +176,7 @@ def comment(
     if content is None and choice.get("finish_reason") == "length":
         raise ValueError("the model used all max_tokens on reasoning: no line")
     text = re.sub(r"<think>.*?</think>", "", content or "", flags=re.S).strip().strip('"')
-    if not text or text.upper().startswith("SKIP"):
+    if not text or MUTE.search(text):  # "SKIP" anywhere, or the model saying it has nothing to say
         return ""
     return trim(text, 25 if question else 18)
 

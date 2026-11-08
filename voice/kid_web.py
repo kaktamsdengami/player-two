@@ -29,6 +29,7 @@ from voice import commentator as c
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "web" / "kid"
 WAD_CANDIDATES = ("data/freedoom1.wad", "freedoom1.wad")
+STALL_S = 2.5  # a healthy answer takes 0.3-0.9 s; past this the call is stuck, ask again
 MAX_IMAGE = 400_000  # a 480-wide JPEG is ~30 KB
 IMAGE_MAGIC = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"))
 
@@ -36,8 +37,8 @@ IMAGE_MAGIC = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"))
 class Budget:
     """Per-client minimum gap and a total cap per kind of call (lines, voice, listen)."""
 
-    def __init__(self, total: int, gap_s: float) -> None:
-        self.total, self.gap_s, self.used = total, gap_s, 0
+    def __init__(self, total: int, gap_s: float, name: str = "Pixel") -> None:
+        self.total, self.gap_s, self.used, self.name = total, gap_s, 0, name
         self.last: dict[str, float] = {}
         self.lock = threading.Lock()
 
@@ -45,7 +46,7 @@ class Budget:
         now = time.monotonic()
         with self.lock:
             if self.used >= self.total:
-                raise HTTPException(429, "Pixel is resting: the demo budget is used up")
+                raise HTTPException(429, f"{self.name} is resting: the demo budget is used up")
             if now - self.last.get(who, -1e9) < self.gap_s:
                 raise HTTPException(429, "slow down")
             self.used += 1
@@ -94,6 +95,15 @@ def create_app() -> FastAPI:
     def hello() -> dict:
         return {"hello": c.HELLO, "bye": c.BYE, "voice": c.kid_voice(), "model": c.kid_tts_model()}
 
+    def _comment(shot: Path, body: LineIn) -> str:
+        """One Models call, retried once when it stalls: a stalled call used to cost the whole
+        VISION_TIMEOUT_S and then say nothing, the main "Pixel is slow" complaint."""
+        kw = dict(age=body.age, level=body.level, question=body.question, chat=body.chat)
+        try:
+            return c.comment(shot, body.recent, timeout=STALL_S, **kw)
+        except httpx.TimeoutException:
+            return c.comment(shot, body.recent, timeout=c.VISION_TIMEOUT_S, **kw)
+
     @app.post("/api/kid/line")
     def line(body: LineIn, req: Request) -> dict:
         t_in = time.monotonic()
@@ -113,9 +123,7 @@ def create_app() -> FastAPI:
             shot.write_bytes(raw)
             t0 = time.monotonic()
             try:
-                text = c.comment(shot, body.recent, age=body.age, level=body.level,
-                                 question=body.question, chat=body.chat,
-                                 timeout=c.VISION_TIMEOUT_S)  # fmt: skip
+                text = _comment(shot, body)
             except (httpx.HTTPError, ValueError, KeyError) as e:
                 return {"text": "", "skipped": f"vision: {type(e).__name__}",
                         "vision_s": round(time.monotonic() - t0, 2)}  # fmt: skip
@@ -185,6 +193,9 @@ def create_app() -> FastAPI:
             raise HTTPException(502, str(e)) from e
         return {"url": s["url"], "sample_rate": SAMPLE_RATE}
 
+    jury = PAGE.parent / "jury"
+    if jury.is_dir():  # the page wears the arcade cabinet styles (/jury/arcade/arcade.css)
+        app.mount("/jury", StaticFiles(directory=jury), name="jury-assets")
     app.mount("/", StaticFiles(directory=PAGE, html=True), name="kid")
     return app
 

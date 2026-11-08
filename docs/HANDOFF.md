@@ -2,6 +2,73 @@
 
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
+## MORNING (T33 jury site, branch `t33-jury-site`, Devin, 2026-11-08 ~07:30 CET)
+
+**What it is:** one link, zero clicks, and H Company's Holo (vision model, Models API) is visibly
+playing Doom in the browser: it gets a 480x360 JPEG of the WebGL canvas about once a second,
+answers strict JSON (`thought/keys/hold_ms/aim/status`), and the page presses real keys into the
+Chocolate Doom WASM build (Freedoom E1M1). Then the juror takes over (tap or button) and gives it
+back. Five looks, same engine.
+
+**URLs** (run `scripts\jury_up.ps1` on the laptop; it prints them with the tunnel host):
+`/` hub · `/arcade/` cabinet · `/live/` shared Twitch-style stream · `/lab/` X-ray (frame, JSON,
+latency, pool) · `/story/` "The Bug Hunt" film · `/kid/` couch buddy · `/dashboard/` (the old `/`).
+Devin's VM tunnel while its session is alive (will die): https://establishment-era-zen-guides.trycloudflare.com
+
+**Recommended for the jury:** `/arcade/` (fastest "wow" + clearest takeover). Second: `/lab/`
+(for the technical judges). `/live/` is the one to show on the big screen (one Holo loop,
+N viewers).
+
+**How it works:** `app/routes_holo.py` (`POST /api/holo/act`, `GET /api/holo/status`,
+`POST /api/holo/say`), prompt `agents/prompts/holo_play.md`, engine `web/jury/shared/holo-doom.js`,
+UI glue `web/jury/shared/jury.js`, shared stream `app/routes_live.py` + `scripts/live_broadcaster.py`
+(headless Chromium plays, pushes steps to `/api/live/push`, viewers get them over `/api/live/ws`;
+starts on the first viewer when `P2_LIVE_BROADCAST=1`, stops after 3 min without viewers).
+Fallback `web/jury/recorded/run.json` + 111 JPEGs (a real Holo run, labelled RECORDED) plays when
+there is no key, the model pool is exhausted (429/503) or the demo cap is hit, or after repeated
+errors. Keys never reach the browser.
+
+**Rate limit:** H Models API = 30 req/min per model. Pool `P2_HOLO_MODELS` (holo4-35b-a3b,
+holo4-27b, holo3-1-35b-a3b) at `P2_HOLO_RPM=28` each ≈ 84 steps/min ≈ 4-5 simultaneous live
+browsers; `P2_HOLO_RESERVE=12`/min is kept for localhost (the broadcaster). Beyond that visitors
+get `busy` and switch to RECORDED silently, badge says so.
+
+**Known issues / deviations:**
+- Fixed after Dmitry's phone test: voice was never on (`speak` defaulted to false; now the SOUND tap unlocks one <audio> element, iOS-friendly); Holo now keeps firing while it thinks after a shot, tries `use` before turning when blocked (doors look like walls), shorter walks, and the TELL instruction lasts 6 moves and is shown as `[you: ...]` in the thought line.
+- Second phone round ("still walks into walls, shoots late"): the browser is now authoritative over the model's reflexes in `web/jury/shared/holo-doom.js`: stall = brightness-normalised grey-thumbnail difference < 3.5 after ONE unchanged move (dark rooms no longer hide a wall); when stalled, a plain `up` becomes `use+up`, then `left` 900 ms; consecutive turn-only moves keep one direction and the third becomes a step forward (the model used to swing left-right-left on the spot for a minute, calling itself `stuck` while the view moved); a thought that names an enemy adds `fire`, one that names a door adds `use`; fire holds are at least 600 ms. Pace is ~1 move/s (walk 500-900 ms + think ~600 ms); Dmitry said slower decisions are fine.
+- Third phone round ("shoots a wall and calls it an enemy"): Holo now gets TWO images per request (previous view + current view, `prev_image` in `/api/holo/act`, same ~650 ms latency) and a QA-tester briefing on how a Doom level works (rooms/doors/lifts/keys/EXIT, what a monster looks like vs a wall, never `fire` without a live monster in the CURRENT view); after 3+ consecutive fire moves the prompt asks it to re-check for a live monster. The client no longer adds `fire` from the thought text (that was the wall-shooting amplifier); door words still add `use`.
+- Fourth phone round ("shoots sideways at monsters"): Doom only hits what is straight ahead, so the prompt now says fire only when the monster stands above the gun (middle third) and turn towards it otherwise; the client enforces it with the model's own `aim`: `fire` with `aim.x` in the outer thirds becomes a 300 ms turn towards the target (fire follows on the next move once centred).
+- Fifth phone round ("bumps into the first wall, does not shoot"): the symptom matched the local fallback move (`up` with an invented thought) that ran whenever the shared H budget or a 12 s timeout left a request unanswered. Now: no answer from Holo = stand still (or `use`/turn off a wall) with the honest thought `No answer from Holo (timeout | shared limit, retry in N s): ...`; pace is ~1 move per 2.5 s (`pace=1200` ms of plain play between moves, `?pace=` to tune) so one client uses ~25 req/min instead of ~55; screenshots are 640 px wide (was 480) for small distant monsters; server read timeout 9 s.
+- Dashboard (/dashboard/): the `● Talk` mic button is gone; the voice panel has a text field instead (Enter → `POST /api/intent/text {text}`, parsed with `voice.intents.parse_intent`, echoed as a transcript, 422 for small talk). The intent buttons stay.
+- Hub `/` now opens with TWO WAYS TO PLAY (Tester mode → /arcade/, Holo playing live; Kid mode → /kid/) above the five looks; the arcade, kid and dashboard headers carry `← home` and the link to the other mode, so a juror can go back and forth. Dmitry's call: the tester mode jurors see is the live Holo game, not the (mock-data) /dashboard/. /kid/ game is capped to the viewport height (no scrolling on a laptop).
+- Mode switch is now a labelled bar on /arcade/ and /kid/ ("TESTER MODE: Holo plays, INSERT COIN takes over" / "KID MODE: you play, Pixel talks"). /arcade/ TELL button removed: the input alone, Enter sends (jury.js tolerates a missing `send`). Firing rule hardened: `fire` without an `aim` is dropped, off-centre aim turns instead, and fire is no longer held across the think gap (the target may have left the gun line: this was the "shoots sideways" report).
+- /arcade/ has no TELL input any more (Dmitry: it did not work for him on the phone; the other looks keep theirs). Wall recovery: the second stuck move turns 1100 ms and resets the turn streak; the "turned enough, walking" shortcut needs >= 800 ms of accumulated turning and never fires while stalled (it used to walk straight back into the wall after two 400 ms turns).
+- Stall detector compares only the top 52 % of the view (walls/ceiling): the bobbing gun while walking into a wall counted as motion, so Holo could push a wall for a minute saying "corridor continues". Second net: the same sentence + plain forward three times in a row = stuck. /arcade/ screen is capped to the viewport height (`.screen-wrap` width from 100vh) so INSERT COIN is above the fold on a laptop; on phones the marquee subtitle is hidden.
+- /kid/ wears the arcade cabinet now (loads `/jury/arcade/arcade.css`, `kid.css` only adds Pixel: face, mic button, chat in the ticker column); kid.js untouched (same ids). Pixel never shows/speaks a line containing SKIP or "not sure what to say" (`MUTE` in commentator.py: the model put SKIP inside a sentence, the old check only looked at the start). `/api/kid/line` asks the Models API again after 2.5 s of silence (`STALL_S`) instead of waiting the full 6 s and saying nothing: measured healthy answers 0.3-0.9 s, with a 6 s ReadTimeout now and then, which was the "Pixel is slow" feel. TTS stays `eleven_v3` (first audio ~0.5 s; turbo/flash are 0.25 s but the team rejected their announcer tone).
+- **Tester briefing** (`BRIEFING` in `web/jury/shared/holo-doom.js`, `?briefing=0` disables): before Holo's first move the engine plays a fixed ~13 s route to the first E1M1 door, shown honestly as "Briefing n/5" in the feed (status `briefing`): up 4.2 s (entry hall, lift, stops at the ledge x≈645), left 300 ms, up+fire 4.5 s (the NE passage funnels the marine to (880,496) in front of the door at y=512 whatever the exact angle: 35–60° all end there, measured with the fork's `-qa-script move` + `-qa-log` on the VM), left 250 ms, use, up 2.8 s. INSERT COIN cancels it. Verified in headless Chrome: Holo's first own thought is "Moving forward through the open door into the next area". The first frames after SDL resizes the canvas are black and swallow keys, so the briefing waits for a lit frame (`lit()`). Hub now says START HERE on TESTER MODE; /live/, /lab/, /story/ got "← home" links.
+- **/pricing/ (Stripe on the jury link)**: `web/jury/pricing/index.html` in the cabinet look, two plans KID €5 / PRO €49 (Parent stays in the catalog, not shown). The button calls the existing `POST /api/billing/checkout` with a new optional `return_path` (a plain path on this server, e.g. `/pricing/`; anything with another origin, `//`, `?` or `#` is a 400), so Checkout comes back to `<our origin>/pricing/?checkout=success&plan=kid` instead of the dashboard (default unchanged). After the redirect the page reads `/api/plans` and only calls the plan active when the webhook-backed flag says so. Verified from the VM: Checkout session opens on checkout.stripe.com with the test key. The serving `uvicorn app.main:app` now needs `STRIPE_SECRET_KEY` in its env (the jury server was restarted with it); without it the page says "Stripe is not reachable". Linked from the hub row and the arcade/kid headers ("plans €").
+- **Honest busy text**: when the shared H budget is spent the feed says "H API free plan, 30 req/min per model: too many jurors playing at once, not a demo bug, retry in N s" (and the RECORDED fallback reason says the same).
+- `Module.pauseMainLoop/resumeMainLoop` corrupts this Asyncify WASM build (every later frame throws
+  "memory access out of bounds"), as does a non-empty `Module.print`. So the game is NOT paused
+  while Holo thinks: no key is held, the marine stands still (~0.5-0.8 s). Documented in
+  `holo-doom.js`; the T33 acceptance item "pause/resume verified" is therefore replaced by
+  "keyboard injection + 35 s zero-error live run verified".
+- `/live/` headless broadcaster needs Playwright Chromium on the server (`.venv/bin/playwright
+  install chromium`); without it the page falls back to its own in-browser game after 8 s.
+- `data/freedoom1.wad` is git-ignored: download Freedoom 0.13.0 into `data/` (jury_up.ps1 checks).
+- `tests/test_taptest.py::test_zero_ms_tap_advances_the_game` fails on the base branch too
+  (pre-existing, not T33).
+- Holo on Freedoom tends to say "corridor clear, forward"; `skill` 3 (arcade default) brings imps
+  sooner. The viewer instruction box ("go left", "shoot") is appended to the prompt.
+
+**Laptop checklist (5 min):** `git checkout t33-jury-site` → `uv sync --extra dev` →
+`.venv\Scripts\playwright install chromium` → `.env` has `HAI_API_KEY` (+ `ELEVENLABS_API_KEY`
+for narration) → `data\freedoom1.wad` present → `powershell -File scripts\jury_up.ps1` → open
+the printed `/arcade/` on the phone and the laptop → see LIVE badge within ~5 s → tap, play, hand
+back. Checks on the VM: `pytest` 306 passed (+1 pre-existing fail), ruff clean, `web` build+lint
+clean, 10 concurrent clients served wasm+wad+status in 0.75 s, tunnel served `/` in 0.5 s.
+
+
 - **Game screen for viewers**: `GET /api/screen` returns a JPEG of the Doom window (one ffmpeg grab a second at most, shared by every viewer; 404 when no game runs). The Live tab shows it above H's live view iframe, so the jury sees Doom even if H's `share_url` asks for a login. VM: unit test + build only; the gdigrab grab on the laptop is not yet checked.
 - **One public link for the jury, many viewers at once** (t14 now includes `t28-kid-web`): `app.main` serves the dashboard at `/` (view-only behind the tunnel) and kid mode at `/kid/`, so one server on 8000 and one `cloudflared tunnel --url http://127.0.0.1:8000` cover both; `scripts/kid_web.ps1` (8010) is no longer needed on stage. Each kid tab sends a random `c=` id so jurors on one venue IP get their own per-client gaps; total caps raised to 4000 lines / 2000 voice / 600 listens (`P2_KID_MAX_*`). Kid Doom runs in each juror's browser, not on the laptop, so it does not steal focus from H's game; only Holo vision, ElevenLabs and Gladia calls hit the laptop. VM check: `/` and `/kid/` load from one server, Doom runs at `/kid/`; live keys not tested on the VM.
 - **Kid mode in the browser** (branch `t28-kid-web`, for the jury to play themselves): `uv run uvicorn voice.kid_web:app --host 127.0.0.1 --port 8010`, then `cloudflared tunnel --url http://127.0.0.1:8010` for a public link (`scripts/kid_web.ps1` does both). Doom runs in the page (Chocolate Doom WebAssembly from cloudflare/doom-wasm, built with emsdk 3.1.61, see `web/kid/README.md`; WAD = `data/freedoom1.wad` or `P2_KID_WAD`). Every second (10 s between Pixel's own lines) the page sends a 480 px JPEG of the canvas to `POST /api/kid/line` (same `commentator.comment()` + kid prompt, repeats and bot phrases dropped), plays `GET /api/kid/say` (ElevenLabs Chris/v3 streamed through the server), and an open mic streams 16 kHz PCM to a Gladia live socket (`POST /api/kid/listen`, reopened when Gladia ends it): the child talking cuts Pixel off, Pixel's own echo is ignored (same rules as `commentator.ears`), a small button mutes. `?debug` shows per-turn timings (grab, line, vision, server, first voice); `/api/kid/say` sends `X-First-Audio-Ms`. On Windows use 127.0.0.1, not localhost (IPv6 first: ~2 s per request). Keys stay on the server; per-client gaps and total caps (`P2_KID_MAX_LINES`/`SAYS`/`LISTENS`). VM check: Doom plays and the canvas is readable in Chrome; Pixel's vision, voice and ears not yet verified with real keys.

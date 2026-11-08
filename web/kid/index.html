@@ -1,43 +1,64 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PLAYER TWO · Kid mode: play Doom with Pixel</title>
-    <link rel="stylesheet" href="kid.css" />
-  </head>
-  <body>
-    <header>
-      <div class="brand">PLAYER <span>TWO</span> · kid mode</div>
-      <div class="dim">Play Doom with Pixel, a friend who watches the screen and talks with you. LIVE: H Holo vision · ElevenLabs voice · Gladia ears</div>
-    </header>
-    <main>
-      <section class="game">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PLAYER TWO · KID MODE · play Doom with Pixel</title>
+<link rel="stylesheet" href="/jury/arcade/arcade.css" />
+<link rel="stylesheet" href="kid.css" />
+</head>
+<body>
+<div class="room">
+  <header class="marquee">
+    <div class="neon">PLAYER <span>TWO</span></div>
+    <div class="sub">You play Doom in this cabinet. <b>Pixel</b>, a friend with <b>H Company's Holo</b> eyes, watches the screen and talks with you.</div>
+    <nav class="modes">
+      <a class="mode on" href="/kid/"><b>KID MODE · you are here</b><small>You play, Pixel (Holo) watches the screen and talks with you. Just speak: the mic is on while you play.</small></a>
+      <a class="mode" href="/arcade/"><b>TESTER MODE →</b><small>Holo plays by itself; press INSERT COIN to take the controls.</small></a>
+      <a class="home" href="/pricing/">plans €</a>
+      <a class="home" href="/">← home</a>
+    </nav>
+  </header>
+
+  <main class="cabinet">
+    <div class="bezel">
+      <div class="screen-wrap">
+        <canvas id="canvas" class="screen" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
+        <div class="scanlines"></div>
         <div id="start" class="overlay">
-          <button id="go" class="primary">Play with Pixel</button>
-          <div class="dim">Turn your sound on. Arrows move · Ctrl shoots · Space opens doors · Shift runs</div>
+          <button id="go" class="coin"><span class="slot"></span>PLAY WITH PIXEL<small>turn your sound on · arrows move · Ctrl shoots · Space opens doors · Shift runs</small></button>
         </div>
-        <canvas id="canvas" tabindex="0" oncontextmenu="event.preventDefault()"></canvas>
-      </section>
-      <aside>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="thought-wrap">
+        <div class="label">PIXEL</div>
         <div class="pixel">
           <div id="face" class="face">P</div>
-          <div>
-            <b>Pixel</b>
-            <div id="status" class="dim">waiting for you to start</div>
-          </div>
+          <div id="status" class="thought">waiting for you to start</div>
         </div>
-        <button id="talk" class="talk" disabled title="The mic is on while you play: just talk. Click to mute.">Mic turns on when you start</button>
-        <div id="heard" class="heard dim"></div>
-        <div id="timing" class="small dim"></div>
-        <ol id="chat" class="chat"></ol>
-        <div class="small dim">
-          Pixel sees only the game picture every few seconds. While the mic is on, your voice goes to speech-to-text (Gladia) so Pixel can answer; click the mic button to mute.
-          Doom: <a href="https://github.com/cloudflare/doom-wasm" target="_blank" rel="noreferrer">Chocolate Doom WebAssembly</a> (GPL) +
-          <a href="https://freedoom.github.io" target="_blank" rel="noreferrer">Freedoom</a> (BSD).
-        </div>
-      </aside>
-    </main>
-    <script src="kid.js"></script>
-  </body>
+        <div id="heard" class="heard"></div>
+        <div id="timing" class="meter"></div>
+      </div>
+      <div class="controls">
+        <button id="talk" class="sound talk" disabled title="The mic is on while you play: just talk. Click to mute.">MIC TURNS ON WHEN YOU START</button>
+        <div class="hint">Pixel sees the game picture every few seconds and hears you through speech-to-text (Gladia). Click the mic button to mute.</div>
+      </div>
+    </div>
+  </main>
+
+  <aside class="ticker">
+    <div class="label">PIXEL SAYS</div>
+    <ol id="chat" class="chat"></ol>
+  </aside>
+
+  <footer class="credits">
+    PLAYER TWO · a 42AI × H Company hackathon build · code by <a href="https://devin.ai" target="_blank" rel="noreferrer">Devin</a> ·
+    Pixel: <b>H Company's Holo</b> (eyes) · ElevenLabs (voice) · Gladia (ears) · other looks: <a href="/arcade/">arcade</a> · <a href="/live/">live</a> · <a href="/lab/">lab</a> · <a href="/story/">story</a> ·
+    Doom: <a href="https://github.com/cloudflare/doom-wasm" target="_blank" rel="noreferrer">Chocolate Doom WebAssembly</a> (GPL) + <a href="https://freedoom.github.io" target="_blank" rel="noreferrer">Freedoom</a> (BSD).
+  </footer>
+</div>
+<script src="kid.js"></script>
+</body>
 </html>
