@@ -13,7 +13,7 @@ back. Five looks, same engine.
 **URLs** (run `scripts\jury_up.ps1` on the laptop; it prints them with the tunnel host):
 `/` hub · `/arcade/` cabinet · `/live/` shared Twitch-style stream · `/lab/` X-ray (frame, JSON,
 latency, pool) · `/story/` "The Bug Hunt" film · `/kid/` couch buddy · `/dashboard/` (the old `/`).
-Devin's VM tunnel while its session is alive (will die): https://parameters-quoted-confidence-mineral.trycloudflare.com
+Devin's VM tunnel while its session is alive (will die): https://establishment-era-zen-guides.trycloudflare.com
 
 **Recommended for the jury:** `/arcade/` (fastest "wow" + clearest takeover). Second: `/lab/`
 (for the technical judges). `/live/` is the one to show on the big screen (one Holo loop,
