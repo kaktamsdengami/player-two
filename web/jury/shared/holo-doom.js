@@ -267,8 +267,9 @@ window.HoloDoom = (() => {
       // the client is authoritative when the view did not change: walking on is never the answer
       const turns = move.keys.filter((k) => k === 'left' || k === 'right')
       const walksOn = move.keys.includes('up') && !move.keys.some((k) => ['use', 'left', 'right', 'strafe_left', 'strafe_right'].includes(k))
-      // the same sentence with the same "forward" three times in a row is a wall the pixels missed
-      st.sameThought = walksOn && move.thought === st.lastThought ? st.sameThought + 1 : 0
+      // the same sentence with the same "forward" three times in a row while the view barely changes
+      // is a wall the pixels missed (a clearly moving view is never a wall, however repetitive the words)
+      st.sameThought = walksOn && st.diff < STILL * 2 && move.thought === st.lastThought ? st.sameThought + 1 : 0
       st.lastThought = move.thought
       if (!stalled && st.sameThought >= 2) { stalled = true; st.same = Math.max(st.same, 2) }
       if (stalled && walksOn) {
