@@ -442,6 +442,9 @@ def greet(line: str, say: Any, speaker: Any, path: Path, recent: list[str]) -> N
     """Say hello / goodbye and wait for it to finish (a failed voice is not a reason to stop)."""
     if not say:
         return
+    end = time.monotonic() + 15
+    while speaker.busy() and time.monotonic() < end:  # let the last line finish first
+        time.sleep(0.1)
     try:
         audio = say(line, path)
         speaker(getattr(audio, "path", audio))
