@@ -241,6 +241,13 @@ def run(
     rows: list[dict[str, Any]] = []
     recent: list[str] = []
     start, last = clock(), -MIN_GAP_S
+    retried: set[str] = set()
+
+    def requeue(q: str) -> None:  # a question that got no answer is asked once more
+        if q and q not in retried and heard is not None and not heard:
+            retried.add(q)
+            heard.append(q)
+
     try:
         while clock() - start < seconds:
             t0 = clock()
@@ -264,6 +271,7 @@ def run(
                 text = ask(shot, recent, q) if q else ask(shot, recent)
             except (httpx.HTTPError, KeyError, ValueError) as e:
                 print(f"comment failed: {e}", file=sys.stderr)
+                requeue(q)
                 sleep(EVERY_S)
                 continue
             t_text = clock()
@@ -284,6 +292,8 @@ def run(
                     except (httpx.HTTPError, RuntimeError, OSError) as e:
                         row["error"] = str(e) if "dropped" in str(e) else f"speech failed: {e}"
                         print(row["error"], file=sys.stderr)
+                        if "dropped" in row["error"]:
+                            requeue(q)
                 if "error" not in row:  # an unheard line may be said again later
                     recent.append(text)
                     last = clock()
