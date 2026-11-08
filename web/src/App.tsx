@@ -41,8 +41,14 @@ export default function App() {
   const intent = (i: Intent, finding_id?: string, text = '') => {
     const body = { intent: i, source: 'button' as const, finding_id: finding_id ?? null, text }
     dispatch({ type: 'intent', intent: body })
-    sendIntent(body).catch((e: Error) => dispatch({ type: 'error', message: e.message }))
     if (i === 'stop') stopSession().catch(() => undefined)
+    return sendIntent(body).then(
+      () => true,
+      (e: Error) => {
+        dispatch({ type: 'error', message: e.message })
+        return false
+      },
+    )
   }
 
   const snap = state.snap
@@ -254,7 +260,7 @@ function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: 
 
 // ---------------------------------------------------------------- bugs
 
-function BugsView({ snap, onIntent }: { snap: Snapshot; onIntent: (i: Intent, f?: string) => void }) {
+function BugsView({ snap, onIntent }: { snap: Snapshot; onIntent: (i: Intent, f?: string) => Promise<boolean> }) {
   if (!snap.findings.length) return <div className="empty">No findings yet.</div>
   return (
     <div className="cards">
@@ -280,7 +286,7 @@ function BugCard({
   f: Finding
   fix?: FixAttempt
   narration?: Narration
-  onIntent: (i: Intent, f?: string) => void
+  onIntent: (i: Intent, f?: string) => Promise<boolean>
 }) {
   const clip = f.evidence.clip
   const src = media(clip?.path)
@@ -290,8 +296,9 @@ function BugCard({
   const [playing, setPlaying] = useState(false)
   const [sent, setSent] = useState('')
   const act = (i: Intent, label: string) => {
-    onIntent(i, f.id)
-    setSent(USING_MOCK ? `Demo data: “${label}” is not sent.` : `Sent “${label}”.`)
+    void onIntent(i, f.id).then((ok) =>
+      setSent(USING_MOCK ? `Demo data: “${label}” is not sent.` : ok ? `Sent “${label}”.` : `“${label}” failed.`),
+    )
   }
   const narrate = () => {
     if (!narration || playing) return
