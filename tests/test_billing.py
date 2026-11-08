@@ -291,15 +291,18 @@ def test_route_webhook_needs_secret(tmp_path):
     assert c.post("/api/billing/webhook", content=b"{}").status_code == 503
 
 
-def test_checkout_returns_to_the_caller_page(tmp_path):
+def test_checkout_returns_to_a_path_on_this_site(tmp_path):
     c, b = client(tmp_path, FakeStripe())
-    r = c.post(
-        "/api/billing/checkout", json={"plan": "kid", "return_url": "https://jury.example/pricing/"}
-    )
+    r = c.post("/api/billing/checkout", json={"plan": "kid", "return_path": "/pricing/"})
     assert r.status_code == 200 and r.json()["url"].startswith("https://checkout.stripe.com/")
     _, price, success, cancel = b.stripe.calls[0]
     assert price == "price_kid"
-    assert success == "https://jury.example/pricing/?checkout=success&plan=kid"
-    assert cancel == "https://jury.example/pricing/?checkout=cancel"
-    bad = c.post("/api/billing/checkout", json={"plan": "kid", "return_url": "/x"})
-    assert bad.status_code == 400
+    assert success == "http://testserver/pricing/?checkout=success&plan=kid"
+    assert cancel == "http://testserver/pricing/?checkout=cancel"
+
+
+@pytest.mark.parametrize("bad", ["https://evil.example/", "//evil.example/", "/p#x", "/p?x=1", "x"])
+def test_checkout_rejects_foreign_or_odd_return_paths(tmp_path, bad):
+    c, _ = client(tmp_path, FakeStripe())
+    r = c.post("/api/billing/checkout", json={"plan": "kid", "return_path": bad})
+    assert r.status_code == 400

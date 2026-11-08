@@ -30,7 +30,7 @@ router = APIRouter(prefix="/api")
 
 class CheckoutRequest(BaseModel):
     plan: PlanId
-    return_url: str | None = None  # where Checkout comes back; default: the dashboard
+    return_path: str | None = None  # a path on this server to come back to; default: dashboard
 
 
 class CheckoutResponse(BaseModel):
@@ -86,16 +86,17 @@ def list_plans(b: BillingDep) -> list[Plan]:
 
 
 @router.post("/billing/checkout", response_model=CheckoutResponse)
-def checkout(req: CheckoutRequest, b: BillingDep) -> CheckoutResponse:
+def checkout(req: CheckoutRequest, b: BillingDep, request: Request) -> CheckoutResponse:
     plan = PlanId(req.plan)
     try:
         price = b.prices()[plan]
-        if req.return_url:
-            if not req.return_url.startswith(("http://", "https://")):
-                raise HTTPException(400, "return_url must be absolute")
-            sep = "&" if "?" in req.return_url else "?"
-            success = f"{req.return_url}{sep}checkout=success&plan={plan.value}"
-            cancel = f"{req.return_url}{sep}checkout=cancel"
+        if req.return_path:
+            path = req.return_path
+            if not path.startswith("/") or path.startswith("//") or any(c in path for c in "?#\\"):
+                raise HTTPException(400, "return_path must be a plain path on this site")
+            base = str(request.base_url).rstrip("/") + path  # our own origin, never a third party
+            success = f"{base}?checkout=success&plan={plan.value}"
+            cancel = f"{base}?checkout=cancel"
         else:
             success = f"{b.dashboard_url}/?checkout=success#plans"
             cancel = f"{b.dashboard_url}/?checkout=cancel#plans"
