@@ -163,6 +163,7 @@ class Deps:
     replay: dict[str, str] = field(default_factory=dict)  # speed/start for later verifier runs
     debrief: Callable[[Path], Any] | None = None  # insights.debrief.build
     placement: Callable[[Path], list[Any]] | None = None  # insights.placement.scout
+    screen: Callable[[Path], Path | None] | None = None  # a still of the game window, for viewers
 
 
 class Stopped(Exception):
@@ -728,8 +729,13 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
             upd |= {"actual": bug.title, "expected": bug.expected}
         return narrate(f.model_copy(update=upd), out)
 
-    deps = Deps(TesterExplorer(), verify, narrate_verified, fix, map=f"E{episode}M{map_}",
-                run_dir=run_dir, debrief=debrief, placement=placement,
+    explorer = TesterExplorer()
+
+    def screen(out: Path) -> Path | None:
+        return capture.screenshot(explorer.win, out) if game.running and explorer.win else None
+
+    deps = Deps(explorer, verify, narrate_verified, fix, map=f"E{episode}M{map_}",
+                run_dir=run_dir, debrief=debrief, placement=placement, screen=screen,
                 replay={"speed": speed.spec(), "start": cfg.start, "preset": cfg.preset,
                         "plan": plan})  # fmt: skip
     auto = os.environ.get("P2_AUTO_FIX", "").lower() in ("1", "true", "yes")

@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
+import { API_BASE, USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
@@ -117,10 +117,27 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
   const [badShot, setBadShot] = useState('')
   const frame = media(last?.screenshot)
   const shot = frame && frame !== badShot ? frame : null
+  const [screen, setScreen] = useState<string | null>(null)
+  const watching = !USING_MOCK && active(s.state)
+  useEffect(() => {
+    if (!watching) return setScreen(null)
+    let misses = 0
+    const id = setInterval(() => {  // swap only loaded frames: no flicker, no broken image
+      const url = `${API_BASE}/api/screen?t=${Date.now()}`
+      const img = new Image()
+      img.onload = () => { misses = 0; setScreen(url) }
+      img.onerror = () => { if (++misses >= 3) setScreen(null) }
+      img.src = url
+    }, 1000)
+    return () => clearInterval(id)
+  }, [watching])
   return (
     <div className="live-grid">
       <section className="panel agent">
         <h2>Agent view</h2>
+        {screen && (
+          <img className="game-screen" src={screen} alt="the game window right now" />
+        )}
         {s.share_url && !USING_MOCK ? (
           <>
             <iframe title="H live view" src={s.share_url} />

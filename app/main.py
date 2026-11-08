@@ -9,13 +9,15 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import threading
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -241,6 +243,27 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
 
         return StreamingResponse(gen(), media_type="text/event-stream",
                                  headers={"Cache-Control": "no-cache"})  # fmt: skip
+
+    shot = {"at": 0.0, "jpg": b""}
+    shot_lock = threading.Lock()
+
+    @app.get("/api/screen")
+    def screen() -> Response:
+        """The game window right now (at most one grab a second, shared by every viewer):
+        the jury sees Doom even if H's live view asks for a login."""
+        grab = getattr(getattr(rt.current, "deps", None), "screen", None)
+        with shot_lock:
+            if grab and time.monotonic() - shot["at"] > 1.0:
+                shot["at"] = time.monotonic()
+                out = rt.runs_dir / "screen.jpg"
+                try:
+                    shot["jpg"] = out.read_bytes() if grab(out) else b""
+                except Exception:  # noqa: BLE001 - no frame this second
+                    shot["jpg"] = b""
+            jpg = shot["jpg"] if grab else b""
+        if not jpg:
+            raise HTTPException(404, "no game window")
+        return Response(jpg, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
 
     @app.get("/media/{path:path}")
     def media(path: str) -> FileResponse:

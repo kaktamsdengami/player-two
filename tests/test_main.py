@@ -93,3 +93,28 @@ def test_public_tunnel_link_is_view_only():
     assert r.status_code == 403
     assert client.post("/api/stop", json={}, headers=hdr).status_code == 403
     assert client.get("/api/session", headers=hdr).status_code == 200
+
+
+def test_screen_serves_the_game_window_to_viewers(tmp_path):
+    from types import SimpleNamespace
+
+    from fastapi.testclient import TestClient
+
+    from app.main import Runtime, create_app
+
+    rt = Runtime(tmp_path)
+    c = TestClient(create_app(rt))
+    assert c.get("/api/screen").status_code == 404  # no run
+    calls = []
+
+    def grab(out):
+        calls.append(out)
+        out.write_bytes(b"\xff\xd8jpg")
+        return out
+
+    rt.current = SimpleNamespace(deps=SimpleNamespace(screen=grab))
+    r = c.get("/api/screen")
+    assert r.status_code == 200 and r.content == b"\xff\xd8jpg"
+    assert r.headers["content-type"] == "image/jpeg"
+    c.get("/api/screen")
+    assert len(calls) == 1  # one grab a second, shared by every viewer
