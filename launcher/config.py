@@ -103,8 +103,10 @@ PRESETS = {
             "1 spawn 2022 -600 60",
         ),
         plan="Your only goal until you have it: the power-up, a glowing green sphere further "
-        "along the canyon. 1) Find it with single taps of Left/Right, one tap per step, "
-        "looking after each tap. Walk forward only when the sphere is in the centre of the "
+        "along the canyon. 1) Turn on the spot with single taps of Left or Right, one tap per "
+        "step, looking after each tap, up to a full circle (about 15 taps), until the sphere is "
+        "right above your weapon. If a full circle shows no sphere, decide yourself where to go "
+        "and search again there. Walk forward only when the sphere is in the centre of the "
         "screen, right above your weapon, not just somewhere in view. If a tap carries it past "
         "the centre, tap Alt+Left/Right (strafe) to slide it into the centre, then walk straight "
         "over it. 2) Shoot a monster only if it is already in the centre of the screen: then hold "
@@ -120,9 +122,9 @@ PRESETS = {
         # stage round 2 @3bfc1d1: imps wore 999 health down to a death and a pistol restart
         start="god",
         again="You are back at the start of the canyon, in god mode. The glowing green sphere is "
-        "straight ahead along the canyon, the same way as in your first round: bring it to the "
-        "centre of the screen with single taps (Alt+Left/Right to fine-tune), walk straight over "
-        "it first, then look at the sky.",
+        "straight ahead along the canyon, the same way as in your first round: turn with single "
+        "taps (up to a full circle) until it is right above your weapon, Alt+Left/Right to "
+        "fine-tune, walk straight over it first, then look at the sky.",
     ),
 }
 

@@ -81,8 +81,11 @@ The game is **frozen between your key presses**. That is intended: it is not hun
   platform, press Space, wait (hold Down for a moment) while it moves.
 - **Going to an item or target:** walk towards it only once it is in the **centre of the
   screen**, right above your weapon. Seeing it somewhere on the screen is not enough: from the
-  side you walk past it. To bring it to the centre, turn with **one tap** of Left or Right per
-  step (never hold while searching) and look again after every tap. If a tap carried it past the
+  side you walk past it. To find it, turn on the spot in **one direction**, **one tap** of Left
+  or Right per step (never hold while searching), and look again after every tap; keep turning
+  up to a **full circle** (about 15 taps) until it is right above your weapon. If a whole circle
+  shows no target, decide yourself where to look next (walk on along the way, try another
+  room) and search again from there. If a tap carried it past the
   centre to the other side, do not turn back and forth: tap **Alt + Left / Right** (strafe) to
   slide it into the centre in small steps. Then hold Up; if it drifts off centre while you walk,
   stop and centre it again the same way.
