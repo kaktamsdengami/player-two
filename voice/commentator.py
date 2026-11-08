@@ -59,9 +59,11 @@ def _env() -> None:
         pass
 
 
-KID_VOICE = "cgSgspJ2msm6clMCkdW9"  # ElevenLabs premade "Jessica": young, conversational
-# flash (the narration default) is cheap but reads like an announcer; multilingual_v2 sounds human
-KID_TTS_MODEL = "eleven_multilingual_v2"
+# the team's pick by ear (--try-voices): Chris on eleven_v3, a calm friend who laughs and sighs.
+# flash (the narration default) reads like an announcer; v3 is ~0.15 s slower than multilingual_v2
+KID_VOICE = "iP95p4xoKVk53GoZ742B"  # ElevenLabs premade "Chris": casual, down-to-earth
+KID_TTS_MODEL = "eleven_v3"
+VISION_TIMEOUT_S = 6.0  # a warm call takes ~0.3 s: a stalled one is skipped, not waited 30 s for
 VOICE_SETTINGS = {
     "stability": 0.5,
     "similarity_boost": 0.75,
@@ -440,6 +442,10 @@ def run(
                 heard.clear()
             try:
                 text = ask(shot, recent, q) if q else ask(shot, recent)
+            except httpx.TimeoutException:
+                print(f"vision slow (> {VISION_TIMEOUT_S} s): skipped this turn", file=sys.stderr)
+                requeue(q)
+                continue
             except (httpx.HTTPError, KeyError, ValueError) as e:
                 print(f"comment failed: {e}", file=sys.stderr)
                 requeue(q)
@@ -625,7 +631,7 @@ def main(argv: list[str] | None = None) -> int:
     chat: list[str] = []  # the conversation, so the buddy remembers what you talked about
 
     def ask(shot: Path, recent: list[str], question: str = "") -> str:
-        return comment(shot, recent, a.age, a.language, level=a.map, question=question, chat=chat)
+        return comment(shot, recent, a.age, a.language, VISION_TIMEOUT_S, a.map, question, chat)
 
     heard: list[str] = []
     recent: list[str] = []

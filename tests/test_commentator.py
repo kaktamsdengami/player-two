@@ -379,4 +379,26 @@ def test_kid_voice_uses_a_human_sounding_model_not_the_narration_default(monkeyp
     v = c.StreamVoice()
     v.exe = "ffplay"
     body = json.loads(v.request("hi").content)
-    assert body["model_id"] == "eleven_multilingual_v2" and body["voice_settings"]["style"] == 0.0
+    assert body["model_id"] == "eleven_v3" and body["voice_settings"]["stability"] == 0.5
+    monkeypatch.setenv("P2_KID_TTS_MODEL", "eleven_multilingual_v2")
+    assert json.loads(v.request("hi").content)["voice_settings"]["style"] == 0.0
+
+
+def test_a_stalled_vision_call_is_skipped_and_the_question_retried(tmp_path):
+    clock = Clock()
+    calls = []
+
+    def ask(shot, recent, q=""):
+        calls.append(q)
+        if len(calls) == 1:
+            raise c.httpx.ReadTimeout("slow")
+        return "Hmm... that's a zombie."
+
+    def grab(p):
+        p.write_bytes(b"jpg")
+        return p
+
+    heard = ["What is that?"]
+    rows = c.run(grab, tmp_path, 3, ask, lambda t, p: p, Quiet(), clock, clock.sleep, heard=heard)
+    assert calls[:2] == ["What is that?", "What is that?"]
+    assert rows and rows[0]["heard"] == "What is that?" and "error" not in rows[0]
