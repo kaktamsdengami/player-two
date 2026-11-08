@@ -15,7 +15,7 @@
 
 <main class="grid">
   <section class="card eye">
-    <h2>1 · WHAT HOLO SEES <small id="eye-meta">480px JPEG</small></h2>
+    <h2>1 · WHAT HOLO SEES <small id="eye-meta">640px JPEG</small></h2>
     <div class="eye-wrap"><img id="eye" alt="the frame sent to Holo" /><div id="eye-aim" class="eye-aim"></div></div>
     <div class="caption">The exact picture posted to <code>/api/holo/act</code>: the WebGL canvas, downscaled. No game state, no memory, no cheats: pixels only.</div>
   </section>
@@ -89,7 +89,7 @@ Recent moves: [...]   Viewer instruction: "..."   Stalled: true/false</pre>
       $('#steps').textContent = s.step
       if (s.frame && s.frame.url) { $('#eye').src = s.frame.url; $('#eye-meta').textContent = `${s.frame.w}×${s.frame.h} JPEG` }
       const aim = $('#eye-aim')
-      if (s.aim && s.frame) { aim.style.left = (s.aim.x / 480 * 100) + '%'; aim.style.top = (s.aim.y / (s.frame.h || 300) * 100) + '%'; aim.hidden = false } else aim.hidden = true
+      if (s.aim && s.frame) { aim.style.left = (s.aim.x / (s.frame.w || 640) * 100) + '%'; aim.style.top = (s.aim.y / (s.frame.h || 300) * 100) + '%'; aim.hidden = false } else aim.hidden = true
       const j = { thought: s.thought, keys: s.keys, hold_ms: s.hold_ms, aim: s.aim, status: s.status, latency_ms: s.latency_ms, model: s.model, image: s.image, usage: s.usage }
       if (s.error) j.error = s.error
       $('#json').textContent = JSON.stringify(j, null, 2)

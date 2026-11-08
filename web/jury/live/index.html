@@ -57,7 +57,7 @@
   let own = null, ws, gotFrame = 0, streamSteps = 0
   function showStep(s, from) {
     if (s.frame && s.frame.url && from === 'stream') { $('#frame').src = s.frame.url; gotFrame = Date.now() }
-    if (s.aim && s.frame && from === 'stream') { const a = $('#aim'); a.style.left = (s.aim.x / 480 * 100) + '%'; a.style.top = (s.aim.y / (s.frame.h || 300) * 100) + '%'; a.hidden = false } else if (from === 'stream') $('#aim').hidden = true
+    if (s.aim && s.frame && from === 'stream') { const a = $('#aim'); a.style.left = (s.aim.x / (s.frame.w || 640) * 100) + '%'; a.style.top = (s.aim.y / (s.frame.h || 300) * 100) + '%'; a.hidden = false } else if (from === 'stream') $('#aim').hidden = true
     $('#thought').textContent = s.thought || s.error || '…'
     if (s.latency_ms) { lat.push(s.latency_ms); $('#latency').textContent = Jury.median(lat.slice(-20)) + ' ms' }
     const li = document.createElement('li')
