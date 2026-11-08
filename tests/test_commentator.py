@@ -308,5 +308,5 @@ def test_stream_voice_stop_kills_the_player(tmp_path, monkeypatch):
     v.feeder.join(5)
     assert v.busy()
     v.stop()
+    assert not v.busy()  # at once, even if the download were still stalled
     v.proc.wait(5)
-    assert not v.busy()

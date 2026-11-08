@@ -131,6 +131,8 @@ class StreamVoice:
         self.feeder: threading.Thread | None = None
 
     def busy(self) -> bool:
+        if getattr(self, "stopped", False):  # cut off: a stalled download must not hold the turn
+            return False
         return bool(
             (self.feeder and self.feeder.is_alive()) or (self.proc and self.proc.poll() is None)
         )
