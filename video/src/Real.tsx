@@ -1,9 +1,9 @@
 // Real-footage cut for the jury ("show the real product"): the desktop screen recording of the
 // 02:26 UTC live run (player-two-live-0325.mkv, cut into public/v4/ by ffmpeg), the product's own
 // narration audio, the live GitHub PR page, the kid-mode recording and the live site. Hard cuts,
-// plain labels, no motion design. Clip prep: see the ffmpeg commands in HANDOFF / the commit message.
+// plain labels, no motion design. Clip prep: scripts/cut_real.sh.
 import React from 'react'
-import { AbsoluteFill, Audio, Freeze, Img, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from 'remotion'
+import { AbsoluteFill, Audio, Img, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from 'remotion'
 import {
   C, SANS, MONO, s, Voice, KID_INTRO, KID_SEGS, KID_LINES, kidSrc, type VO,
 } from './PlayerTwo'
@@ -40,7 +40,7 @@ const Clip: React.FC<{ file: string; w: number; h: number; top: number; freezeAf
     <div style={{ position: 'absolute', top, left: (1920 - w) / 2, width: w, height: h, border: `1px solid ${C.line}` }}>
       {freezeAfter === undefined ? v : <>
         <Sequence durationInFrames={s(freezeAfter)} layout="none">{v}</Sequence>
-        <Sequence from={s(freezeAfter)} layout="none"><Freeze frame={s(freezeAfter) - 1}>{v}</Freeze></Sequence>
+        <Sequence from={s(freezeAfter)} layout="none"><Img src={staticFile(`v4/${file.replace('.mp4', '_end.png')}`)} style={{ width: w, height: h }} /></Sequence>
       </>}
     </div>
   )
