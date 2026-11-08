@@ -70,6 +70,7 @@
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data)
       if (m.viewers != null) $('#viewers').textContent = m.viewers + ' watching'
+      if (m.broadcaster) bcast = m.broadcaster
       if (m.type === 'hello') { (m.history || []).slice(-8).forEach((s) => showStep(s, 'stream')); if (m.history && m.history.length) gotFrame = Date.now() }
       if (m.type === 'step') { streamSteps++; showStep(m, 'stream'); if (!own) { const rec = m.mode === 'recorded'; $('#status').textContent = rec ? 'RECORDED · shared replay of a Holo run' : 'LIVE · shared stream · Holo plays'; document.documentElement.dataset.mode = rec ? 'recorded' : 'live' } }
     }
@@ -77,8 +78,10 @@
   }
   connect()
   // nobody streams within 8 s -> this browser runs its own Holo game (the usual engine), still zero clicks
+  let bcast = 'off', t0 = Date.now()
   const fallback = () => {
     if (own || Date.now() - gotFrame < 8000) return
+    if (bcast === 'running' && Date.now() - t0 < 40000) return // the server is booting the shared game: give it time
     $('#status').textContent = 'no shared stream here: starting your own Holo game'
     startOwn(false)
   }
