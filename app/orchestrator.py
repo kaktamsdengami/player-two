@@ -734,8 +734,10 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
 
     def screen(out: Path) -> Path | None:
         """Whichever game window is up: the tester's, a verifier replay or a fix replay."""
+        from voice.commentator import grab_window  # Pillow ~0.05 s; ffmpeg ~3 s on Windows
+
         win = find_window(cfg.window_title)
-        return capture.screenshot(win, out) if win else None
+        return grab_window(win, out) if win else None
 
     deps = Deps(explorer, verify, narrate_verified, fix, map=f"E{episode}M{map_}",
                 run_dir=run_dir, debrief=debrief, placement=placement, screen=screen,

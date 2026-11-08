@@ -138,12 +138,7 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
         {screen && (
           <img className="game-screen" src={screen} alt="the game window right now" />
         )}
-        {s.share_url && !USING_MOCK ? (
-          <>
-            <iframe title="H live view" src={s.share_url} />
-            <a className="small" href={s.share_url} target="_blank" rel="noreferrer">Open the H live view in a new tab</a>
-          </>
-        ) : shot ? (
+        {screen ? null : shot ? (
           <img src={shot} alt="latest agent screenshot" onError={() => setBadShot(shot)} />
         ) : (
           <div className="placeholder">
@@ -158,6 +153,9 @@ function LiveView({ snap, voice, onIntent }: { snap: Snapshot; voice: Voice; onI
                   : 'No run in progress. Start one with New run →'}
             </div>
           </div>
+        )}
+        {s.share_url && !USING_MOCK && (
+          <a className="small" href={s.share_url} target="_blank" rel="noreferrer">H session trajectory (raw JSON from H)</a>
         )}
         {last && (
           <div className="caption">
