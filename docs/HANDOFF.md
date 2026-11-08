@@ -3,6 +3,7 @@
 Update this file before you stop working. Put the newest entry on top. Keep it short and factual.
 
 
+- **Live loop @3bfc1d1 (stage, 02:26-02:50 UTC): FIXED end to end by voice** (#42 comment 6716381625): H found KB3 at step 62, verified, "Yes, fix it." -> `fix` (voice), Devin fork PR kaktamsdengami/chocolate-doom#5 in 2 min, merged, rebuilt, re-verified **fixed** 6.5 min after "fix it". Round 2 failed: H wandered in the canyon and imps wore 999 health down to a death. Now `stage-play` always starts in god mode (`Preset.start`), and after a restart the round message says where the sphere is (`Preset.again`). "Thank you"-style small talk is no longer a `steer` intent (`_SMALL_TALK`).
 - Push-to-talk is on the dashboard: the voice panel's **Talk** button sets `POST /api/ptt`; `voice.listen --mic --post` follows it (Enter in that terminal still works). Start the listener once, then the stage team only uses the browser.
 - Stage presets have `goal="powerup"`: if H finishes a round with no `powerup` event in the QA log, the orchestrator sends it back to the sphere (`GOAL_NUDGE`, up to 3 times) instead of accepting the answer.
 - Stage rerun 01:15 UTC: the H create call timed out after the server had started the session, which then drove the desktop with no game. `Tester` now uses a 120 s client timeout, cancels its own live sessions (`list_sessions` by agent, created since start) when create fails or `stop()` runs without a handle, and reconnects the event stream after a read timeout. Prompts: if a monster is in the centre, fire in that step without moving.
@@ -18,7 +19,6 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 - **Stage presets** (open run settings, recorded in `tester_run.json`): `stage-kb3` (sphere near the
   start) and `stage-play` (shotgun, armour, stimpack, zombie, imps, then the sphere at the end of
   the first canyon). Fork player-two-qa 5ad5e7f6 (`spawn` QA command).
-- **Live loop @3bfc1d1 (stage, 02:26-02:50 UTC): FIXED end to end by voice** (#42 comment 6716381625): H found KB3 at step 62, verified, "Yes, fix it." -> `fix` (voice), Devin fork PR kaktamsdengami/chocolate-doom#5 in 2 min, merged, rebuilt, re-verified **fixed** 6.5 min after "fix it". Round 2 failed: H wandered in the canyon and imps wore 999 health down to a death. Now `stage-play` always starts in god mode (`Preset.start`), and after a restart the round message says where the sphere is (`Preset.again`). "Thank you"-style small talk is no longer a `steer` intent (`_SMALL_TALK`).
 - **Live loop status:** stage-play run 4 verified KB3. The first full live loop (#42 comment
   6714953320) went H -> verified KB3 -> narration -> Devin fork PR chocolate-doom#3, then stopped:
   the fix step needed a local `cd-fork` and `make`. Since t14 @137a7e8:
