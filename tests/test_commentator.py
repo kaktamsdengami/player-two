@@ -227,3 +227,20 @@ def test_the_run_ends_when_the_game_window_is_gone(tmp_path):
 
     rows = c.run(grab, tmp_path, 1800, lambda s, r: "hi", lambda t, p: p, quiet, clock, clock.sleep)
     assert 1 <= len(rows) <= 3 and clock.t < 30  # not 30 minutes of polling
+
+
+def test_an_unanswered_question_is_asked_once_more(tmp_path):
+    clock, quiet, asked, heard = Clock(), Quiet(), [], ["where is the key?"]
+
+    def ask(shot, recent, question=""):
+        asked.append(question)
+        if len(asked) <= 2:
+            raise ValueError("no line")
+        return "line"
+
+    def grab(p):
+        p.write_bytes(b"jpg")
+        return p
+
+    c.run(grab, tmp_path, 20, ask, lambda t, p: p, quiet, clock, clock.sleep, heard=heard)
+    assert asked[:3] == ["where is the key?", "where is the key?", ""]  # retried once, not forever
