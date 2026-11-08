@@ -4,6 +4,7 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 
 - Push-to-talk is on the dashboard: the voice panel's **Talk** button sets `POST /api/ptt`; `voice.listen --mic --post` follows it (Enter in that terminal still works). Start the listener once, then the stage team only uses the browser.
+- Stage rerun 01:15 UTC: the H create call timed out after the server had started the session, which then drove the desktop with no game. `Tester` now uses a 120 s client timeout, cancels its own live sessions (`list_sessions` by agent, created since start) when create fails or `stop()` runs without a handle, and reconnects the event stream after a read timeout. Prompts: if a monster is in the centre, fire in that step without moving.
 - Stage rerun 01:06 UTC: H took the zombies' red damage flash for the power-up and reported before the sphere; the verifier rejected it. `stage-play` now has no zombies at the start, the plan describes the green sphere and the "Vanguard of the gods!" pickup message, and the focus guard stops once the session is stopped.
 ## Current state (2026-11-08, Devin)
 

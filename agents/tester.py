@@ -14,7 +14,7 @@ import os
 import sys
 import time
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -66,6 +66,10 @@ RETRY_STATUS = {408, 429, 500, 502, 503, 504}
 
 class HBusyError(RuntimeError):
     """No region has enough free H slots; retry later (a desktop slot leaks ~15 min)."""
+
+
+LIVE = ("queued", "pending", "running", "paused", "idle", "awaiting_tool_results")
+STREAM_RETRIES = 5
 
 
 def base_url() -> str:
@@ -218,11 +222,12 @@ class Tester:
         if client is None:
             from hai_agents import Client
 
-            client = Client(api_key=os.environ["HAI_API_KEY"], base_url=base_url())
+            client = Client(api_key=os.environ["HAI_API_KEY"], base_url=base_url(), timeout=120)
         self.client = client
         self.tools = tools or TesterTools()
         self.handle: Any = None
         self.run: TesterRun | None = None
+        self.created_after: datetime | None = None
 
     def start(
         self,
@@ -236,16 +241,21 @@ class Tester:
         if q.get("available", 0) < min_slots:
             raise RuntimeError(f"H quota too low for a desktop session: {q}")
         self.tools.started_at = time.time()
-        self.handle = self.client.start_session(
-            agent=agent_spec(self.tools),
-            messages=task,
-            max_steps=max_steps,
-            max_time_s=max_time_s,
-            idle_timeout_s=idle_timeout_s,
-            queue=False,
-            tools=self.tools.tools(),
-            answer_schema=TesterAnswer,
-        )
+        self.created_after = datetime.now(UTC) - timedelta(seconds=10)
+        try:
+            self.handle = self.client.start_session(
+                agent=agent_spec(self.tools),
+                messages=task,
+                max_steps=max_steps,
+                max_time_s=max_time_s,
+                idle_timeout_s=idle_timeout_s,
+                queue=False,
+                tools=self.tools.tools(),
+                answer_schema=TesterAnswer,
+            )
+        except Exception:
+            self.sweep()  # the create call can fail after the server already started the session
+            raise
         self.tools.session_id = self.handle.id
         share = None
         try:
@@ -260,16 +270,22 @@ class Tester:
         """Stream events until the session settles; tool calls run here. Returns the run."""
         assert self.handle and self.run
         f = log_path.open("a", encoding="utf-8") if log_path else None
+        start = self.run.events
         try:
-            for ev in self.handle.stream(from_index=from_index):
-                self.run.events += 1
-                for a in to_action(
-                    self.handle.id, len(self.run.actions), self.tools.started_at, ev
-                ):
-                    self.run.actions.append(a)
-                    if f:
-                        f.write(a.model_dump_json() + "\n")
-                        f.flush()
+            for _ in range(STREAM_RETRIES):
+                try:
+                    for ev in self.handle.stream(from_index=from_index + self.run.events - start):
+                        self.run.events += 1
+                        for a in to_action(
+                            self.handle.id, len(self.run.actions), self.tools.started_at, ev
+                        ):
+                            self.run.actions.append(a)
+                            if f:
+                                f.write(a.model_dump_json() + "\n")
+                                f.flush()
+                    break
+                except httpx.TimeoutException:  # a slow first step: reconnect where we left off
+                    continue
         finally:
             if f:
                 f.close()
@@ -284,6 +300,27 @@ class Tester:
     def stop(self) -> None:
         if self.handle:
             self.handle.cancel()
+        elif self.created_after:
+            self.sweep()
+
+    def sweep(self) -> list[str]:
+        """Cancel this tester's live H sessions that have no handle, so none drives the desktop."""
+        try:
+            page = self.client.sessions.list_sessions(
+                agent=AGENT_NAME, created_after=self.created_after, status=list(LIVE)
+            )
+        except Exception:  # noqa: BLE001 - best effort; the caller reports its own error
+            return []
+        ids = []
+        for s in page.items:
+            if s.status not in LIVE:
+                continue
+            try:
+                self.client.sessions.cancel_session(s.id)
+                ids.append(s.id)
+            except Exception:  # noqa: BLE001
+                pass
+        return ids
 
 
 def main(argv: list[str] | None = None) -> int:

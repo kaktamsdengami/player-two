@@ -51,3 +51,69 @@ def test_plan_appends_focus_area():
     assert with_plan("Play.", " power-ups ").endswith(
         "The developer asks you to focus on: power-ups"
     )
+
+
+class _Sessions:
+    def __init__(self, items):
+        self.items, self.cancelled, self.listed = items, [], None
+
+    def list_sessions(self, **kw):
+        self.listed = kw
+        return type("Page", (), {"items": self.items})()
+
+    def cancel_session(self, id):
+        self.cancelled.append(id)
+
+
+def _session(id, status):
+    return type("S", (), {"id": id, "status": status})()
+
+
+def test_failed_create_cancels_the_orphan_h_session(monkeypatch):
+    import httpx
+    import pytest
+
+    from agents import tester as t
+
+    class Client:
+        sessions = _Sessions([_session("orphan", "running"), _session("old", "completed")])
+
+        def start_session(self, **kw):
+            raise httpx.ReadTimeout("The read operation timed out")
+
+    monkeypatch.setattr(t, "quota", lambda: {"available": 3})
+    run = t.Tester(client=Client())
+    with pytest.raises(httpx.ReadTimeout):
+        run.start("play")
+    assert Client.sessions.cancelled == ["orphan"]
+    assert Client.sessions.listed["agent"] == t.AGENT_NAME
+    run.stop()  # no handle: stop sweeps again instead of doing nothing
+    assert Client.sessions.cancelled == ["orphan", "orphan"]
+
+
+def test_follow_reconnects_after_a_stream_timeout():
+    import httpx
+
+    from agents import tester as t
+
+    class Handle:
+        id = "h1"
+
+        def __init__(self):
+            self.calls = []
+
+        def stream(self, from_index=0):
+            self.calls.append(from_index)
+            if len(self.calls) == 1:
+                yield object()
+                raise httpx.ReadTimeout("slow first step")
+            yield object()
+
+        def wait_for_completion(self):
+            return type("R", (), {"status": "completed", "answer": None})()
+
+    run = t.Tester(client=object())
+    run.handle = Handle()
+    run.run = t.TesterRun("h1", None, "running", None, run.tools)
+    run.follow()
+    assert run.handle.calls == [0, 1] and run.run.events == 2

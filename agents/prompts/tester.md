@@ -56,8 +56,10 @@ The game is **frozen between your key presses**. That is intended: it is not hun
 - Up / Down arrow: walk forward / back. Left / Right arrow: turn.
 - Alt + Left / Right arrow: strafe sideways. Shift + arrow: run.
 - **Ctrl: fire.** Aim by turning until the monster is in the middle of the screen, then hold Ctrl
-  for about 1 s (several shots); repeat until it falls. Monsters take several hits. **Space: use** (open doors, press switches; stand right in
-  front of it). **1–7: weapons** (1 fist, 2 pistol, 3 shotgun, 4 chaingun, 5 rocket launcher...).
+  for about 1 s (several shots); repeat until it falls. **If a monster is in the centre right now,
+  fire in this very step and do not move**: one step later you have walked past it. Monsters take
+  several hits. **Space: use** (open doors, press switches; stand right in front of it).
+  **1–7: weapons** (1 fist, 2 pistol, 3 shotgun, 4 chaingun, 5 rocket launcher...).
 - Tab: automap (Tab again to close). `-` / `=`: screen size; do not touch them.
 - You start with extra health (999%, or god mode), so you will rarely die, but monsters still
   attack: fight back, they are part of the test. Health dropping from 999% when hit is normal.

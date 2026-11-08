@@ -100,7 +100,8 @@ PRESETS = {
         ),
         plan="Your only goal until you have it: the power-up, a glowing green sphere further "
         "along the canyon. 1) Turn to face the sphere and walk straight to it, over it. "
-        "2) Shoot a monster only if it is already in the centre of the screen; never turn away "
+        "2) Shoot a monster only if it is already in the centre of the screen: then hold Ctrl in "
+        "that same step without moving, and walk on after. Never turn away "
         "from the sphere to chase or aim at monsters. 3) Judge the sky only after the pickup "
         "message "
         '"Vanguard of the gods!" appears at the top left and the screen turns white; a red '
