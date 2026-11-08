@@ -285,7 +285,7 @@ function BugCard({
   const clip = f.evidence.clip
   const src = media(clip?.path)
   const video = useRef<HTMLVideoElement>(null)
-  const [clipErr, setClipErr] = useState(false)
+  const [badClip, setBadClip] = useState('')
   const [cue, setCue] = useState(-1)
   const [playing, setPlaying] = useState(false)
   const [sent, setSent] = useState('')
@@ -335,18 +335,18 @@ function BugCard({
       </div>
       <div className="card-body">
         <div className="clip">
-          {src && !clipErr ? (
+          {src && src !== badClip ? (
             <video
               ref={video}
               src={`${src}#t=${clip!.start_s},${clip!.end_s}`}
               controls
               muted
               onLoadedMetadata={(e) => (e.currentTarget.playbackRate = clip!.speed)}
-              onError={() => setClipErr(true)}
+              onError={() => setBadClip(src)}
             />
           ) : (
             <div className="placeholder small">
-              {clipErr ? 'clip file not available' : `clip ${clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}`}
+              {src && src === badClip ? 'clip file not available' : `clip ${clip ? `${fmtS(clip.start_s)}–${fmtS(clip.end_s)}` : 'pending'}`}
             </div>
           )}
           {clip && <span className="speed">RECORDED · {clip.speed}× speed</span>}
