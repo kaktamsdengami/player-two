@@ -115,9 +115,20 @@ clean, 10 concurrent clients served wasm+wad+status in 0.75 s, tunnel served `/`
 - **H notes:** real H runs only on the stage laptop (US region, `HAI_REGIONS=https://agp.hcompany.ai`).
   The team cancelled the "H showcase" list (#42): no new features, main loop first.
 - **Judging:** round 1 is online (demo video + a live link the jury clicks); stage only for the top 8.
+- **Jury day over (2026-11-08 evening):** result — 3rd place + the "best use of Devin" prize.
+  The public jury site (hub, /arcade/, /kid/, /lab/, /pricing/, /dashboard/) ran on two Devin VMs
+  behind `cloudflared` quick tunnels from ~07:30 to 20:30 UTC; both links answered 200 on every
+  3-minute check, Holo stayed `live` (backup served ~4.9k Holo moves; its in-process cap was raised
+  with `P2_HOLO_MAX_ACTS=40000` because the default 8000 would have pushed every tab to RECORDED).
+  Both tunnels and servers are now shut down; the trycloudflare URLs are dead. **Next:** permanent
+  hosting (a small VPS or container host + the Dockerfile, a real domain, `P2_HOLO_MAX_ACTS` sized
+  to the H plan, uptime check). The stage replay of the fix loop needs `web/dist` built on the
+  laptop and `P2_RECORDING=recordings/20261108-032604-session/events.jsonl` — it was not shown.
 
 ## Log
 
+- 2026-11-08 evening (Devin): jury window closed, tunnels down. Kid-mode STT fixes merged (#55
+  `-nosound`, #56 phantom phrases, #57 one-word answers). Result: 3rd place + Devin prize.
 - 2026-11-08 (Devin): README.md rewritten as the submission page (pitch, loop, Mermaid
   architecture, honest results, how to run, credits). `eval/RESULTS.md` lists the stage runs 2
   (blind, KB4) and 4 (`stage-play`, spec-based, KB3), the KB3 Devin fix (fork PR #2, not merged;
