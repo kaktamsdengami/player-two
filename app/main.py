@@ -60,6 +60,9 @@ def control(request: Request) -> None:
     token = os.environ.get("P2_CONTROL_TOKEN")
     if token and request.headers.get("x-p2-token") != token:
         raise HTTPException(401, "missing or wrong X-P2-Token")
+    host = request.client.host if request.client else ""
+    if not token and host not in ("127.0.0.1", "::1", "testclient"):
+        raise HTTPException(403, "set P2_CONTROL_TOKEN to control the session from another machine")
 
 
 class StartRequest(BaseModel):
