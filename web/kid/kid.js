@@ -51,10 +51,11 @@ function say(text, t = {}) {
     const fail = () => { status('voice unavailable'); done() }
     a.onplaying = () => { t.voice_ms = Math.round(performance.now() - t0); timing(t) }
     a.onended = done
-    const asBlob = async () => { // some browsers refuse a chunked mp3 stream
+    const asBlob = async (afterStream) => { // some browsers refuse a chunked mp3 stream
       try {
         const r = await fetch(url)
         if (!r.ok) throw new Error('HTTP ' + r.status)
+        if (afterStream) blobOnly = true // the voice works, only the stream was refused
         const blob = await r.blob()
         if (state.audio !== a) return done()
         a.onerror = fail
@@ -63,7 +64,7 @@ function say(text, t = {}) {
       } catch (e) { fail() }
     }
     if (blobOnly) return asBlob()
-    a.onerror = () => { if (state.audio !== a) return done(); blobOnly = true; asBlob() }
+    a.onerror = () => { if (state.audio !== a) return done(); asBlob(true) }
     a.src = url
     a.play().catch((e) => { if (e.name === 'NotAllowedError') fail() }) // a media error goes to onerror
   })
