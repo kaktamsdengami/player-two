@@ -1,0 +1,1654 @@
+{
+ "label": "RECORDED",
+ "note": "Holo (holo4-35b-a3b) playing Freedoom E1M1 in the browser build, recorded by scripts/record_holo_run.py",
+ "recorded_at": "2026-11-08T05:53:07+00:00",
+ "steps": [
+  {
+   "step": 1,
+   "thought": "Starting in a room with a door ahead, I'll move forward to explore.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 2014,
+   "frame": "f000.jpg"
+  },
+  {
+   "step": 2,
+   "thought": "I see a door ahead, I'll move forward to open it.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 536,
+   "frame": "f001.jpg"
+  },
+  {
+   "step": 3,
+   "thought": "Moving forward through the door to explore the next area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 469,
+   "frame": "f002.jpg"
+  },
+  {
+   "step": 4,
+   "thought": "Moving forward through the door to explore the next area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 521,
+   "frame": "f003.jpg"
+  },
+  {
+   "step": 5,
+   "thought": "Moving forward through the corridor to find enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 527,
+   "frame": "f004.jpg"
+  },
+  {
+   "step": 6,
+   "thought": "I see an imp ahead, I'll fire to take it down.",
+   "keys": [
+    "up",
+    "fire"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 582,
+   "frame": "f005.jpg"
+  },
+  {
+   "step": 7,
+   "thought": "I see an imp ahead, I'll fire to take it down.",
+   "keys": [
+    "up",
+    "fire"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 596,
+   "frame": "f006.jpg"
+  },
+  {
+   "step": 8,
+   "thought": "I see an imp ahead, I'll fire to take it down.",
+   "keys": [
+    "up",
+    "fire"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 481,
+   "frame": "f007.jpg"
+  },
+  {
+   "step": 9,
+   "thought": "Corridor clear ahead, moving forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 496,
+   "frame": "f008.jpg"
+  },
+  {
+   "step": 10,
+   "thought": "Corridor clear ahead, moving forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 489,
+   "frame": "f009.jpg"
+  },
+  {
+   "step": 11,
+   "thought": "Corridor clear ahead, moving forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 474,
+   "frame": "f010.jpg"
+  },
+  {
+   "step": 12,
+   "thought": "No enemies in sight, continuing forward through the corridor.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 510,
+   "frame": "f011.jpg"
+  },
+  {
+   "step": 13,
+   "thought": "Corridor clear ahead, continuing forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 475,
+   "frame": "f012.jpg"
+  },
+  {
+   "step": 14,
+   "thought": "Corridor clear ahead, continuing forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 576,
+   "frame": "f013.jpg"
+  },
+  {
+   "step": 15,
+   "thought": "Corridor clear ahead, continuing forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 576,
+   "frame": "f014.jpg"
+  },
+  {
+   "step": 16,
+   "thought": "Corridor clear ahead, continuing forward to find more enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 469,
+   "frame": "f015.jpg"
+  },
+  {
+   "step": 17,
+   "thought": "Corridor clear, continuing forward to find enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 555,
+   "frame": "f016.jpg"
+  },
+  {
+   "step": 18,
+   "thought": "Corridor clear ahead, continuing forward to find enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 576,
+   "frame": "f017.jpg"
+  },
+  {
+   "step": 19,
+   "thought": "Corridor clear, continuing forward to find enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 578,
+   "frame": "f018.jpg"
+  },
+  {
+   "step": 20,
+   "thought": "Corridor clear ahead, continuing forward to find enemies or items.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 477,
+   "frame": "f019.jpg"
+  },
+  {
+   "step": 21,
+   "thought": "Corridor clear, pushing forward to find enemies or loot ahead.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 486,
+   "frame": "f020.jpg"
+  },
+  {
+   "step": 22,
+   "thought": "Corridor clear, pushing forward to find enemies or loot ahead.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 553,
+   "frame": "f021.jpg"
+  },
+  {
+   "step": 23,
+   "thought": "Corridor clear ahead, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 466,
+   "frame": "f022.jpg"
+  },
+  {
+   "step": 24,
+   "thought": "Corridor clear ahead, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 580,
+   "frame": "f023.jpg"
+  },
+  {
+   "step": 25,
+   "thought": "Corridor clear, pushing forward to find enemies or loot ahead.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 567,
+   "frame": "f024.jpg"
+  },
+  {
+   "step": 26,
+   "thought": "Corridor clear, pushing forward to find enemies or loot ahead.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 527,
+   "frame": "f025.jpg"
+  },
+  {
+   "step": 27,
+   "thought": "Corridor clear, pushing forward to find enemies or loot ahead.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 563,
+   "frame": "f026.jpg"
+  },
+  {
+   "step": 28,
+   "thought": "Corridor clear ahead, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 463,
+   "frame": "f027.jpg"
+  },
+  {
+   "step": 29,
+   "thought": "Corridor is clear, keep pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 275,
+   "frame": "f028.jpg"
+  },
+  {
+   "step": 30,
+   "thought": "Corridor is clear, keep pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 258,
+   "frame": "f029.jpg"
+  },
+  {
+   "step": 31,
+   "thought": "Corridor is clear, keep moving forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 257,
+   "frame": "f030.jpg"
+  },
+  {
+   "step": 32,
+   "thought": "Corridor is clear, keep moving forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 253,
+   "frame": "f031.jpg"
+  },
+  {
+   "step": 33,
+   "thought": "Corridor still clear, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 160
+   },
+   "status": "ok",
+   "latency_ms": 278,
+   "frame": "f032.jpg"
+  },
+  {
+   "step": 34,
+   "thought": "Corridor still clear, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 278,
+   "frame": "f033.jpg"
+  },
+  {
+   "step": 35,
+   "thought": "Corridor still clear, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 245,
+   "frame": "f034.jpg"
+  },
+  {
+   "step": 36,
+   "thought": "Corridor still clear, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 247,
+   "frame": "f035.jpg"
+  },
+  {
+   "step": 37,
+   "thought": "Corridor still clear, pushing forward to find enemies or loot.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 259,
+   "frame": "f036.jpg"
+  },
+  {
+   "step": 38,
+   "thought": "Wall ahead, turning left to find an opening.",
+   "keys": [
+    "left"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 628,
+   "frame": "f037.jpg"
+  },
+  {
+   "step": 39,
+   "thought": "Wall ahead, turning left to find an opening.",
+   "keys": [
+    "left"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 252,
+   "frame": "f038.jpg"
+  },
+  {
+   "step": 40,
+   "thought": "Still facing a wall; keep turning left to find the corridor opening.",
+   "keys": [
+    "left"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 294,
+   "frame": "f039.jpg"
+  },
+  {
+   "step": 41,
+   "thought": "Still facing a wall; keep turning left to find the corridor opening.",
+   "keys": [
+    "left"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 260,
+   "frame": "f040.jpg"
+  },
+  {
+   "step": 42,
+   "thought": "Still facing a wall; keep turning left to find the corridor opening.",
+   "keys": [
+    "left"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 248,
+   "frame": "f041.jpg"
+  },
+  {
+   "step": 43,
+   "thought": "Still facing a wall; keep turning left to find the corridor opening.",
+   "keys": [
+    "left"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 269,
+   "frame": "f042.jpg"
+  },
+  {
+   "step": 44,
+   "thought": "Moving on while I think.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 12065,
+   "frame": "f043.jpg"
+  },
+  {
+   "step": 45,
+   "thought": "Moving on while I think.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 12074,
+   "frame": "f044.jpg"
+  },
+  {
+   "step": 46,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 581,
+   "frame": "f045.jpg"
+  },
+  {
+   "step": 47,
+   "thought": "I see a door ahead, let's move closer and try to open it.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 581,
+   "frame": "f046.jpg"
+  },
+  {
+   "step": 48,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 585,
+   "frame": "f047.jpg"
+  },
+  {
+   "step": 49,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 582,
+   "frame": "f048.jpg"
+  },
+  {
+   "step": 50,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 563,
+   "frame": "f049.jpg"
+  },
+  {
+   "step": 51,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 569,
+   "frame": "f050.jpg"
+  },
+  {
+   "step": 52,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 565,
+   "frame": "f051.jpg"
+  },
+  {
+   "step": 53,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 470,
+   "frame": "f052.jpg"
+  },
+  {
+   "step": 54,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 547,
+   "frame": "f053.jpg"
+  },
+  {
+   "step": 55,
+   "thought": "Still no door in sight, keep moving forward to find one.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 458,
+   "frame": "f054.jpg"
+  },
+  {
+   "step": 56,
+   "thought": "Stuck in a corridor, turning around to find a way out.",
+   "keys": [
+    "down"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 523,
+   "frame": "f055.jpg"
+  },
+  {
+   "step": 57,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 539,
+   "frame": "f056.jpg"
+  },
+  {
+   "step": 58,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 565,
+   "frame": "f057.jpg"
+  },
+  {
+   "step": 59,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 564,
+   "frame": "f058.jpg"
+  },
+  {
+   "step": 60,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 535,
+   "frame": "f059.jpg"
+  },
+  {
+   "step": 61,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 593,
+   "frame": "f060.jpg"
+  },
+  {
+   "step": 62,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 565,
+   "frame": "f061.jpg"
+  },
+  {
+   "step": 63,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 457,
+   "frame": "f062.jpg"
+  },
+  {
+   "step": 64,
+   "thought": "Corridor ahead, moving forward to find the exit.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 510,
+   "frame": "f063.jpg"
+  },
+  {
+   "step": 65,
+   "thought": "Still no enemies or items, keep moving forward.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 559,
+   "frame": "f064.jpg"
+  },
+  {
+   "step": 66,
+   "thought": "No enemies or items in sight, continuing to advance through the corridor.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 862,
+   "frame": "f065.jpg"
+  },
+  {
+   "step": 67,
+   "thought": "Still no enemies or items, keep moving forward.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 556,
+   "frame": "f066.jpg"
+  },
+  {
+   "step": 68,
+   "thought": "Corridor continues, no enemies or items yet, keep advancing.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 461,
+   "frame": "f067.jpg"
+  },
+  {
+   "step": 69,
+   "thought": "Corridor continues, no enemies or items yet, keep advancing.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 463,
+   "frame": "f068.jpg"
+  },
+  {
+   "step": 70,
+   "thought": "Corridor continues, no enemies or items yet, keep advancing.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 579,
+   "frame": "f069.jpg"
+  },
+  {
+   "step": 71,
+   "thought": "Corridor continues, no enemies or items yet, keep advancing.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 460,
+   "frame": "f070.jpg"
+  },
+  {
+   "step": 72,
+   "thought": "Corridor continues, no enemies or items yet, keep advancing.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 597,
+   "frame": "f071.jpg"
+  },
+  {
+   "step": 73,
+   "thought": "Corridor continues, no enemies or items yet, keep advancing.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 561,
+   "frame": "f072.jpg"
+  },
+  {
+   "step": 74,
+   "thought": "Enemy spotted ahead, firing immediately.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 200,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 244,
+   "frame": "f073.jpg"
+  },
+  {
+   "step": 75,
+   "thought": "Firing at the enemy ahead to take it down.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 200,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 247,
+   "frame": "f074.jpg"
+  },
+  {
+   "step": 76,
+   "thought": "Firing at the enemy in front to eliminate the threat.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 160
+   },
+   "status": "ok",
+   "latency_ms": 285,
+   "frame": "f075.jpg"
+  },
+  {
+   "step": 77,
+   "thought": "Firing at the enemy ahead to take it down.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 268,
+   "frame": "f076.jpg"
+  },
+  {
+   "step": 78,
+   "thought": "Firing at the enemy ahead to take it down.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 255,
+   "frame": "f077.jpg"
+  },
+  {
+   "step": 79,
+   "thought": "Firing at the enemy ahead to take it down.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 244,
+   "frame": "f078.jpg"
+  },
+  {
+   "step": 80,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 266,
+   "frame": "f079.jpg"
+  },
+  {
+   "step": 81,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 269,
+   "frame": "f080.jpg"
+  },
+  {
+   "step": 82,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 271,
+   "frame": "f081.jpg"
+  },
+  {
+   "step": 83,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": null,
+   "status": "ok",
+   "latency_ms": 243,
+   "frame": "f082.jpg"
+  },
+  {
+   "step": 84,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 274,
+   "frame": "f083.jpg"
+  },
+  {
+   "step": 85,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 277,
+   "frame": "f084.jpg"
+  },
+  {
+   "step": 86,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 279,
+   "frame": "f085.jpg"
+  },
+  {
+   "step": 87,
+   "thought": "The enemy is still visible, so I will continue firing to eliminate it.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 160
+   },
+   "status": "ok",
+   "latency_ms": 296,
+   "frame": "f086.jpg"
+  },
+  {
+   "step": 88,
+   "thought": "The enemy is still in front of me, so I will keep firing to eliminate it.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 272,
+   "frame": "f087.jpg"
+  },
+  {
+   "step": 89,
+   "thought": "Enemy still ahead, keep firing to eliminate.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 249,
+   "frame": "f088.jpg"
+  },
+  {
+   "step": 90,
+   "thought": "The enemy is still in front of me, so I will keep firing to eliminate it.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 258,
+   "frame": "f089.jpg"
+  },
+  {
+   "step": 91,
+   "thought": "The enemy is still in front of me, so I will keep firing to eliminate it.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 253,
+   "frame": "f090.jpg"
+  },
+  {
+   "step": 92,
+   "thought": "No enemies visible, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 700,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 266,
+   "frame": "f091.jpg"
+  },
+  {
+   "step": 93,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 700,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 279,
+   "frame": "f092.jpg"
+  },
+  {
+   "step": 94,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 700,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 268,
+   "frame": "f093.jpg"
+  },
+  {
+   "step": 95,
+   "thought": "Enemy spotted ahead, firing to eliminate the threat.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 300,
+   "frame": "f094.jpg"
+  },
+  {
+   "step": 96,
+   "thought": "Enemy spotted ahead, firing to eliminate the threat.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 249,
+   "frame": "f095.jpg"
+  },
+  {
+   "step": 97,
+   "thought": "Enemy still ahead, continuing to fire to eliminate the threat.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 263,
+   "frame": "f096.jpg"
+  },
+  {
+   "step": 98,
+   "thought": "Enemy still ahead, continuing to fire to eliminate the threat.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 260,
+   "frame": "f097.jpg"
+  },
+  {
+   "step": 99,
+   "thought": "Enemy still ahead, continuing to fire to eliminate the threat.",
+   "keys": [
+    "fire"
+   ],
+   "hold_ms": 300,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 262,
+   "frame": "f098.jpg"
+  },
+  {
+   "step": 100,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 700,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 266,
+   "frame": "f099.jpg"
+  },
+  {
+   "step": 101,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 700,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 260,
+   "frame": "f100.jpg"
+  },
+  {
+   "step": 102,
+   "thought": "Moving forward to explore the area and find enemies.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 1953,
+   "frame": "f101.jpg"
+  },
+  {
+   "step": 103,
+   "thought": "No enemies ahead, continuing to explore the area for threats.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 459,
+   "frame": "f102.jpg"
+  },
+  {
+   "step": 104,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 534,
+   "frame": "f103.jpg"
+  },
+  {
+   "step": 105,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 820,
+   "frame": "f104.jpg"
+  },
+  {
+   "step": 106,
+   "thought": "No enemies in sight, moving forward to explore the area.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 639,
+   "frame": "f105.jpg"
+  },
+  {
+   "step": 107,
+   "thought": "No enemies in sight, continuing to explore the area for threats.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 569,
+   "frame": "f106.jpg"
+  },
+  {
+   "step": 108,
+   "thought": "No enemies yet, keep moving forward to find them.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 640,
+   "frame": "f107.jpg"
+  },
+  {
+   "step": 109,
+   "thought": "No enemies in sight, continuing to explore the area for threats.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "ok",
+   "latency_ms": 572,
+   "frame": "f108.jpg"
+  },
+  {
+   "step": 110,
+   "thought": "No enemies ahead, turning around to find a new path.",
+   "keys": [
+    "down"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 180
+   },
+   "status": "stuck",
+   "latency_ms": 574,
+   "frame": "f109.jpg"
+  },
+  {
+   "step": 111,
+   "thought": "No enemies ahead, continuing to explore the area for threats.",
+   "keys": [
+    "up"
+   ],
+   "hold_ms": 500,
+   "aim": {
+    "x": 240,
+    "y": 150
+   },
+   "status": "ok",
+   "latency_ms": 594,
+   "frame": "f110.jpg"
+  }
+ ]
+}

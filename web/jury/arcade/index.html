@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PLAYER TWO · ARCADE · H Company's Holo plays Doom</title>
+<link rel="stylesheet" href="/jury/arcade/arcade.css" />
+</head>
+<body>
+<div class="room">
+  <header class="marquee">
+    <div class="neon">PLAYER <span>TWO</span></div>
+    <div class="sub">An AI is playing Doom in this cabinet right now. <b>H Company's Holo</b> looks at the pixels, thinks, presses the keys.</div>
+  </header>
+
+  <main class="cabinet">
+    <div class="bezel">
+      <div class="screen-wrap">
+        <div id="game" class="screen"></div>
+        <div class="scanlines"></div>
+        <div class="led" id="led"></div>
+        <div class="status" id="status">warming up the cabinet…</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="thought-wrap">
+        <div class="label">HOLO IS THINKING</div>
+        <div class="thought" id="thought">…</div>
+        <div class="meter"><span>vision model latency</span><b id="latency">—</b></div>
+      </div>
+      <div class="controls">
+        <button id="over" class="coin"><span class="slot"></span>INSERT COIN<small>take over · arrows · Ctrl · Space</small></button>
+        <button id="back" class="coin back" hidden>HOLO, YOUR TURN<small>give the controls back</small></button>
+        <div class="tell-row">
+          <input id="tell" maxlength="120" placeholder="tell Holo something: “find the exit”, “shoot the imp”" />
+          <button id="send">TELL</button>
+        </div>
+        <button id="sound" class="sound" data-on="SOUND ON">SOUND OFF · tap for audio</button>
+      </div>
+    </div>
+  </main>
+
+  <aside class="ticker">
+    <div class="label">MOVE LOG</div>
+    <ol id="feed" class="feed"></ol>
+  </aside>
+
+  <footer class="credits" data-credits=""></footer>
+</div>
+<script src="/jury/shared/holo-doom.js"></script>
+<script src="/jury/shared/jury.js"></script>
+<script>
+  const hd = Jury.boot({ container: '#game', feed: '#feed', thought: '#thought', status: '#status', latency: '#latency',
+    over: '#over', back: '#back', tell: '#tell', send: '#send', sound: '#sound',
+    onState: (s) => { document.getElementById('led').dataset.mode = s.mode } })
+</script>
+</body>
+</html>
