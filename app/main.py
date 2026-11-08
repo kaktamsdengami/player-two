@@ -232,9 +232,12 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
         i = parse_intent(body.text)
         if i is None:
             raise HTTPException(422, "not an instruction: say what to do, e.g. 'fix it', 'skip'")
-        rt.current.publish(
-            SseType.transcript, TranscriptPayload(text=body.text.strip(), final=True)
-        )
+        # typed = deliberate, like a button press: it survives the narration drain (a half-heard
+        # voice "fix it" during the narration does not)
+        i = i.model_copy(update={"source": "button"})
+        publish = getattr(rt.current, "publish", None)  # Recorded replays have no transcript feed
+        if publish:
+            publish(SseType.transcript, TranscriptPayload(text=body.text.strip(), final=True))
         rt.current.intent(i)
         return i.model_dump(mode="json")
 
