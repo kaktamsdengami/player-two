@@ -98,15 +98,14 @@ PRESETS = {
             "1 spawn 3004 -520 -40",
             "1 spawn 2022 -600 60",
         ),
-        plan="Go straight to the power-up: walk forward through the first area, picking up what is "
-        "on your way. The power-up is a glowing green sphere further along the canyon; walk over "
-        "it to take it. Do not hunt monsters; shoot only if one is already in your crosshair, "
-        "otherwise keep moving to the sphere. A red flash of the screen is only damage, not the "
-        'power-up. Expected behaviour (from the developer): on pickup the message "Vanguard of '
-        'the gods!" appears at the top left, and while invulnerable the whole screen should be '
-        "drawn inverted (white/grey), including the sky. Judge the sky only after that message "
-        "and once the walls have turned white: compare the sky with the walls; if the sky keeps "
-        "its normal colour, report it.",
+        plan="Your only goal until you have it: the power-up, a glowing green sphere further "
+        "along the canyon. 1) Turn to face the sphere and walk straight to it, over it. "
+        "2) Shoot a monster only if it is already in your crosshair; never turn away from the "
+        "sphere to chase or aim at monsters. 3) Judge the sky only after the pickup message "
+        '"Vanguard of the gods!" appears at the top left and the screen turns white; a red '
+        "flash is only damage, not the bug. Expected behaviour (from the developer): while "
+        "invulnerable the whole screen should be drawn inverted (white/grey), including the "
+        "sky. Compare the sky with the walls: if the sky keeps its normal colour, report it.",
     ),
 }
 
