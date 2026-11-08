@@ -237,6 +237,13 @@ def test_preset_adds_start_lines(tmp_path):
     assert Game(cfg, tmp_path / "run2").start_script().read_text() == "1 spawn 2022 -100 -224\n"
 
 
+def test_stage_play_is_god_mode_every_round(tmp_path):
+    cfg = _cfg(tmp_path)
+    cfg.start, cfg.preset = "tough", "stage-play"
+    lines = Game(cfg, tmp_path / "run").start_script().read_text().splitlines()
+    assert lines[0] == "1 god" and "1 spawn 2022 -600 60" in lines
+
+
 def test_window_size_from_env(monkeypatch):
     from launcher.config import LauncherConfig
 

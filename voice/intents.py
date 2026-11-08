@@ -81,6 +81,12 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", t).strip()
 
 
+_SMALL_TALK = re.compile(
+    r"^(thank(s| you)( (very|so) much)?|merci( beaucoup)?|cool|nice|great|super|wow|bravo"
+    r"|good job|well done|ok thanks?)\W*$"
+)
+
+
 def parse_intent(
     text: str,
     *,
@@ -97,8 +103,8 @@ def parse_intent(
         if any(p.search(norm) for p in patterns):
             intent = candidate
             break
-    if intent is Intent.steer and len(norm.split()) < 2:
-        return None  # a lone unknown word is more likely noise than a steering instruction
+    if intent is Intent.steer and (len(norm.split()) < 2 or _SMALL_TALK.search(norm)):
+        return None  # a lone word or "thank you" is not a steering instruction
     return VoiceIntent(
         intent=intent,
         text=text.strip(),

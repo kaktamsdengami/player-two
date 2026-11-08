@@ -60,7 +60,9 @@ class Game:
 
     def start_script(self) -> Path | None:
         """QA start state for free play (replay scripts set their own)."""
-        line = {"god": "1 god", "tough": "1 health 999"}.get(self.cfg.start)
+        preset = PRESETS[self.cfg.preset] if self.cfg.preset else None
+        start = (preset and preset.start) or self.cfg.start
+        line = {"god": "1 god", "tough": "1 health 999"}.get(start)
         lines = [line] if line else []
         if self.cfg.preset:
             lines += PRESETS[self.cfg.preset].lines
