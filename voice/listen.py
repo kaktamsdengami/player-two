@@ -146,7 +146,9 @@ def wav_chunks(path: str, realtime: bool = True) -> Iterable[bytes]:
             time.sleep(CHUNK_MS / 1000)
 
 
-def mic_chunks(ptt: bool = False) -> Iterable[bytes]:
+def mic_chunks(
+    ptt: bool = False, on_ptt: Callable[[bool], None] = lambda on: None
+) -> Iterable[bytes]:
     import queue
 
     import sounddevice as sd  # local-only dependency (stage laptop)
@@ -161,6 +163,7 @@ def mic_chunks(ptt: bool = False) -> Iterable[bytes]:
             for _ in sys.stdin:
                 talking.clear() if talking.is_set() else talking.set()
                 print("PTT", "ON" if talking.is_set() else "OFF", file=sys.stderr)
+                on_ptt(talking.is_set())
 
         threading.Thread(target=toggle, daemon=True).start()
         print("push-to-talk: press Enter to start/stop talking", file=sys.stderr)
@@ -229,7 +232,12 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(out, ensure_ascii=False), flush=True)
 
     listener = Listener(key, on_intent, on_transcript, languages=args.lang)
-    chunks = mic_chunks(not args.open_mic) if args.mic else wav_chunks(args.wav)
+
+    def on_ptt(on: bool) -> None:  # the dashboard's voice panel shows whether the mic is live
+        text = "[push-to-talk ON: speak now]" if on else "[push-to-talk OFF]"
+        post("/api/transcript", {"text": text, "final": True, "language": None})
+
+    chunks = mic_chunks(not args.open_mic, on_ptt) if args.mic else wav_chunks(args.wav)
     try:
         listener.run(chunks)
     except KeyboardInterrupt:
