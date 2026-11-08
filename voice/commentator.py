@@ -300,10 +300,12 @@ def run(
     heard: list[str] | None = None,
     recent: list[str] | None = None,
     child_speaking: Callable[[], bool] = lambda: False,
+    chat: list[str] | None = None,
 ) -> list[dict[str, Any]]:
     """`heard`: what the child said (filled by the voice listener), answered before the gap.
     `recent`: the lines spoken so far (shared with the listener to ignore its own echo).
-    `child_speaking`: the buddy does not start a line of its own while the child talks."""
+    `child_speaking`: the buddy does not start a line of its own while the child talks.
+    `chat`: the conversation (questions and the answers the child really heard)."""
     out.mkdir(parents=True, exist_ok=True)
     path = out / "comments.jsonl"
     n0 = path.read_text(encoding="utf-8").count("\n") if path.exists() else 0  # a reused --out
@@ -367,6 +369,8 @@ def run(
                 if "error" not in row:  # an unheard line may be said again later
                     recent.append(text)
                     last = clock()
+                    if q and chat is not None:
+                        chat.extend([f"Child: {q}", f"You: {text}"])
             rows.append(row)
             log.write(json.dumps(row) + "\n")
             log.flush()
@@ -497,10 +501,7 @@ def main(argv: list[str] | None = None) -> int:
     chat: list[str] = []  # the conversation, so the buddy remembers what you talked about
 
     def ask(shot: Path, recent: list[str], question: str = "") -> str:
-        text = comment(shot, recent, a.age, a.language, level=a.map, question=question, chat=chat)
-        if question:
-            chat.extend([f"Child: {question}", f"You: {text or '(no answer)'}"])
-        return text
+        return comment(shot, recent, a.age, a.language, level=a.map, question=question, chat=chat)
 
     heard: list[str] = []
     recent: list[str] = []
@@ -509,7 +510,7 @@ def main(argv: list[str] | None = None) -> int:
     out.mkdir(parents=True, exist_ok=True)
     greet(HELLO, say, speaker, out / "hello.mp3", recent)
     rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard, recent=recent,
-               child_speaking=child_speaking)  # fmt: skip
+               child_speaking=child_speaking, chat=chat)  # fmt: skip
     greet(BYE, say, speaker, out / "bye.mp3", recent)
     s = summary(rows)
     (out / "summary.json").write_text(json.dumps(s, indent=2))
