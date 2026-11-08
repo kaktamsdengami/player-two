@@ -218,6 +218,10 @@ class Speaker:
         self.proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL)
 
 
+class _Retry(str):
+    """A question put back after its answer failed: it is not put back a second time."""
+
+
 class GameClosed(Exception):
     """The game window is gone: the run ends and the summary is written."""
 
@@ -241,12 +245,10 @@ def run(
     rows: list[dict[str, Any]] = []
     recent: list[str] = []
     start, last = clock(), -MIN_GAP_S
-    retried: set[str] = set()
 
     def requeue(q: str) -> None:  # a question that got no answer is asked once more
-        if q and q not in retried and heard is not None and not heard:
-            retried.add(q)
-            heard.append(q)
+        if q and not isinstance(q, _Retry) and heard is not None and not heard:
+            heard.append(_Retry(q))
 
     try:
         while clock() - start < seconds:
