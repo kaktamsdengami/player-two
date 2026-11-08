@@ -290,7 +290,7 @@ window.HoloDoom = (() => {
       // the view gets a turn towards it instead of a shot (fire comes on the next move, when centred)
       if (move.keys.includes('fire') && move.aim && frame && Math.abs(move.aim.x - frame.w / 2) > frame.w / 6) {
         const dir = move.aim.x < frame.w / 2 ? 'left' : 'right'
-        move.keys = [dir, ...move.keys.filter((k) => !['fire', 'left', 'right', 'up'].includes(k))]
+        move.keys = [dir, ...move.keys.filter((k) => !['fire', 'left', 'right', 'up', 'strafe_left', 'strafe_right'].includes(k))]
         move.hold_ms = Math.min(move.hold_ms, 300)
         move.thought = 'Target is to the ' + dir + ': turning to put it over my gun first.'
         st.turnStreak = 0
