@@ -292,8 +292,20 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
         app.mount("/kid", kid_app(), name="kid")
     except ImportError:
         pass
+    jury = ROOT / "web" / "jury"
+    if jury.is_dir():  # T33: the jury site (hub + five front-ends), plain static pages
+        app.mount("/jury", StaticFiles(directory=jury), name="jury-assets")
+        for name in ("arcade", "live", "lab", "story"):
+            if (jury / name).is_dir():
+                app.mount(f"/{name}", StaticFiles(directory=jury / name, html=True), name=name)
     if (DIST / "index.html").is_file():  # built with VITE_API_BASE=same-origin: one link for all
-        app.mount("/", StaticFiles(directory=DIST, html=True), name="dashboard")
+        app.mount("/dashboard", StaticFiles(directory=DIST, html=True), name="dashboard")
+    if (jury / "index.html").is_file():
+
+        @app.get("/", include_in_schema=False)
+        def hub() -> FileResponse:
+            return FileResponse(jury / "index.html")
+
     return app
 
 
