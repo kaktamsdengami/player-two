@@ -29,6 +29,7 @@ from voice import commentator as c
 ROOT = Path(__file__).resolve().parent.parent
 PAGE = ROOT / "web" / "kid"
 WAD_CANDIDATES = ("data/freedoom1.wad", "freedoom1.wad")
+STALL_S = 2.5  # a healthy answer takes 0.3-0.9 s; past this the call is stuck, ask again
 MAX_IMAGE = 400_000  # a 480-wide JPEG is ~30 KB
 IMAGE_MAGIC = ((b"\xff\xd8\xff", ".jpg"), (b"\x89PNG\r\n\x1a\n", ".png"))
 
@@ -94,6 +95,15 @@ def create_app() -> FastAPI:
     def hello() -> dict:
         return {"hello": c.HELLO, "bye": c.BYE, "voice": c.kid_voice(), "model": c.kid_tts_model()}
 
+    def _comment(shot: Path, body: LineIn) -> str:
+        """One Models call, retried once when it stalls: a stalled call used to cost the whole
+        VISION_TIMEOUT_S and then say nothing, the main "Pixel is slow" complaint."""
+        kw = dict(age=body.age, level=body.level, question=body.question, chat=body.chat)
+        try:
+            return c.comment(shot, body.recent, timeout=STALL_S, **kw)
+        except httpx.TimeoutException:
+            return c.comment(shot, body.recent, timeout=c.VISION_TIMEOUT_S, **kw)
+
     @app.post("/api/kid/line")
     def line(body: LineIn, req: Request) -> dict:
         t_in = time.monotonic()
@@ -113,9 +123,7 @@ def create_app() -> FastAPI:
             shot.write_bytes(raw)
             t0 = time.monotonic()
             try:
-                text = c.comment(shot, body.recent, age=body.age, level=body.level,
-                                 question=body.question, chat=body.chat,
-                                 timeout=c.VISION_TIMEOUT_S)  # fmt: skip
+                text = _comment(shot, body)
             except (httpx.HTTPError, ValueError, KeyError) as e:
                 return {"text": "", "skipped": f"vision: {type(e).__name__}",
                         "vision_s": round(time.monotonic() - t0, 2)}  # fmt: skip
