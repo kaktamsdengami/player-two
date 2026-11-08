@@ -1,6 +1,7 @@
 # RESULTS: stage-laptop runs
 
-Only facts from real runs on the stage laptop (H Agents API, US region). Raw run directories
+Only facts from real runs on the stage laptop (H Agents API, US region). Run records:
+[`eval/runs/`](runs/) (one JSON summary per run). Raw run directories
 (`tester_run.json`, `verdicts.json`, `agent.lmp`, clips) stay on the stage laptop under
 `recordings/`; the outputs were posted on
 [PR #42](https://github.com/kaktamsdengami/player-two/pull/42) and logged in

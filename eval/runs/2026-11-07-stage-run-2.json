@@ -1,0 +1,12 @@
+{
+  "note": "Summary transcribed from the stage-laptop output logged in docs/HANDOFF.md (stage run 2). Raw run dir stays on the stage laptop.",
+  "label": "RECORDED",
+  "mode": "blind",
+  "preset": null,
+  "h_session": "c960e650",
+  "actions": 39,
+  "max_game_tic": 595,
+  "findings": 4,
+  "verified": [{"finding": "F3", "known_bug_ref": "KB4"}],
+  "suspected": ["F1", "F2", "F4"]
+}

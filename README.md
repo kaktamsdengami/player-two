@@ -55,7 +55,8 @@ Code: `agents/` (tester, verifier, fix loop), `launcher/` (game, frame-step, rep
 
 ## Results (honest)
 
-All from stage-laptop runs; details and sources in [eval/RESULTS.md](eval/RESULTS.md).
+All from stage-laptop runs; run records in [eval/runs/](eval/runs/), details in
+[eval/RESULTS.md](eval/RESULTS.md).
 
 | Run | Mode | Result |
 |---|---|---|
