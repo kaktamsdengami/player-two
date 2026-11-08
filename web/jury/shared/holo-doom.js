@@ -73,7 +73,7 @@ window.HoloDoom = (() => {
     const listeners = {}
     const emit = (ev, data) => { (listeners[ev] || []).forEach((f) => f(data)); if (ev === 'step') o.onStep(data); if (ev === 'state') o.onState(data) }
     const on = (ev, f) => { (listeners[ev] = listeners[ev] || []).push(f); return api }
-    const setMode = (m, why) => { st.mode = m; badge.textContent = m === 'live' ? 'LIVE · Holo' : m === 'recorded' ? 'RECORDED' : m === 'human' ? 'YOU' : m; badge.dataset.mode = m; emit('state', Object.assign({ why }, snapshot())) }
+    const setMode = (m, why) => { st.mode = m; ['live', 'recorded', 'human'].forEach((c) => el.classList.toggle(c, c === m)); badge.textContent = m === 'live' ? 'LIVE · Holo' : m === 'recorded' ? 'RECORDED' : m === 'human' ? 'YOU' : m; badge.dataset.mode = m; emit('state', Object.assign({ why }, snapshot())) }
     const snapshot = () => ({ mode: st.mode, step: st.step, human: st.human, thinking: st.thinking, gameReady: st.gameReady, audio: st.audio, latencies: st.latencies.slice(-60), instruction: st.instruction })
 
     // ------------------------------------------------------------------ the game
@@ -301,13 +301,11 @@ window.HoloDoom = (() => {
         const wantLive = o.mode === 'live' || (o.mode === 'auto' && status.live)
         if (wantLive) {
           setMode('live')
-          el.classList.add('live')
           boot()
           await new Promise((res) => on('ready', res))
           emit('state', snapshot())
         } else {
           setMode('recorded', status.live ? 'forced' : 'Holo is resting (no key or demo cap): recorded run')
-          el.classList.add('recorded')
           try { await loadRecorded() } catch (e) { emit('error', e) }
         }
         loop()
@@ -319,17 +317,14 @@ window.HoloDoom = (() => {
         st.human = true
         releaseAll()
         if (!st.gameReady) { boot(); await new Promise((res) => on('ready', res)) }
-        el.classList.add('human'); el.classList.remove('recorded')
         resume()
         game.focus()
         setMode('human')
       },
       giveBack() { // HOLO, YOUR TURN
         st.human = false
-        el.classList.remove('human')
         const live = st.recorded && o.mode !== 'live' && !st.gameReady ? 'recorded' : 'live'
         setMode(live)
-        if (live === 'live') el.classList.add('live')
       },
       async unmute() { // one tap: the browser lets audio play
         st.audio = true
