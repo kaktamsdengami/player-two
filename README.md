@@ -63,6 +63,7 @@ All from stage-laptop runs; run records in [eval/runs/](eval/runs/), details in
 | Stage run 2 | **Blind** (no test plan) | First blind rediscovery: 4 findings, verifier **verified KB4** (long-wall wobble) from the QA log; the other 3 stayed suspected. |
 | Stage run 4, preset `stage-play` | **Spec-based** (visible developer test plan) | 37 actions, 1107 game tics; picked up a shotgun, the invulnerability sphere and bullets; `report_finding` "Sky not inverted during invulnerability power-up". Demo replay 31/31 player samples identical. Verifier: **verified, KB3**, replay `demo`, 10 s clip. |
 | KB3 Devin fix | Devin session from that finding | Fork PR #2, CI green, not merged; scripted replay: 1 → 0 `sky_ignores_colormap` events. |
+| Full live loop, preset `stage-play` | **Spec-based**, started from the dashboard | H found the sky bug, verifier **verified KB3**, narration, Fix (dashboard button) → Devin opened fork [PR #4](https://github.com/kaktamsdengami/chocolate-doom/pull/4) in 2 min → merged → fork CI Windows build → scripted replay: 0 `sky_ignores_colormap` events, grey sky → **FIXED**, 7 min 18 s from Fix to FIXED. 95 agent actions, 0 clicks. |
 
 - **Blind vs spec-based.** Stage presets (`stage-play`, `stage-kb3`) give the agent a visible
   developer test plan that states the expected behaviour under invulnerability. Those runs are
@@ -77,8 +78,11 @@ All from stage-laptop runs; run records in [eval/runs/](eval/runs/), details in
   `sky_ignores_colormap` event and a red sky; after, 0 events and a grey sky like the rest of the
   scene. That session was started from the orchestrator's Devin session on the Devin VM, not by
   `app.main` on the laptop.
-- **Not measured yet:** the same loop end to end via `app.main` live on the stage laptop, with
-  merge + rebuild.
+- **Full live loop (RECORDED, stage laptop):** the same loop ran end to end through `app.main`
+  live, from a dashboard click to FIXED (run record
+  [eval/runs/2026-11-08-stage-live-loop-fixed.json](eval/runs/2026-11-08-stage-live-loop-fixed.json)).
+  The fix was approved with the dashboard button; voice "fix it" was tested separately (9/9 in the
+  mic test), not inside that run. KB3 has no upstream fix, so there is no upstream comparison.
 - Demo content is marked **LIVE** (a real run happening now) or **RECORDED** (a saved run replayed
   from its `events.jsonl`) in the dashboard.
 

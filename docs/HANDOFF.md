@@ -24,8 +24,13 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
   - `voice.listen --mic` is push-to-talk by default;
   - the narration says the played map and the verified bug's title.
 
-  **Waiting for:** a stage rerun through merge -> CI build -> reverify -> FIXED. Do not claim the
-  full loop as done before that.
+  **Done on stage (#42 comment 6715339509, t14 @f6432de):** dashboard click -> H -> verified KB3
+  -> narration -> Fix button -> Devin fork PR chocolate-doom#4 -> merged -> CI build -> replay 0
+  signature events, grey sky -> FIXED in 7 min 18 s (`eval/runs/2026-11-08-stage-live-loop-fixed.json`).
+  Fixes after it: the next round plays the fixed build and is told to re-test the fixed bug in
+  the agent's own words; `foreground()` uses the same AttachThreadInput path as the focus guard
+  (clips showed other windows over the game); push-to-talk ON/OFF shows in the dashboard voice
+  panel. **Not yet seen on stage:** voice "fix it" inside a loop, and the agent re-testing the sky.
 - **H notes:** real H runs only on the stage laptop (US region, `HAI_REGIONS=https://agp.hcompany.ai`).
   The team cancelled the "H showcase" list (#42): no new features, main loop first.
 - **Judging:** round 1 is online (demo video + a live link the jury clicks); stage only for the top 8.
