@@ -110,7 +110,7 @@ def test_fixed_first_round():
     a, rep = loop.run(_finding())
     assert a.result == FixResult.fixed and a.round == 1 and a.finished_at
     assert d.calls == ["create", "follow:pr_open", "merge", "follow:merged"]
-    assert rebuilt == ["qa-run/test"] and rep.clip.name == "round1.mp4"
+    assert rebuilt == ["pull/1/head"] and rep.clip.name == "round1.mp4"
 
 
 def test_one_feedback_round_then_fixed():
@@ -268,3 +268,19 @@ def test_complete_replay_without_signature_is_fixed():
     game = _FakeGame(0, [_event()])
     r = ScriptReplay(game, _bug(), Path("qa/x.txt"), 1, 1, record=False)(_finding(), "round1")
     assert not r.still_there
+
+
+def test_pr_ref_rebuilds_the_pr_head():
+    from agents.fix_loop import pr_ref
+
+    assert pr_ref("https://github.com/o/r/pull/12") == "pull/12/head"
+    assert pr_ref(None) is None
+
+
+def test_qa_script_prefers_the_local_fork(tmp_path):
+    from launcher.build import qa_script
+
+    (tmp_path / "fork" / "qa").mkdir(parents=True)
+    (tmp_path / "fork" / "qa" / "s.txt").write_text("5 shot\n")
+    cfg = type("C", (), {"fork_dir": tmp_path / "fork"})()
+    assert qa_script(cfg, "qa/s.txt", tmp_path / "out") == tmp_path / "fork" / "qa" / "s.txt"

@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import zipfile
 from pathlib import Path
 from urllib.parse import quote
@@ -61,9 +62,46 @@ def find_artifact(ref: str, repo: str = GAME_REPO) -> int:
     raise RuntimeError(f"no Windows build for {ref} yet (fork CI still running?)")
 
 
-def fetch_ci_build(dest: Path, ref: str = QA_BRANCH, repo: str = GAME_REPO) -> Path:
-    """Download the Windows zip that the fork's CI built for `ref` and unpack it into `dest`."""
-    art_id = find_artifact(ref, repo)
+def create_branch(name: str, from_ref: str = QA_BRANCH, repo: str = GAME_REPO) -> None:
+    """Create `name` on GitHub at `from_ref` (no local clone needed; idempotent)."""
+    sha = resolve_sha(from_ref, repo)
+    r = subprocess.run(
+        ["gh", "api", f"repos/{repo}/git/refs", "-f", f"ref=refs/heads/{name}", "-f", f"sha={sha}"],
+        capture_output=True, text=True,
+    )  # fmt: skip
+    if r.returncode and "already exists" not in r.stdout + r.stderr:
+        raise RuntimeError(f"cannot create {name}: {(r.stderr or r.stdout).strip()}")
+
+
+def qa_script(
+    cfg: LauncherConfig, rel: str, dest: Path, ref: str = QA_BRANCH, repo: str = GAME_REPO
+) -> Path:
+    """A QA script (`qa/*.txt`) from the local fork, or downloaded from GitHub when there is no
+    clone (stage laptop)."""
+    local = cfg.fork_dir / rel
+    if local.exists():
+        return local
+    dest.mkdir(parents=True, exist_ok=True)
+    out = dest / Path(rel).name
+    url = f"repos/{repo}/contents/{rel}?ref={quote(ref, safe='')}"
+    out.write_text(_run(["gh", "api", url, "-H", "Accept: application/vnd.github.raw"]) + "\n")
+    return out
+
+
+def fetch_ci_build(
+    dest: Path, ref: str = QA_BRANCH, repo: str = GAME_REPO, wait_s: float = 0, poll_s: float = 20
+) -> Path:
+    """Download the Windows zip that the fork's CI built for `ref` and unpack it into `dest`,
+    waiting up to `wait_s` for CI to finish."""
+    end = time.monotonic() + wait_s
+    while True:
+        try:
+            art_id = find_artifact(ref, repo)
+            break
+        except RuntimeError:
+            if time.monotonic() >= end:
+                raise
+            time.sleep(poll_s)
     tmp = dest / "_artifact"
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
@@ -85,10 +123,11 @@ def fetch_ci_build(dest: Path, ref: str = QA_BRANCH, repo: str = GAME_REPO) -> P
     return exe
 
 
-def pull_and_rebuild(cfg: LauncherConfig, ref: str = QA_BRANCH) -> Path:
-    """After a fix: check out `ref` (e.g. `pull/1/head`) in the fork and rebuild it."""
+def pull_and_rebuild(cfg: LauncherConfig, ref: str = QA_BRANCH, wait_s: float = 1200) -> Path:
+    """After a fix: check out `ref` (e.g. `pull/1/head`) in the fork and rebuild it (Windows: wait
+    for the fork's CI build of `ref` and unpack it next to `cfg.exe`)."""
     if IS_WINDOWS:
-        return fetch_ci_build(cfg.exe.parent, ref)
+        return fetch_ci_build(cfg.exe.parent, ref, wait_s=wait_s)
     _run(["git", "fetch", "-q", "origin", ref], cwd=cfg.fork_dir)
     _run(["git", "checkout", "-q", "--detach", "FETCH_HEAD"], cwd=cfg.fork_dir)
     return build(cfg)

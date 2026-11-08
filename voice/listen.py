@@ -1,7 +1,7 @@
 """Gladia real-time STT -> VoiceIntent.
 
-    python -m voice.listen --mic             # default microphone (`pip install sounddevice`)
-    python -m voice.listen --mic --ptt       # push-to-talk: Enter toggles sending audio
+    python -m voice.listen --mic             # push-to-talk (default): Enter toggles sending audio
+    python -m voice.listen --mic --open-mic  # always on: every transcript reaches the agent
     python -m voice.listen --wav clip.wav    # stream a 16 kHz mono 16-bit WAV (repeatable check)
 
 Each final transcript prints one JSON line `{"transcript": ..., "intent": VoiceIntent|null}`.
@@ -185,7 +185,8 @@ def main(argv: list[str] | None = None) -> int:
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--mic", action="store_true")
     src.add_argument("--wav")
-    ap.add_argument("--ptt", action="store_true", help="push-to-talk (Enter toggles)")
+    ap.add_argument("--ptt", action="store_true", help="push-to-talk (default with --mic)")
+    ap.add_argument("--open-mic", action="store_true", help="no push-to-talk: room talk steers")
     ap.add_argument(
         "--lang", action="append", help="expected language(s), default $P2_VOICE_LANGS or en"
     )
@@ -228,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(out, ensure_ascii=False), flush=True)
 
     listener = Listener(key, on_intent, on_transcript, languages=args.lang)
-    chunks = mic_chunks(args.ptt) if args.mic else wav_chunks(args.wav)
+    chunks = mic_chunks(not args.open_mic) if args.mic else wav_chunks(args.wav)
     try:
         listener.run(chunks)
     except KeyboardInterrupt:

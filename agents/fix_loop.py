@@ -6,6 +6,7 @@ The QA branch keeps its known bugs for the next demo: fixes merge into a per-run
 
 from __future__ import annotations
 
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -36,6 +37,12 @@ class Replay:
 
 def _now() -> datetime:
     return datetime.now(UTC)
+
+
+def pr_ref(pr_url: str | None) -> str | None:
+    """`.../pull/12` -> `pull/12/head`: the merged code, already built by the PR's CI run."""
+    m = re.search(r"/pull/(\d+)", pr_url or "")
+    return f"pull/{m.group(1)}/head" if m else None
 
 
 @dataclass
@@ -123,8 +130,9 @@ class FixLoop:
                 a = self._follow(a, {FixResult.merged, FixResult.failed})
                 if a.result == FixResult.failed:
                     return self._emit(a, "merge failed"), replay
-            self._emit(a, f"merged {a.pr_url}; rebuilding {self.devin.base_branch}")
-            self.rebuild(self.devin.base_branch)
+            ref = pr_ref(a.pr_url) or self.devin.base_branch
+            self._emit(a, f"merged {a.pr_url}; rebuilding {ref}")
+            self.rebuild(ref)
             replay = self.replay(finding, f"round{a.round}")
             fixed = not replay.still_there
             a = a.model_copy(

@@ -17,7 +17,7 @@ import threading
 import time
 import uuid
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
@@ -312,6 +312,7 @@ class Orchestrator:
             self.publish(SseType.narration, self.deps.narrate(f, self.out_dir / "voice"))
         except Exception as e:  # noqa: BLE001 - the clip still plays without a voice
             self.error(f"narration failed: {e}", "narrate")
+        self._drain_intents()  # only a "fix it" said after the narration approves this finding
         f = f.model_copy(update={"status": FindingStatus.presented})
         self.publish(SseType.finding_updated, f)
         self.set_state(SessionState.awaiting_approval)
@@ -433,7 +434,6 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
                rounds: int = 3, plan: str | None = None,
                preset: str | None = None) -> Orchestrator:  # fmt: skip
     """The real thing: H tester, QA-log verifier, ElevenLabs narration, Devin fix loop."""
-    import subprocess
 
     from agents.fix_loop import FixLoop, ScriptReplay, add_comparison, attach_clip
     from agents.oracles import load_known_bugs
@@ -442,8 +442,8 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
     from agents.verifier import Verifier
     from devin.client import DevinClient
     from launcher import capture
-    from launcher.build import pull_and_rebuild
-    from launcher.config import PRESETS, LauncherConfig, Speed
+    from launcher.build import create_branch, pull_and_rebuild, qa_script
+    from launcher.config import IS_WINDOWS, PRESETS, LauncherConfig, Speed
     from launcher.game import Game
     from voice.narrate import narrate
 
@@ -545,8 +545,15 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         bug = bugs[f.known_bug_ref]
         script, ep, mp = scripts[bug.id]
         branch = f"qa-run/{orch.info.id}"
-        subprocess.run(["git", "-C", str(cfg.fork_dir), "push", "-q", "origin",
-                        f"origin/player-two-qa:refs/heads/{branch}"], check=False)  # fmt: skip
+        create_branch(branch)  # GitHub API: the stage laptop has no fork clone
+        fix_dir = out_dir / "fix"
+        # the fixed build goes to its own folder so the next demo still runs the buggy QA build
+        fix_cfg = replace(cfg, exe=fix_dir / "build" / cfg.exe.name) if IS_WINDOWS else cfg
+
+        def rebuild(ref: str) -> Path:
+            fix_cfg.exe = pull_and_rebuild(fix_cfg, ref)
+            return fix_cfg.exe
+
         approved: list[str | None] = []
 
         def approve_once(a: FixAttempt) -> bool:
@@ -558,8 +565,10 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
 
         loop = FixLoop(
             devin=DevinClient.from_env(base_branch=branch),
-            replay=ScriptReplay(Game(cfg, out_dir / "fix"), bug, cfg.fork_dir / script, ep, mp),
-            rebuild=lambda ref: pull_and_rebuild(cfg, ref),
+            replay=ScriptReplay(
+                Game(fix_cfg, fix_dir), bug, qa_script(cfg, script, fix_dir), ep, mp
+            ),
+            rebuild=rebuild,
             approve=approve_once,
             on_update=update,
         )
@@ -575,7 +584,17 @@ def build_live(out_dir: Path, episode: int = 3, map_: int = 1, task: str | None 
         from insights.placement import scout as placement
     except ImportError:
         placement = None
-    deps = Deps(TesterExplorer(), verify, narrate, fix, map=f"E{episode}M{map_}",
+
+    def narrate_verified(f: Finding, out: Path) -> Narration:
+        """Say what the verifier proved, on the map that was played (the agent's own words can
+        be off, e.g. a wrong map name or "walls" for the sky)."""
+        bug = bugs.get(f.known_bug_ref or "")
+        upd = {"location": f"E{episode}M{map_}"}
+        if bug:
+            upd |= {"actual": bug.title, "expected": bug.expected}
+        return narrate(f.model_copy(update=upd), out)
+
+    deps = Deps(TesterExplorer(), verify, narrate_verified, fix, map=f"E{episode}M{map_}",
                 run_dir=run_dir, debrief=debrief, placement=placement,
                 replay={"speed": speed.spec(), "start": cfg.start, "preset": cfg.preset,
                         "plan": plan})  # fmt: skip
