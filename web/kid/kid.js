@@ -36,33 +36,36 @@ function stopVoice() {
   $('face').classList.remove('talking')
 }
 
+let blobOnly = false // after one refused stream, fetch every line whole: one synthesis per line
+
 function say(text, t = {}) {
   return new Promise((resolve) => {
     stopVoice()
     const url = 'api/kid/say?text=' + encodeURIComponent(text)
     const t0 = performance.now()
-    let fellBack = false
-    const a = new Audio(url)
+    const a = new Audio()
     state.audio = a
     state.speaking = true
     $('face').classList.add('talking')
     const done = () => { if (state.audio === a) stopVoice(); resolve() }
+    const fail = () => { status('voice unavailable'); done() }
     a.onplaying = () => { t.voice_ms = Math.round(performance.now() - t0); timing(t) }
     a.onended = done
-    a.onerror = async () => { // some browsers refuse a chunked mp3 stream: play it as a blob
-      if (fellBack || state.audio !== a) return done()
-      fellBack = true
+    const asBlob = async () => { // some browsers refuse a chunked mp3 stream
       try {
         const r = await fetch(url)
         if (!r.ok) throw new Error('HTTP ' + r.status)
         const blob = await r.blob()
         if (state.audio !== a) return done()
-        a.onerror = () => { status('voice unavailable'); done() }
+        a.onerror = fail
         a.src = URL.createObjectURL(blob)
         await a.play()
-      } catch (e) { status('voice unavailable'); done() }
+      } catch (e) { fail() }
     }
-    a.play().catch(() => {})
+    if (blobOnly) return asBlob()
+    a.onerror = () => { if (state.audio !== a) return done(); blobOnly = true; asBlob() }
+    a.src = url
+    a.play().catch((e) => { if (e.name === 'NotAllowedError') fail() }) // a media error goes to onerror
   })
 }
 
