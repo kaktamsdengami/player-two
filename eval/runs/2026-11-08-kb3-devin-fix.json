@@ -1,0 +1,23 @@
+{
+  "note": "Devin fix for the KB3 finding from stage run 4. Started from the orchestrator's Devin session on the Devin VM (no DEVIN_API_KEY there), not by app.main on the stage laptop. The finding JSON was rebuilt from the run's finding text + fixture log lines.",
+  "label": "RECORDED",
+  "input": {
+    "finding_from": "2026-11-08-stage-run-4-stage-play.json",
+    "finding_title": "Sky not inverted during invulnerability power-up",
+    "prompt_template": "devin/prompts/fix_bug.md",
+    "devin_session": "https://app.devin.ai/sessions/0153bbeefe6d4dbfa2c118e8ce2254d2"
+  },
+  "output": {
+    "pr": "https://github.com/kaktamsdengami/chocolate-doom/pull/2",
+    "base": "qa-run/kb3-fix-demo",
+    "ci": "green",
+    "merged": false,
+    "diff": "src/doom/r_plane.c +15/-5 (sky uses fixedcolormap when set)"
+  },
+  "check": {
+    "where": "Devin VM, scripted QA replay qa/kb3_sky_invul_e3m1.txt on E3M1",
+    "before": {"sky_ignores_colormap_events": 1, "sky": "red"},
+    "after": {"sky_ignores_colormap_events": 0, "sky": "grey like the rest of the scene"}
+  },
+  "not_measured": "the same loop end to end via app.main live on the stage laptop, with merge + rebuild"
+}

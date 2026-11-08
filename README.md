@@ -62,6 +62,7 @@ All from stage-laptop runs; run records in [eval/runs/](eval/runs/), details in
 |---|---|---|
 | Stage run 2 | **Blind** (no test plan) | First blind rediscovery: 4 findings, verifier **verified KB4** (long-wall wobble) from the QA log; the other 3 stayed suspected. |
 | Stage run 4, preset `stage-play` | **Spec-based** (visible developer test plan) | 37 actions, 1107 game tics; picked up a shotgun, the invulnerability sphere and bullets; `report_finding` "Sky not inverted during invulnerability power-up". Demo replay 31/31 player samples identical. Verifier: **verified, KB3**, replay `demo`, 10 s clip. |
+| KB3 Devin fix | Devin session from that finding | Fork PR #2, CI green, not merged; scripted replay: 1 → 0 `sky_ignores_colormap` events. |
 
 - **Blind vs spec-based.** Stage presets (`stage-play`, `stage-kb3`) give the agent a visible
   developer test plan that states the expected behaviour under invulnerability. Those runs are
@@ -69,8 +70,16 @@ All from stage-laptop runs; run records in [eval/runs/](eval/runs/), details in
 - **Real bugs.** KB1–KB4 are documented vanilla Doom defects that Chocolate Doom keeps on purpose
   (sources in `eval/known_bugs.yaml`, hidden from the tester). KB3 is id Software's original
   "sky not affected by invulnerability" behaviour in `r_plane.c`; there is no upstream fix to copy.
-- **Not measured yet:** a Devin fix + replay-after-fix for an H-found bug. The fix loop was run
-  end to end once on a scripted KB1 finding (not from the H tester).
+- **Devin fix for the H-found KB3 (RECORDED):** the stage run 4 finding, sent with the product's
+  prompt `devin/prompts/fix_bug.md` to a Devin session, gave fork
+  [PR #2](https://github.com/kaktamsdengami/chocolate-doom/pull/2) (`r_plane.c` +15/-5: the sky
+  uses `fixedcolormap` when set; CI green, not merged). Scripted QA replay on E3M1: before, 1
+  `sky_ignores_colormap` event and a red sky; after, 0 events and a grey sky like the rest of the
+  scene. That session was started from the orchestrator's Devin session on the Devin VM, not by
+  `app.main` on the laptop.
+- **Not measured yet:** the same loop end to end via `app.main` live on the stage laptop, with
+  merge + rebuild. The fix loop did run end to end once on a scripted KB1 finding (not from the H
+  tester).
 - Demo content is marked **LIVE** (a real run happening now) or **RECORDED** (a saved run replayed
   from its `events.jsonl`) in the dashboard.
 

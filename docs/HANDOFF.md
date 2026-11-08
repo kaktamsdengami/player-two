@@ -23,7 +23,8 @@ Update this file before you stop working. Put the newest entry on top. Keep it s
 
 - 2026-11-08 (Devin): README.md rewritten as the submission page (pitch, loop, Mermaid
   architecture, honest results, how to run, credits). `eval/RESULTS.md` lists the stage runs 2
-  (blind, KB4) and 4 (`stage-play`, spec-based, KB3) and what is not measured yet.
+  (blind, KB4) and 4 (`stage-play`, spec-based, KB3), the KB3 Devin fix (fork PR #2, not merged;
+  started from the VM, not `app.main`) and what is not measured yet.
 
 - 2026-11-08 (Devin): stage run 4 (`stage-play`, session `0d17032d…`): the agent called
   `report_finding` on the sky (KB3), replay 31/31 in sync, but the verifier replayed key presses

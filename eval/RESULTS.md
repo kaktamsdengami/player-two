@@ -25,9 +25,26 @@ Only facts from real runs on the stage laptop (H Agents API, US region). Run rec
 - Demo replay (`agent.lmp`): 31/31 player samples identical.
 - Verifier: status **verified**, `known_bug_ref` **KB3**, replay `demo`, 10 s clip.
 
+## KB3 Devin fix for the stage run 4 finding (RECORDED)
+
+Record: [`runs/2026-11-08-kb3-devin-fix.json`](runs/2026-11-08-kb3-devin-fix.json).
+
+- Input: the KB3 finding the H tester reported in stage run 4 ("Sky not inverted during
+  invulnerability power-up"), sent with the product's prompt template `devin/prompts/fix_bug.md`
+  to a [Devin session](https://app.devin.ai/sessions/0153bbeefe6d4dbfa2c118e8ce2254d2).
+  That session was started from the orchestrator's Devin session on the Devin VM (no
+  `DEVIN_API_KEY` there), **not** by `app.main` on the stage laptop. The finding JSON was rebuilt
+  from the run's finding text + fixture log lines.
+- Output: fork [PR #2](https://github.com/kaktamsdengami/chocolate-doom/pull/2) (base
+  `qa-run/kb3-fix-demo`, CI green, **not merged**): `src/doom/r_plane.c` +15/-5, the sky uses
+  `fixedcolormap` when set.
+- Check (Devin VM, scripted QA replay `qa/kb3_sky_invul_e3m1.txt` on E3M1): before, 1
+  `sky_ignores_colormap` event and a red sky; after, 0 events and a grey sky like the rest of
+  the scene.
+
 ## Not measured yet
 
-- Devin fix + rebuild + replay-after-fix for a bug found by the H tester.
+- The same loop end to end via `app.main` live on the stage laptop, with merge + rebuild.
 - Recall or false-positive rates over many runs (only the runs above exist).
 
 The fix loop itself ran once end to end on a scripted KB1 finding (not from the H tester): Devin
