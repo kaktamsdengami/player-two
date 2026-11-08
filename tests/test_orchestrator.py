@@ -252,3 +252,15 @@ def test_summary_is_written_without_insights_and_write_errors_are_not_fatal(tmp_
     o2.intent(VoiceIntent(intent=Intent.skip, source="button"))
     o2._thread.join(5)
     assert o2.info.state == SessionState.done and o2.store.debrief is None
+
+
+def test_stale_fix_intent_does_not_approve_a_later_finding(tmp_path):
+    o = _orch(tmp_path)
+    o.intent(VoiceIntent(intent=Intent.fix, source="voice"))  # said before any finding
+    o.start()
+    _wait(lambda: o.info.state == SessionState.awaiting_approval)
+    time.sleep(0.5)
+    assert o.info.state == SessionState.awaiting_approval
+    o.intent(VoiceIntent(intent=Intent.skip, source="button"))
+    o._thread.join(5)
+    assert "fixing" not in _states(o) and not o.store.fixes

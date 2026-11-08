@@ -306,6 +306,7 @@ class Orchestrator:
         if f.status != FindingStatus.verified:
             return
         self._check()
+        self._drain_intents()  # a "fix it" said before this finding must not approve it
         self.set_state(SessionState.presenting)
         try:
             self.publish(SseType.narration, self.deps.narrate(f, self.out_dir / "voice"))
@@ -314,7 +315,9 @@ class Orchestrator:
         f = f.model_copy(update={"status": FindingStatus.presented})
         self.publish(SseType.finding_updated, f)
         self.set_state(SessionState.awaiting_approval)
-        if not self.wait_for_fix():
+        approved = self.wait_for_fix()
+        self._drain_intents()  # repeated transcripts of the same "fix it" must not carry over
+        if not approved:
             return
         f = f.model_copy(update={"status": FindingStatus.fixing})
         self.publish(SseType.finding_updated, f)
@@ -337,6 +340,13 @@ class Orchestrator:
         status = FindingStatus.fixed if a.result == FixResult.fixed else FindingStatus.presented
         self.publish(SseType.finding_updated, f.model_copy(update={"status": status}))
         self._check()
+
+    def _drain_intents(self) -> None:
+        while True:
+            try:
+                self.intents.get_nowait()
+            except queue.Empty:
+                return
 
     def wait_for_fix(self) -> bool:
         end = time.monotonic() + self.approval_timeout_s
