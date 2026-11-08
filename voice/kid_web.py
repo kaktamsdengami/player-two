@@ -151,7 +151,11 @@ def create_app() -> FastAPI:
             raise HTTPException(502, f"ElevenLabs HTTP {r.status_code}")
 
         chunks = r.iter_bytes()
-        first = next(chunks, b"")  # wait for the first audio here: its delay goes in a header
+        try:  # wait for the first audio here: its delay goes in a header
+            first = next(chunks, b"")
+        except httpx.HTTPError as e:
+            r.close()
+            raise HTTPException(504, f"ElevenLabs stalled: {type(e).__name__}") from e
         first_ms = round((time.monotonic() - t0) * 1000)
 
         def audio() -> Iterator[bytes]:
