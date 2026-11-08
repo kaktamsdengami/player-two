@@ -240,6 +240,7 @@ window.HoloDoom = (() => {
         st.errors = 0
         st.busyCount = 0
       } catch (e) {
+        if (keepFire) up('fire', { ctrl: true })
         if (e.capped) { setMode('recorded', e.message); st.thinking = false; return 'capped' }
         if (e.busy) { // the shared H budget is spent for this minute: everyone else gets a turn first
           if (e.retryAfter) { st.busyUntil = Date.now() + e.retryAfter * 1000; emit('busy', { retryAfter: e.retryAfter }) }
