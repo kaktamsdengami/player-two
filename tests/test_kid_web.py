@@ -47,3 +47,13 @@ def test_line_rejects_non_images(client):
 def test_page_is_served(client):
     r = client.get("/")
     assert r.status_code == 200 and "Play with Pixel" in r.text
+
+
+def test_dashboard_serves_kid_mode_at_kid():
+    from fastapi.testclient import TestClient
+
+    from app.main import create_app
+
+    c = TestClient(create_app())
+    assert c.get("/kid", follow_redirects=False).headers["location"] == "/kid/"
+    assert "Pixel" in c.get("/kid/").text

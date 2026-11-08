@@ -76,14 +76,15 @@ def _wad() -> Path:
 
 def create_app() -> FastAPI:
     c._env()
-    lines = Budget(_int("P2_KID_MAX_LINES", 1500), 1.5)
-    voice = Budget(_int("P2_KID_MAX_SAYS", 800), 1.0)
-    ears = Budget(_int("P2_KID_MAX_LISTENS", 300), 2.0)
+    lines = Budget(_int("P2_KID_MAX_LINES", 4000), 1.5)
+    voice = Budget(_int("P2_KID_MAX_SAYS", 2000), 1.0)
+    ears = Budget(_int("P2_KID_MAX_LISTENS", 600), 2.0)
     http = httpx.Client(timeout=30)
     app = FastAPI(title="PLAYER TWO kid mode")
 
     def who(req: Request) -> str:
-        return req.headers.get("cf-connecting-ip") or (req.client.host if req.client else "?")
+        ip = req.headers.get("cf-connecting-ip") or (req.client.host if req.client else "?")
+        return f"{ip}/{req.query_params.get('c', '')[:32]}"  # one jury wifi = one IP, many tabs
 
     @app.get("/doom1.wad")
     def wad() -> FileResponse:

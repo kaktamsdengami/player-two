@@ -15,7 +15,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -255,6 +255,16 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             raise HTTPException(404, "not found")
         return FileResponse(p)
 
+    try:  # kid mode in the browser at /kid/: the same link and server as the dashboard
+        from voice.kid_web import create_app as kid_app
+
+        @app.get("/kid", include_in_schema=False)
+        def kid_slash() -> RedirectResponse:
+            return RedirectResponse("/kid/")  # the page uses relative URLs
+
+        app.mount("/kid", kid_app(), name="kid")
+    except ImportError:
+        pass
     if (DIST / "index.html").is_file():  # built with VITE_API_BASE=same-origin: one link for all
         app.mount("/", StaticFiles(directory=DIST, html=True), name="dashboard")
     return app
