@@ -146,8 +146,9 @@ def run(
                     except (httpx.HTTPError, RuntimeError, OSError) as e:
                         row["error"] = f"speech failed: {e}"
                         print(row["error"], file=sys.stderr)
-                recent.append(text)
-                last = clock()
+                if "error" not in row:  # an unheard line may be said again later
+                    recent.append(text)
+                    last = clock()
             rows.append(row)
             log.write(json.dumps(row) + "\n")
             log.flush()
