@@ -29,13 +29,20 @@ SAMPLE_RATE = 16000
 CHUNK_MS = 100
 
 
+def default_languages() -> list[str]:
+    """P2_VOICE_LANGS (comma list), default English only: live code switching en+fr heard French
+    commands as English nonsense on the stage mic."""
+    return [x.strip() for x in os.environ.get("P2_VOICE_LANGS", "en").split(",") if x.strip()]
+
+
 def init_config(languages: list[str] | None = None) -> dict:
+    languages = languages or default_languages()
     return {
         "encoding": "wav/pcm",
         "sample_rate": SAMPLE_RATE,
         "bit_depth": 16,
         "channels": 1,
-        "language_config": {"languages": languages or ["en", "fr"], "code_switching": True},
+        "language_config": {"languages": languages, "code_switching": len(languages) > 1},
         "messages_config": {"receive_partial_transcripts": True},
     }
 
@@ -105,8 +112,10 @@ class Listener:
         with connect(session["url"]) as ws:
             reader = threading.Thread(target=self._read, args=(ws,), daemon=True)
             reader.start()
-            for chunk in chunks:
+            for i, chunk in enumerate(chunks):
                 ws.send(chunk)
+                if i == 0:  # mic and Gladia are both up: phrases said before this are lost
+                    print("voice: listening, speak now", file=sys.stderr, flush=True)
             ws.send(json.dumps({"type": "stop_recording"}))
             reader.join(timeout=30)
 
@@ -177,7 +186,9 @@ def main(argv: list[str] | None = None) -> int:
     src.add_argument("--mic", action="store_true")
     src.add_argument("--wav")
     ap.add_argument("--ptt", action="store_true", help="push-to-talk (Enter toggles)")
-    ap.add_argument("--lang", action="append", help="expected language(s), default en+fr")
+    ap.add_argument(
+        "--lang", action="append", help="expected language(s), default $P2_VOICE_LANGS or en"
+    )
     ap.add_argument("--post", help="orchestrator base URL; POST each intent to /api/intent")
     args = ap.parse_args(argv)
 

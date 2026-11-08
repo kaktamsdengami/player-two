@@ -5,7 +5,13 @@ import pytest
 
 from app.contracts import Intent, VoiceIntent
 from voice.intents import button_intent, normalize, parse_intent
-from voice.listen import Listener, handle_message, init_config, start_session
+from voice.listen import (
+    Listener,
+    default_languages,
+    handle_message,
+    init_config,
+    start_session,
+)
 
 
 @pytest.mark.parametrize(
@@ -146,7 +152,7 @@ def test_start_session_posts_config():
     assert seen["url"] == "https://api.gladia.io/v2/live"
     assert seen["key"] == "secret"
     assert seen["body"] == init_config()
-    assert seen["body"]["language_config"]["languages"] == ["en", "fr"]
+    assert seen["body"]["language_config"]["languages"] == default_languages()
 
 
 def test_start_session_error():
@@ -159,3 +165,11 @@ def test_negated_stop_does_not_stop():
     for text in ["don't stop yet", "do not stop", "keep going, don't stop"]:
         i = parse_intent(text)
         assert i is None or i.intent != "stop", text
+
+
+def test_init_config_defaults_to_english_without_code_switching(monkeypatch):
+    monkeypatch.delenv("P2_VOICE_LANGS", raising=False)
+    assert init_config()["language_config"] == {"languages": ["en"], "code_switching": False}
+    monkeypatch.setenv("P2_VOICE_LANGS", "en, fr")
+    assert init_config()["language_config"] == {"languages": ["en", "fr"], "code_switching": True}
+    assert init_config(["fr"])["language_config"] == {"languages": ["fr"], "code_switching": False}
