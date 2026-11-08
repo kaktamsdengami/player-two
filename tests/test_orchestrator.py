@@ -165,7 +165,9 @@ def test_api_snapshot_intent_stop_and_media(tmp_path):
     assert c.post("/api/session/start", json={"mode": "live"}).json()["live"] is True
     _wait(lambda: rt.current.info.state == SessionState.awaiting_approval)
     assert c.get("/api/findings").json()[0]["status"] == "presented"
-    assert c.post("/api/intent", json={"intent": "fix", "source": "button"}).status_code == 200
+    assert c.post("/api/intent/text", json={"text": "thanks"}).status_code == 422  # small talk
+    r = c.post("/api/intent/text", json={"text": "fix it"})  # the typed microphone
+    assert r.status_code == 200 and r.json()["intent"] == "fix"
     rt.current._thread.join(5)
     assert c.get("/api/session").json()["state"] == "done"
     assert c.get("/api/fixes").json()[0]["result"] == "fixed"

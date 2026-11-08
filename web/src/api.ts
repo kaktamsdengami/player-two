@@ -83,6 +83,7 @@ async function post<T = unknown>(path: string, body?: unknown): Promise<T | null
 }
 
 export const sendIntent = (intent: VoiceIntent) => post('/api/intent', intent)
+export const sendText = (text: string) => post('/api/intent/text', { text })
 export const stopSession = () => post('/api/stop')
 export const getPtt = () => get<{ on: boolean }>('/api/ptt')
 export const setPtt = (on: boolean) => post<{ on: boolean }>('/api/ptt', { on })

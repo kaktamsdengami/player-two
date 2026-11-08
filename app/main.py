@@ -28,10 +28,17 @@ from app.orchestrator import Orchestrator, Recorded, sse_format
 from app.routes_billing import router as billing_router
 from app.routes_holo import create_router as holo_router
 from app.routes_live import create_router as live_router
+from voice.intents import parse_intent
 
 ROOT = Path(__file__).resolve().parent.parent
 MOCK = ROOT / "docs" / "api-mock.json"
 DIST = Path(__file__).resolve().parent.parent / "web" / "dist"
+
+
+class TextIn(BaseModel):
+    text: str
+
+
 MEDIA_SUFFIXES = {
     ".mp4",
     ".webm",
@@ -216,6 +223,20 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
             raise HTTPException(409, "no session")
         rt.current.intent(i)
         return {"ok": True}
+
+    @app.post("/api/intent/text", dependencies=[Depends(control)])
+    def intent_text(body: TextIn) -> Any:
+        """The typed equivalent of the microphone: the dashboard sends what the tester wrote."""
+        if not rt.current:
+            raise HTTPException(409, "no session")
+        i = parse_intent(body.text)
+        if i is None:
+            raise HTTPException(422, "not an instruction: say what to do, e.g. 'fix it', 'skip'")
+        rt.current.publish(
+            SseType.transcript, TranscriptPayload(text=body.text.strip(), final=True)
+        )
+        rt.current.intent(i)
+        return i.model_dump(mode="json")
 
     @app.post("/api/transcript", dependencies=[Depends(control)])
     def transcript(t: TranscriptPayload) -> Any:

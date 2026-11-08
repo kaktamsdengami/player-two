@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react'
-import { API_BASE, USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, getPtt, sendIntent, setPtt, startSession, stopSession, subscribe } from './api'
+import { API_BASE, USING_MOCK, VIEW_ONLY, checkout, loadSnapshot, media, sendIntent, sendText, startSession, stopSession, subscribe } from './api'
 import { initialState, reducer, type Voice } from './state'
 import type { AgentAction, Finding, FixAttempt, Intent, Narration, Snapshot } from './types'
 
@@ -283,33 +283,28 @@ function NewRun({ running }: { running: boolean }) {
 const INTENTS: Intent[] = ['fix', 'skip', 'explain', 'yes', 'no', 'stop']
 
 function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: Intent) => void; enabled: boolean }) {
-  const [talking, setTalking] = useState(false)
+  const [text, setText] = useState('')
+  const [sent, setSent] = useState(0)
   const [pttError, setPttError] = useState<string | null>(null)
-  useEffect(() => {
-    // Enter in the voice terminal also toggles push-to-talk; the backend echoes it as a transcript.
-    if (voice.transcript?.startsWith('[push-to-talk ON')) setTalking(true)
-    else if (voice.transcript?.startsWith('[push-to-talk OFF')) setTalking(false)
-  }, [voice.transcript, voice.at])
-  useEffect(() => {
-    // The backend holds the state: re-read it on mount so a live mic never shows as muted.
-    if (!enabled || USING_MOCK) return setTalking(false)
-    getPtt().then((r) => setTalking(!!r?.on), () => setTalking(false))
-  }, [enabled])
-  const talk = () =>
-    setPtt(!talking).then(
-      (r) => {
-        setTalking(r ? r.on : false)
+  const say = () => {
+    const t = text.trim()
+    if (!t) return
+    sendText(t).then(
+      () => {
+        setText('')
+        setSent(Date.now())
         setPttError(null)
       },
       (e: Error) => setPttError(e.message),
     )
-  const fresh = enabled && (talking || Date.now() - voice.at < 4000)
+  }
+  const fresh = enabled && (Date.now() - sent < 4000 || Date.now() - voice.at < 4000)
   return (
     <div className="voice">
       <div className={`mic ${fresh ? 'hot' : ''}`} aria-label="voice activity" />
       <div className="voice-text">
         {voice.speaking && <div className="speaking">{voice.speaking.text}</div>}
-        <div className={voice.final ? '' : 'dim'}>{voice.transcript ? `“${voice.transcript}”` : 'Say “fix it”, “skip”, “stop”…'}</div>
+        <div className={voice.final ? '' : 'dim'}>{voice.transcript ? `“${voice.transcript}”` : 'Type “fix it”, “skip”, “stop”… below'}</div>
         {voice.intent && (
           <div className="intent">
             intent: <b>{voice.intent.intent}</b> ({voice.intent.source})
@@ -318,14 +313,15 @@ function VoicePanel({ voice, onIntent, enabled }: { voice: Voice; onIntent: (i: 
       </div>
       {!VIEW_ONLY && (
         <>
-      <button
-        className={`talk ${talking ? 'on' : ''}`}
-        onClick={talk}
+      <input
+        className="talk"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') say(); e.stopPropagation() }}
         disabled={!enabled || USING_MOCK}
-        title={USING_MOCK ? 'Needs the live backend and the voice listener' : 'Mic on/off (the voice listener follows this)'}
-      >
-        {talking ? '■ Listening… click to stop' : '● Talk'}
-      </button>
+        placeholder={enabled ? 'Type to the tester and press Enter: “fix it”, “skip”, “explain”, “go left”…' : 'Start a run first'}
+        title={USING_MOCK ? 'Needs the live backend' : 'Typed instruction: parsed like a spoken one'}
+      />
       {pttError && <div className="talk-error">{pttError}</div>}
       <div className="intent-buttons">
         {INTENTS.map((i) => (
