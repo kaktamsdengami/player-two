@@ -233,7 +233,7 @@ class Orchestrator:
         if grab and run_dir and not a.screenshot:  # what the key press did, for the viewers
             try:
                 (run_dir / "steps").mkdir(parents=True, exist_ok=True)
-                got = grab(run_dir / "steps" / f"{a.step:04d}.jpg")
+                got = grab(run_dir / "steps" / f"{a.step:04d}-{time.monotonic_ns()}.jpg")
                 if got:
                     a = a.model_copy(update={"screenshot": str(got)})
             except Exception:  # noqa: BLE001 - a missing frame never stops the run

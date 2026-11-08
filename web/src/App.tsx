@@ -225,7 +225,7 @@ function Filmstrip({ actions }: { actions: AgentAction[] }) {
   return (
     <div className="filmstrip">
       {steps.map((a) => (
-        <figure key={a.step}>
+        <figure key={a.screenshot!}>
           <img src={media(a.screenshot)!} alt={`step ${a.step}`} loading="lazy" />
           <figcaption><b>{keyLabel(a)}</b> · step {a.step}</figcaption>
         </figure>

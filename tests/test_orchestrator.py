@@ -334,4 +334,4 @@ def test_each_action_carries_a_frame_of_the_game(tmp_path):
     o.on_action(AgentAction(session_id="h1", step=3, ts=NOW, t_session_s=1.0,
                             kind="key_press", keys=["left"]))  # fmt: skip
     shot = [e.data for e in o.bus.events if e.type == SseType.agent_action][-1]["screenshot"]
-    assert shot == str(tmp_path / "steps" / "0003.jpg")
+    assert shot.startswith(str(tmp_path / "steps" / "0003-")) and shot.endswith(".jpg")
