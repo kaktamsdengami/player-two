@@ -314,3 +314,30 @@ def test_stream_voice_stop_kills_the_player(tmp_path, monkeypatch):
     v.stop()
     assert not v.busy()  # at once, even if the download were still stalled
     v.proc.wait(5)
+
+
+def test_the_buddy_keeps_it_short_and_remembers_the_talk():
+    long = (
+        "Hi there! I'm doing super well, thanks for asking! I'm really excited to play Doom"
+        " with you. Ready?"
+    )
+    assert c.trim(long, 18) == "Hi there! I'm doing super well, thanks for asking!"
+    assert c.trim("One very long sentence " * 10, 5).startswith("One")
+    p = c.prompt(8, "English", [], "E1M1", "What did I ask first?", ["Child: Hi Pixel", "You: Hi!"])
+    assert p.index("Child: Hi Pixel") < p.index('"What did I ask first?"')
+
+
+def test_hello_and_goodbye_are_spoken_and_remembered(tmp_path):
+    said, recent = [], []
+
+    class Quiet:
+        def busy(self):
+            return False
+
+        def __call__(self, path):
+            said.append(path)
+
+    c.greet(c.HELLO, lambda text, path: path, Quiet(), tmp_path / "hello.mp3", recent)
+    assert said == [tmp_path / "hello.mp3"] and recent == [c.HELLO]
+    c.greet(c.BYE, None, Quiet(), tmp_path / "bye.mp3", recent)  # --no-voice: silent
+    assert recent == [c.HELLO]

@@ -22,6 +22,7 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -57,7 +58,25 @@ def _env() -> None:
         pass
 
 
-def prompt(age: int, language: str, recent: list[str], level: str = "", question: str = "") -> str:
+KID_VOICE = "cgSgspJ2msm6clMCkdW9"  # ElevenLabs premade "Jessica": playful, bright, warm
+VOICE_SETTINGS = {"stability": 0.35, "similarity_boost": 0.8, "use_speaker_boost": True}
+CHAT = 12  # lines of the conversation the buddy remembers
+HELLO = "Hey, I'm Pixel! Ready to play Doom together?"
+BYE = "That was so much fun! See you next time, buddy!"
+
+
+def kid_voice() -> str:
+    return os.environ.get("P2_KID_VOICE", KID_VOICE)
+
+
+def prompt(
+    age: int,
+    language: str,
+    recent: list[str],
+    level: str = "",
+    question: str = "",
+    chat: list[str] | None = None,
+) -> str:
     text = PROMPT.read_text(encoding="utf-8")
     lines = "\n".join(f"- {r}" for r in recent[-RECENT:]) or "(nothing yet)"
     return (
@@ -66,6 +85,7 @@ def prompt(age: int, language: str, recent: list[str], level: str = "", question
         .replace("{language}", language)
         .replace("{recent}", lines)
         .replace("{question}", f'"{question}"' if question else "(nothing)")
+        .replace("{chat}", "\n".join((chat or [])[-CHAT:]) or "(nothing yet)")
     )
 
 
@@ -77,6 +97,7 @@ def comment(
     timeout: float = 30,
     level: str = "",
     question: str = "",
+    chat: list[str] | None = None,
 ) -> str:
     """One line for the child about this screenshot, or "" when the model says SKIP."""
     _env()
@@ -84,12 +105,12 @@ def comment(
     mime = "jpeg" if shot.suffix.lower() in (".jpg", ".jpeg") else "png"
     body = {
         "model": os.environ.get("P2_KID_MODEL", MODEL),
-        "temperature": 0.7,
+        "temperature": 0.9,
         "max_tokens": 600,  # a reasoning model: a small cap is all spent thinking, no answer
         "chat_template_kwargs": {"enable_thinking": False},  # faster when the API honours it
         "messages": [{"role": "user", "content": [
             {"type": "image_url", "image_url": {"url": f"data:image/{mime};base64,{img}"}},
-            {"type": "text", "text": prompt(age, language, recent, level, question)},
+            {"type": "text", "text": prompt(age, language, recent, level, question, chat)},
         ]}],
     }  # fmt: skip
     headers = {"Authorization": f"Bearer {os.environ['HAI_API_KEY']}"}
@@ -103,7 +124,19 @@ def comment(
     if content is None and choice.get("finish_reason") == "length":
         raise ValueError("the model used all max_tokens on reasoning: no line")
     text = re.sub(r"<think>.*?</think>", "", content or "", flags=re.S).strip().strip('"')
-    return "" if not text or text.upper().startswith("SKIP") else text
+    if not text or text.upper().startswith("SKIP"):
+        return ""
+    return trim(text, 25 if question else 18)
+
+
+def trim(text: str, words: int) -> str:
+    """Whole sentences up to `words` words: a buddy says a little, not a speech."""
+    out: list[str] = []
+    for s in re.split(r"(?<=[.!?])\s+", text):
+        if out and len(" ".join([*out, s]).split()) > words:
+            break
+        out.append(s)
+    return " ".join(out)
 
 
 def on_top(handle: int) -> bool:
@@ -142,11 +175,12 @@ class StreamVoice:
         key = os.environ.get("ELEVENLABS_API_KEY")
         if not key or not self.exe:
             raise RuntimeError("streaming voice needs ELEVENLABS_API_KEY and ffplay")
-        voice = os.environ.get("ELEVENLABS_VOICE_ID", self.tts.DEFAULT_VOICE)
+        voice = kid_voice()
         model = os.environ.get("ELEVENLABS_MODEL", self.tts.DEFAULT_MODEL)
         req = self.http.build_request(
             "POST", self.URL.format(voice=voice), headers={"xi-api-key": key},
-            params={"output_format": "mp3_44100_128"}, json={"text": text, "model_id": model},
+            params={"output_format": "mp3_44100_128"},
+            json={"text": text, "model_id": model, "voice_settings": VOICE_SETTINGS},
         )  # fmt: skip
         r = self.http.send(req, stream=True)
         if r.status_code >= 400:
@@ -403,6 +437,21 @@ def listen(
     return lambda: time.monotonic() - voice_at[0] < 2.0
 
 
+def greet(line: str, say: Any, speaker: Any, path: Path, recent: list[str]) -> None:
+    """Say hello / goodbye and wait for it to finish (a failed voice is not a reason to stop)."""
+    if not say:
+        return
+    try:
+        audio = say(line, path)
+        speaker(getattr(audio, "path", audio))
+        recent.append(line)
+        end = time.monotonic() + 10
+        while speaker.busy() and time.monotonic() < end:
+            time.sleep(0.1)
+    except (httpx.HTTPError, RuntimeError, OSError) as e:
+        print(f"greeting failed: {e}", file=sys.stderr)
+
+
 def main(argv: list[str] | None = None) -> int:
     from launcher.window import find_window
 
@@ -439,17 +488,25 @@ def main(argv: list[str] | None = None) -> int:
         else:
             from voice.tts import speak
 
-            say = speak
+            say = partial(speak, voice=kid_voice())
+
+    chat: list[str] = []  # the conversation, so the buddy remembers what you talked about
 
     def ask(shot: Path, recent: list[str], question: str = "") -> str:
-        return comment(shot, recent, a.age, a.language, level=a.map, question=question)
+        text = comment(shot, recent, a.age, a.language, level=a.map, question=question, chat=chat)
+        if question:
+            chat.extend([f"Child: {question}", f"You: {text or '(no answer)'}"])
+        return text
 
     heard: list[str] = []
     recent: list[str] = []
     child_speaking = listen(heard, speaker, a.language, recent) if a.talk else (lambda: False)
 
+    out.mkdir(parents=True, exist_ok=True)
+    greet(HELLO, say, speaker, out / "hello.mp3", recent)
     rows = run(grab, out, a.minutes * 60, ask, say, speaker, heard=heard, recent=recent,
                child_speaking=child_speaking)  # fmt: skip
+    greet(BYE, say, speaker, out / "bye.mp3", recent)
     s = summary(rows)
     (out / "summary.json").write_text(json.dumps(s, indent=2))
     print(json.dumps(s), flush=True)
