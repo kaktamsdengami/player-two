@@ -529,7 +529,7 @@ function DevinLive({ fix, live }: { fix: FixAttempt; live: boolean }) {
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [live, over])
-  const end = over && fix.finished_at ? Date.parse(fix.finished_at) : live && !over ? now : NaN
+  const end = live && !over ? now : fix.finished_at ? Date.parse(fix.finished_at) : NaN
   const elapsed = (end - Date.parse(fix.started_at)) / 1000
   return (
     <div className={`devin-live ${done ? 'ok' : failed ? 'bad' : ''}`}>
