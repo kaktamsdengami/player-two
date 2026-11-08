@@ -31,9 +31,11 @@ function addChat(who, text) {
 
 function stopVoice() {
   if (state.audio) { state.audio.pause(); state.audio.src = '' }
-  state.audio = null
+  const settle = state.settle // an interrupted line still ends its say(), so the turn frees up
+  state.settle = state.audio = null
   state.speaking = false
   $('face').classList.remove('talking')
+  if (settle) settle()
 }
 
 // one id per tab: many jurors share one venue IP, the server's per-client limits use both
@@ -48,6 +50,7 @@ function say(text, t = {}) {
     const t0 = performance.now()
     const a = new Audio()
     state.audio = a
+    state.settle = resolve
     state.speaking = true
     $('face').classList.add('talking')
     const done = () => { if (state.audio === a) stopVoice(); resolve() }
