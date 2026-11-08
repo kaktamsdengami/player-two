@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import re
 import threading
 import time
 from datetime import UTC, datetime
@@ -17,6 +18,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, RedirectResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -131,6 +133,18 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     origins = [o.strip() for o in os.environ.get("P2_CORS_ORIGINS", DEV_ORIGINS).split(",")]
     app.add_middleware(CORSMiddleware, allow_origins=[o for o in origins if o],
                        allow_methods=["*"], allow_headers=["*"])  # fmt: skip
+    app.add_middleware(GZipMiddleware, minimum_size=1024)
+
+    @app.middleware("http")
+    async def static_cache(request: Request, call_next):  # type: ignore[no-untyped-def]
+        resp = await call_next(request)
+        path = request.url.path
+        if re.search(r"\.(wasm|wad|jpg|png|woff2?)$", path) or "/assets/" in path:
+            resp.headers.setdefault("Cache-Control", "public, max-age=604800, immutable")
+        elif re.search(r"\.(js|css)$", path):
+            resp.headers.setdefault("Cache-Control", "public, max-age=3600")
+        return resp
+
     app.include_router(billing_router)
     app.include_router(holo_router())
     app.include_router(live_router())
@@ -297,7 +311,7 @@ def create_app(rt: Runtime | None = None) -> FastAPI:
     jury = ROOT / "web" / "jury"
     if jury.is_dir():  # T33: the jury site (hub + five front-ends), plain static pages
         app.mount("/jury", StaticFiles(directory=jury), name="jury-assets")
-        for name in ("arcade", "live", "lab", "story"):
+        for name in ("arcade", "live", "lab", "story"):  # the five jury front-ends (+ /kid/)
             if (jury / name).is_dir():
                 app.mount(f"/{name}", StaticFiles(directory=jury / name, html=True), name=name)
     if (DIST / "index.html").is_file():  # built with VITE_API_BASE=same-origin: one link for all
