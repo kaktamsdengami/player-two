@@ -169,7 +169,10 @@ def prompt(recent: list[dict[str, Any]], instruction: str, w: int, h: int, stall
         thought = str(r.get("thought", ""))[:80]
         lines.append(f"- {keys or '(none)'} {r.get('hold_ms', '')}ms: {thought}")
     if stalled:
-        lines.append("- (the view has not changed for several moves: you are STUCK, turn around)")
+        lines.append(
+            "- (the view has not changed for several moves: you are STUCK against something. "
+            "Hold `left` 900 ms to turn around, or `use` if a door or panel is in front)"
+        )
     ask = ""
     if instruction.strip():
         ask = (
